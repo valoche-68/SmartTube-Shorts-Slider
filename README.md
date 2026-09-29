@@ -161,39 +161,54 @@ Choisissez l'APK adapté au matériel de votre téléviseur :
 
 ---
 
-### 🔄 Guide de Migration (Conserver 100% de ses données et comptes)
+### 🔄 Guide de Migration : Conserver ses Données & Comptes
 
-Les signatures officielles de SmartTube et de ce fork étant différentes pour des raisons de sécurité cryptographique, il est nécessaire de transférer vos données lors du premier passage.
+Les signatures officielles de SmartTube et de ce fork étant différentes pour des raisons de sécurité cryptographique, Android n'autorise pas l'installation par-dessus sans migrer préalablement vos données.
 
-#### Méthode 1 : Directement sur la TV avec la télécommande (Sans PC)
-1. Ouvrez votre SmartTube actuel sur votre TV.
-2. Allez dans **Paramètres > Général > Sauvegarder les données**.
-3. Désinstallez l'ancienne application SmartTube (le fichier de sauvegarde reste présent dans le stockage de la TV).
-4. Ouvrez l'application **Downloader** sur votre TV et installez l'APK correspondant à votre appareil (lien ci-dessus).
-5. Ouvrez le nouveau SmartTube et allez dans **Paramètres > Général > Restaurer les données**.
-6. Vous retrouvez instantanément tous vos comptes, abonnements, favoris et historique !
+#### Méthode 1 : 100% sur la TV avec la télécommande (Sans PC requis)
+
+1. Ouvrez votre application SmartTube actuelle sur votre téléviseur.
+2. Allez dans **Paramètres > Général > Sauvegarder les données** (cela sauvegarde vos comptes, abonnements, historique et réglages dans le stockage interne à `/sdcard/data/org.smarttube.stable/Backup/`).
+3. Désinstallez l'ancienne application SmartTube depuis les paramètres d'applications de votre TV. (*Note : Votre fichier de sauvegarde reste intact dans le stockage !*)
+4. Ouvrez l'application **Downloader** sur votre TV et installez le nouvel APK depuis le tableau de téléchargement ci-dessus.
+5. Lancez le nouveau SmartTube et allez dans **Paramètres > Général > Restaurer les données**.
+6. Tout est restauré instantanément ! Toutes les futures mises à jour s'installeront ensuite automatiquement.
+
+---
 
 #### Méthode 2 : Via ADB (Ligne de commande)
+
 ```bash
+# 1. Connexion à votre TV
 adb connect <IP_DE_VOTRE_TV>:5555
+
+# 2. Sauvegarde des réglages actuels (copie locale de sécurité)
 adb pull /sdcard/data/org.smarttube.stable/Backup /tmp/smarttube_backup
+
+# 3. Désinstallation de l'ancienne version
 adb uninstall org.smarttube.stable
+
+# 4. Installation du nouvel APK Shorts Slider
 adb install -r SmartTube_stable_32.56_armeabi-v7a.apk
+
+# 5. Restauration des réglages sur la TV
+# Ouvrir SmartTube -> Paramètres -> Général -> Restaurer les données
 ```
-*Ouvrez ensuite l'application sur la TV et cliquez sur "Restaurer les données".*
+
+---
 
 #### 🤖 Prompt pour IA (Migration Automatisée via ADB)
 
-Si vous utilisez un assistant IA connecté à votre terminal (comme Google Antigravity, Claude ou ChatGPT), copiez-collez simplement ce prompt pour qu'il effectue la migration ADB à votre place sans perte de données :
+Si vous utilisez un assistant IA connecté à votre terminal (comme Google Antigravity, Claude ou ChatGPT), copiez-collez simplement ce prompt pour qu'il effectue la migration ADB à votre place :
 
 ```text
-Aide-moi à migrer mon installation SmartTube sur mon téléviseur Android TV (IP : <IP_DE_VOTRE_TV>) vers la nouvelle version SmartTube-Shorts-Slider sans perdre mes données :
+Aide-moi à migrer mon installation SmartTube sur mon téléviseur Android TV (IP : <IP_DE_VOTRE_TV>) vers la nouvelle version SmartTube-Shorts-Slider sans perdre aucune de mes données :
 1. Connecte-toi via ADB à <IP_DE_VOTRE_TV>:5555.
-2. Vérifie qu'une sauvegarde existe bien dans /sdcard/data/org.smarttube.stable/Backup.
+2. Vérifie qu'une sauvegarde existe bien dans /sdcard/data/org.smarttube.stable/Backup. Si ce n'est pas le cas, déclenche une sauvegarde ou télécharge shared_prefs.
 3. Rapatrie une copie de sauvegarde sur mon ordinateur en lieu sûr par précaution.
-4. Désinstalle la version actuelle org.smarttube.stable.
+4. Désinstalle le paquet existant org.smarttube.stable.
 5. Installe le nouvel APK SmartTube_stable_32.56_armeabi-v7a.apk.
-6. Donne les permissions de stockage nécessaires (READ_EXTERNAL_STORAGE).
+6. Accorde les autorisations de stockage si nécessaire (READ_EXTERNAL_STORAGE).
 7. Démarre l'application et vérifie qu'elle se lance correctement pour que je puisse restaurer mes réglages.
 ```
 
