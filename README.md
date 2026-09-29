@@ -182,23 +182,19 @@ adb install -r SmartTube_stable_32.56_armeabi-v7a.apk
 ```
 *Ouvrez ensuite l'application sur la TV et cliquez sur "Restaurer les données".*
 
----
+#### 🤖 Prompt pour IA (Migration Automatisée via ADB)
 
-## 🛠️ Build & Development
+Si vous utilisez un assistant IA connecté à votre terminal (comme Google Antigravity, Claude ou ChatGPT), copiez-collez simplement ce prompt pour qu'il effectue la migration ADB à votre place sans perte de données :
 
-```bash
-# Clone the repository
-git clone https://github.com/valoche-68/SmartTube-Shorts-Slider.git
-cd SmartTube-Shorts-Slider
-
-# Configure signing properties (optional for release build)
-echo "storeFile=/path/to/smarttube-release.jks" > keystore.properties
-echo "storePassword=your_password" >> keystore.properties
-echo "keyAlias=smarttube" >> keystore.properties
-echo "keyPassword=your_password" >> keystore.properties
-
-# Build Release APKs
-./gradlew assembleStstableRelease
+```text
+Aide-moi à migrer mon installation SmartTube sur mon téléviseur Android TV (IP : <IP_DE_VOTRE_TV>) vers la nouvelle version SmartTube-Shorts-Slider sans perdre mes données :
+1. Connecte-toi via ADB à <IP_DE_VOTRE_TV>:5555.
+2. Vérifie qu'une sauvegarde existe bien dans /sdcard/data/org.smarttube.stable/Backup.
+3. Rapatrie une copie de sauvegarde sur mon ordinateur en lieu sûr par précaution.
+4. Désinstalle la version actuelle org.smarttube.stable.
+5. Installe le nouvel APK SmartTube_stable_32.56_armeabi-v7a.apk.
+6. Donne les permissions de stockage nécessaires (READ_EXTERNAL_STORAGE).
+7. Démarre l'application et vérifie qu'elle se lance correctement pour que je puisse restaurer mes réglages.
 ```
 
 ---
