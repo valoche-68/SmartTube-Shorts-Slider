@@ -28,8 +28,8 @@ jobs:
           git remote add upstream https://github.com/yuliskov/SmartTube.git
           git fetch upstream master --tags
 
-      - name: Sync Master with Upstream
+      - name: Sync Main with Upstream
         run: |
-          git checkout master
-          git merge upstream/master -m "chore(sync): sync master with upstream yuliskov/SmartTube"
-          git push origin master --tags
+          git checkout main
+          git merge upstream/master -m "chore(sync): sync main with upstream yuliskov/SmartTube"
+          git push origin main --tags
