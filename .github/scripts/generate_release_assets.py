@@ -56,20 +56,47 @@ def main():
         json.dump(ota_data, f, indent=4, ensure_ascii=False)
     print(f"✅ Synced root JSON: {root_json_path}")
 
-    # 2. Generate Release Notes Markdown
-    notes = f"""### 🚀 SmartTube Shorts Slider {type_label} Edition
+    # 2. Generate Release Notes Markdown (Bilingual English / Français)
+    type_en = "Beta (Pre-release)" if flavor == "beta" else "Stable"
+    type_fr = "Bêta (Pre-release)" if flavor == "beta" else "Stable"
 
-Ce fork officiel de SmartTube intègre le **défilement vertical infini des Shorts** sur télécommande TV et le préchargement instantané des vidéos.
+    notes = f"""### 🚀 SmartTube Shorts Slider v{version} {type_en}
 
-#### ✨ Nouveautés exclusives / Highlights
-- 🎮 **Navigation Télécommande Haut / Bas** : Défilement fluide des Shorts comme sur smartphone / TikTok.
-- 🔄 **Préchargement Automatique du Short Suivant** : Le short suivant est déjà chargé en tâche de fond.
-- ⏯️ **Bouton Défilement Automatique (Auto-Scroll)** : Active/désactive l'enchaînement automatique des Shorts.
-- ♾️ **File d'attente continue (10 à 20 Shorts d'avance)** : Défilement infini garanti sans fin de liste.
+[🇫🇷 Lire la description en Français ci-dessous](#-version-française)
 
-#### 📱 APKs disponibles ci-dessous :
-- `SmartTube_Shorts_Slider_{flavor}_{version}_armeabi-v7a.apk` : **Recommandé pour Amazon Fire TV Stick**, Mi Box et la majorité des clés TV.
-- `SmartTube_Shorts_Slider_{flavor}_{version}_arm64-v8a.apk` : **NVIDIA Shield TV** et box TV 64-bit récentes.
+---
+
+### 🇬🇧 English
+
+Enhanced SmartTube edition featuring **smooth vertical YouTube Shorts scrolling** using TV remote control Up/Down keys, persistent auto-scroll toggle, and continuous background prefetching.
+
+#### ✨ Key Highlights
+- 🎮 **Up / Down Remote D-Pad Navigation**: Seamlessly navigate YouTube Shorts using the Up and Down keys on your TV remote control, just like mobile / TikTok.
+- 🔄 **Automatic Next-Short Preloading**: While watching a Short, the next video format and stream URLs are automatically prepared in the background for instant transitions.
+- ⏯️ **Auto-Scroll Toggle Button**: A dedicated player control button to enable or disable automatic hands-free scrolling when the current Short finishes.
+- ♾️ **Continuous Queue (10 to 20 Shorts Ahead)**: Maintains a continuous buffer of 10 to 20 Shorts in memory so your feed never interrupts.
+
+#### 📱 APK Download Guide
+- `SmartTube_Shorts_Slider_{flavor}_{version}_armeabi-v7a.apk`: **Recommended for Amazon Fire TV Stick** (Lite, HD, 4K), Xiaomi Mi Box, and 32-bit Android TVs.
+- `SmartTube_Shorts_Slider_{flavor}_{version}_arm64-v8a.apk`: **NVIDIA Shield TV**, modern 64-bit Android TVs and Google TVs.
+- `SmartTube_Shorts_Slider_{flavor}_{version}_universal.apk`: All-in-one package for all architectures.
+- `SmartTube_Shorts_Slider_{flavor}_{version}_x86.apk`: PC Emulators & Intel-based architectures.
+
+---
+
+### 🇫🇷 Version Française
+
+Édition enrichie de SmartTube intégrant le **défilement vertical fluide des YouTube Shorts** sur télécommande TV et le préchargement continu en arrière-plan.
+
+#### ✨ Nouveautés & Points Clés
+- 🎮 **Navigation Télécommande Haut / Bas** : Défilement fluide des Shorts avec les touches Haut et Bas de la télécommande, comme sur smartphone / TikTok.
+- 🔄 **Préchargement Automatique du Short Suivant** : Pendant la lecture d'un Short, le format et les flux de la vidéo suivante sont déjà préparés en tâche de fond.
+- ⏯️ **Bouton Défilement Automatique (Auto-Scroll)** : Bouton dédié dans l'interface du lecteur permettant d'activer ou désactiver l'enchaînement automatique sans toucher à la télécommande.
+- ♾️ **File d'attente continue (10 à 20 Shorts d'avance)** : Réserve continue de 10 à 20 vidéos en mémoire pour un flux infini garanti sans fin de liste.
+
+#### 📱 Guide de choix des APKs
+- `SmartTube_Shorts_Slider_{flavor}_{version}_armeabi-v7a.apk` : **Recommandé pour Amazon Fire TV Stick**, Mi Box et majorité des clés TV 32-bit.
+- `SmartTube_Shorts_Slider_{flavor}_{version}_arm64-v8a.apk` : **NVIDIA Shield TV** et téléviseurs 64-bit récents.
 - `SmartTube_Shorts_Slider_{flavor}_{version}_universal.apk` : Version tout-en-un universelle.
 - `SmartTube_Shorts_Slider_{flavor}_{version}_x86.apk` : Émulateurs PC & architectures Intel.
 """
