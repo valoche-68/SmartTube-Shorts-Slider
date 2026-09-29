@@ -94,17 +94,19 @@ adb install -r SmartTube_stable_32.56_armeabi-v7a.apk
 
 ### 🤖 AI Prompt for Automated Migration via ADB
 
-If you use an AI coding assistant (such as Antigravity, Claude, or ChatGPT) connected to your terminal, copy-paste this prompt:
+If you use an AI coding assistant (such as Antigravity, Claude, or ChatGPT) connected to your terminal, copy-paste this prompt so it automatically detects your TV architecture, fetches the matching APK from GitHub, and handles the migration:
 
 ```text
-Please help me migrate my SmartTube installation on my Android TV (IP: <YOUR_TV_IP>) to the new SmartTube-Shorts-Slider build without losing any data.
+Please help me migrate my SmartTube installation on my Android TV (IP: <YOUR_TV_IP>) to the latest SmartTube-Shorts-Slider release from GitHub without losing any data:
 1. Connect via ADB to <YOUR_TV_IP>:5555.
-2. Verify that a backup exists in /sdcard/data/org.smarttube.stable/Backup. If not, trigger a backup or pull shared_prefs.
-3. Pull a copy of the backup to my computer as a safety measure.
-4. Uninstall the existing package org.smarttube.stable.
-5. Install the new SmartTube_stable_32.56_armeabi-v7a.apk.
-6. Grant storage permissions if needed (READ_EXTERNAL_STORAGE).
-7. Start the application activity and verify it launches correctly so I can restore my settings.
+2. Check the TV hardware CPU architecture via ADB (e.g., `adb shell getprop ro.product.cpu.abi`).
+3. Verify that a backup exists in /sdcard/data/org.smarttube.stable/Backup. If not, trigger a backup or pull shared_prefs.
+4. Pull a copy of the backup to my computer as a safety measure.
+5. Go to the GitHub repository https://github.com/valoche-68/SmartTube-Shorts-Slider, fetch the latest release, and download the APK matching the TV architecture (armeabi-v7a, arm64-v8a, or universal).
+6. Uninstall the existing package org.smarttube.stable from the TV.
+7. Install the downloaded compatible APK via ADB.
+8. Grant storage permissions if needed (READ_EXTERNAL_STORAGE).
+9. Launch the application and verify it opens properly so I can restore my settings.
 ```
 
 ---
@@ -200,17 +202,19 @@ adb install -r SmartTube_stable_32.56_armeabi-v7a.apk
 
 ### 🤖 Prompt pour IA (Migration Automatisée via ADB)
 
-Si vous utilisez un assistant IA connecté à votre terminal (comme Google Antigravity, Claude ou ChatGPT), copiez-collez simplement ce prompt pour qu'il effectue la migration ADB à votre place :
+Si vous utilisez un assistant IA connecté à votre terminal (comme Google Antigravity, Claude ou ChatGPT), copiez-collez simplement ce prompt pour qu'il détecte automatiquement l'architecture de votre TV, télécharge la version compatible sur GitHub et effectue la migration :
 
 ```text
-Aide-moi à migrer mon installation SmartTube sur mon téléviseur Android TV (IP : <IP_DE_VOTRE_TV>) vers la nouvelle version SmartTube-Shorts-Slider sans perdre aucune de mes données :
+Aide-moi à migrer mon installation SmartTube sur mon téléviseur Android TV (IP : <IP_DE_VOTRE_TV>) vers la dernière version de SmartTube-Shorts-Slider sur GitHub sans perdre aucune de mes données :
 1. Connecte-toi via ADB à <IP_DE_VOTRE_TV>:5555.
-2. Vérifie qu'une sauvegarde existe bien dans /sdcard/data/org.smarttube.stable/Backup. Si ce n'est pas le cas, déclenche une sauvegarde ou télécharge shared_prefs.
-3. Rapatrie une copie de sauvegarde sur mon ordinateur en lieu sûr par précaution.
-4. Désinstalle le paquet existant org.smarttube.stable.
-5. Installe le nouvel APK SmartTube_stable_32.56_armeabi-v7a.apk.
-6. Accorde les autorisations de stockage si nécessaire (READ_EXTERNAL_STORAGE).
-7. Démarre l'application et vérifie qu'elle se lance correctement pour que je puisse restaurer mes réglages.
+2. Détecte l'architecture CPU du matériel de la TV via ADB (ex: `adb shell getprop ro.product.cpu.abi`).
+3. Vérifie qu'une sauvegarde existe bien dans /sdcard/data/org.smarttube.stable/Backup. Si ce n'est pas le cas, déclenche une sauvegarde ou télécharge shared_prefs.
+4. Rapatrie une copie de sauvegarde sur mon ordinateur en lieu sûr par précaution.
+5. Va sur le dépôt GitHub https://github.com/valoche-68/SmartTube-Shorts-Slider, récupère la dernière release et télécharge l'APK correspondant à l'architecture de la TV (armeabi-v7a, arm64-v8a ou universal).
+6. Désinstalle le paquet existant org.smarttube.stable de la TV.
+7. Installe l'APK compatible téléchargé via ADB.
+8. Accorde les autorisations de stockage si nécessaire (READ_EXTERNAL_STORAGE).
+9. Démarre l'application et vérifie qu'elle se lance correctement pour que je puisse restaurer mes réglages.
 ```
 
 ---
