@@ -46,7 +46,7 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git remote add upstream https://github.com/yuliskov/SmartTube.git || true
-          git fetch upstream master --tags
+          git fetch upstream master --no-tags
 
           if ! git merge upstream/master -m "chore(sync): automated sync with upstream"; then
             echo "Merge conflict detected! Aborting automated merge and notifying via Issue."
