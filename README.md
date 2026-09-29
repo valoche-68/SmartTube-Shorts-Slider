@@ -18,7 +18,7 @@ SmartTube **Shorts Slider** is an enhanced fork of the original [SmartTube by Yu
 - 🎮 **Up / Down Remote D-Pad Navigation**: Seamlessly navigate between YouTube Shorts using the Up and Down keys on your TV remote control, just like scrolling through TikTok or YouTube Shorts on mobile.
 - 🔄 **New Auto-Scroll Toggle Button**: A dedicated button in player controls to enable or disable automatic hands-free scrolling to the next Short when the current one finishes. Persistently saved across sessions.
 - ♾️ **Eager 10 to 20 Shorts Queue Prefetching**: Automatically maintains a continuous buffer of 10 to 20 Shorts ahead in the queue so the feed never interrupts or ends.
-- 🔄 **Continuous Two-Short Pipeline**: A Short is currently loaded while the *next* Short is automatically loaded in the background every single time.
+- 🔄 **Automatic Next-Short Preloading**: While you are watching a Short, the next video is automatically fetched and prepared in the background for a seamless transition.
 - 📡 **Over-the-Air (OTA) Updates**: The app checks for and installs updates directly from this repository's releases.
 
 ---
@@ -124,7 +124,7 @@ SmartTube **Shorts Slider** est une version améliorée du célèbre client YouT
 - 🎮 **Navigation Haut / Bas à la télécommande** : Faites défiler les Shorts simplement avec les flèches Haut/Bas, comme sur TikTok ou l'application mobile.
 - 🔄 **Nouveau Bouton Défilement Automatique (Auto-Scroll)** : Un bouton dédié dans les contrôles du lecteur permet d'activer ou désactiver l'enchaînement automatique des Shorts sans toucher à la télécommande. Sauvegardé automatiquement dans vos préférences.
 - ♾️ **File d'Attente Continue (10 à 20 Shorts d'avance)** : L'application précharge en continu une réserve de 10 à 20 Shorts d'avance pour garantir un flux infini sans interruption.
-- 🔄 **Chargement en Continu (Short actuel + Short suivant)** : À chaque instant, le Short en cours est lu pendant que le Short suivant est automatiquement chargé en tâche de fond.
+- 🔄 **Préchargement Automatique du Short Suivant** : Pendant que vous regardez une vidéo, le Short suivant est déjà chargé en arrière-plan pour s'enchaîner de manière fluide.
 - 📡 **Mises à jour automatiques OTA** : L'application vous avertit et se met à jour directement depuis les releases de ce dépôt.
 
 ---
