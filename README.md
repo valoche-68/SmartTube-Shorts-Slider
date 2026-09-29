@@ -28,10 +28,10 @@ Choose the APK matching your TV hardware:
 
 | Architecture | Recommended Devices | Direct Download Link |
 | :--- | :--- | :---: |
-| **`armeabi-v7a`** | **Amazon Fire TV Stick** (Lite, HD, 4K), Xiaomi Mi Box, most 32-bit Android TVs | [Download APK](https://github.com/valoche-68/SmartTube-Shorts-Slider/releases/latest/download/SmartTube_stable_32.56_armeabi-v7a.apk) |
-| **`arm64-v8a`** | **NVIDIA Shield TV**, modern 64-bit Android TVs & Google TVs | [Download APK](https://github.com/valoche-68/SmartTube-Shorts-Slider/releases/latest/download/SmartTube_stable_32.56_arm64-v8a.apk) |
-| **`universal`** | All-in-one package (contains all architectures, ~38 MB) | [Download APK](https://github.com/valoche-68/SmartTube-Shorts-Slider/releases/latest/download/SmartTube_stable_32.56_universal.apk) |
-| **`x86`** | PC Emulators, Android-x86, Intel devices | [Download APK](https://github.com/valoche-68/SmartTube-Shorts-Slider/releases/latest/download/SmartTube_stable_32.56_x86.apk) |
+| **`armeabi-v7a`** | **Amazon Fire TV Stick** (Lite, HD, 4K), Xiaomi Mi Box, most 32-bit Android TVs | [Download APK](https://github.com/valoche-68/SmartTube-Shorts-Slider/releases/latest/download/SmartTube_Shorts_Slider_stable_32.56_armeabi-v7a.apk) |
+| **`arm64-v8a`** | **NVIDIA Shield TV**, modern 64-bit Android TVs & Google TVs | [Download APK](https://github.com/valoche-68/SmartTube-Shorts-Slider/releases/latest/download/SmartTube_Shorts_Slider_stable_32.56_arm64-v8a.apk) |
+| **`universal`** | All-in-one package (contains all architectures, ~38 MB) | [Download APK](https://github.com/valoche-68/SmartTube-Shorts-Slider/releases/latest/download/SmartTube_Shorts_Slider_stable_32.56_universal.apk) |
+| **`x86`** | PC Emulators, Android-x86, Intel devices | [Download APK](https://github.com/valoche-68/SmartTube-Shorts-Slider/releases/latest/download/SmartTube_Shorts_Slider_stable_32.56_x86.apk) |
 
 ---
 
@@ -83,7 +83,7 @@ adb pull /sdcard/data/org.smarttube.stable/Backup /tmp/smarttube_backup 2>/dev/n
 adb uninstall org.smarttube.stable
 
 # 4. Install the new Shorts Slider APK
-adb install -r SmartTube_stable_32.56_armeabi-v7a.apk
+adb install -r SmartTube_Shorts_Slider_stable_32.56_armeabi-v7a.apk
 
 # 5. Restore settings on the TV
 # Open SmartTube -> Settings -> General -> Restore data
@@ -136,10 +136,10 @@ Choisissez l'APK adapté au matériel de votre téléviseur :
 
 | Architecture | Périphériques Recommandés | Lien de Téléchargement Direct |
 | :--- | :--- | :---: |
-| **`armeabi-v7a`** | **Amazon Fire TV Stick** (Lite, HD, 4K), Xiaomi Mi Box, majorité des clés TV 32-bit | [Télécharger l'APK](https://github.com/valoche-68/SmartTube-Shorts-Slider/releases/latest/download/SmartTube_stable_32.56_armeabi-v7a.apk) |
-| **`arm64-v8a`** | **NVIDIA Shield TV**, box TV et téléviseurs 64-bit récents | [Télécharger l'APK](https://github.com/valoche-68/SmartTube-Shorts-Slider/releases/latest/download/SmartTube_stable_32.56_arm64-v8a.apk) |
-| **`universal`** | Version tout-en-un (contient toutes les architectures, ~38 Mo) | [Télécharger l'APK](https://github.com/valoche-68/SmartTube-Shorts-Slider/releases/latest/download/SmartTube_stable_32.56_universal.apk) |
-| **`x86`** | Émulateurs PC / Android-x86 / Processeurs Intel | [Télécharger l'APK](https://github.com/valoche-68/SmartTube-Shorts-Slider/releases/latest/download/SmartTube_stable_32.56_x86.apk) |
+| **`armeabi-v7a`** | **Amazon Fire TV Stick** (Lite, HD, 4K), Xiaomi Mi Box, majorité des clés TV 32-bit | [Télécharger l'APK](https://github.com/valoche-68/SmartTube-Shorts-Slider/releases/latest/download/SmartTube_Shorts_Slider_stable_32.56_armeabi-v7a.apk) |
+| **`arm64-v8a`** | **NVIDIA Shield TV**, box TV et téléviseurs 64-bit récents | [Télécharger l'APK](https://github.com/valoche-68/SmartTube-Shorts-Slider/releases/latest/download/SmartTube_Shorts_Slider_stable_32.56_arm64-v8a.apk) |
+| **`universal`** | Version tout-en-un (contient toutes les architectures, ~38 Mo) | [Télécharger l'APK](https://github.com/valoche-68/SmartTube-Shorts-Slider/releases/latest/download/SmartTube_Shorts_Slider_stable_32.56_universal.apk) |
+| **`x86`** | Émulateurs PC / Android-x86 / Processeurs Intel | [Télécharger l'APK](https://github.com/valoche-68/SmartTube-Shorts-Slider/releases/latest/download/SmartTube_Shorts_Slider_stable_32.56_x86.apk) |
 
 ---
 
@@ -191,7 +191,7 @@ adb pull /sdcard/data/org.smarttube.stable/Backup /tmp/smarttube_backup 2>/dev/n
 adb uninstall org.smarttube.stable
 
 # 4. Installation du nouvel APK Shorts Slider
-adb install -r SmartTube_stable_32.56_armeabi-v7a.apk
+adb install -r SmartTube_Shorts_Slider_stable_32.56_armeabi-v7a.apk
 
 # 5. Restauration des réglages sur la TV
 # Ouvrir SmartTube -> Paramètres -> Général -> Restaurer les données
