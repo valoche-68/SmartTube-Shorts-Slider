@@ -62,8 +62,6 @@ def main():
 
     notes = f"""### 🚀 SmartTube Shorts Slider v{version} {type_en}
 
-[🇫🇷 Lire la description en Français ci-dessous](#-version-française)
-
 ---
 
 ### 🇬🇧 English
