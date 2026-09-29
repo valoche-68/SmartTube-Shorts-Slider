@@ -18,7 +18,7 @@ SmartTube **Shorts Slider** is an enhanced fork of the original [SmartTube by Yu
 - 🎮 **Up / Down Remote D-Pad Navigation**: Seamlessly navigate between YouTube Shorts using the Up and Down keys on your TV remote control, just like scrolling through TikTok or YouTube Shorts on mobile.
 - 🔄 **New Auto-Scroll Toggle Button**: A dedicated button in player controls to enable or disable automatic hands-free scrolling to the next Short when the current one finishes. Persistently saved across sessions.
 - ♾️ **Eager 10 to 20 Shorts Queue Prefetching**: Automatically maintains a continuous buffer of 10 to 20 Shorts ahead in the queue so the feed never interrupts or ends.
-- ⚡ **Instant Next-Short Stream Preloading (< 1s Transition)**: As soon as a Short starts playing, metadata and stream URLs for the *next* Short are immediately loaded in the background. Combined with a 500ms start buffer, transitions take **under 1 second (~0.5s to 1s)**.
+- 🔄 **Continuous Two-Short Pipeline**: A Short is currently loaded while the *next* Short is automatically loaded in the background every single time.
 - 📡 **Over-the-Air (OTA) Updates**: The app checks for and installs updates directly from this repository's releases.
 
 ---
@@ -39,12 +39,14 @@ Choose the APK matching your TV hardware:
 ## 📊 Hardware Benchmark & Latency (Fire TV Stick)
 
 > [!NOTE]  
-> This feature was benchmarked on an **Amazon Fire TV Stick**. With immediate next-short format prefetching and eager queue loading, the transition delay between consecutive Shorts is reduced to **less than 1 second (around 0.5s to 1s)**.
+> Benchmark details on an **Amazon Fire TV Stick**:
+> - **First Short Launch (Cold Start)**: When opening a Short right after launching the application, expect a normal initial buffering delay of **2 to 4 seconds** (network connection establishment, initial video codec allocation, and YouTube DASH handshake).
+> - **Subsequent Shorts Transitions**: Once inside playback, because each Short is played while the next Short is already loaded in the background, transitions between consecutive Shorts become smooth and seamless.
 
-### How sub-second transition is achieved on low-end TV hardware:
+### How background loading works on TV hardware:
 
-1. **Immediate Background Format Fetching**:  
-   Instead of waiting for video end or user input, the application preloads the next video's DASH formats and URLs immediately upon starting playback.
+1. **Continuous Next-Short Loading**:  
+   As soon as a Short starts playing, the application immediately requests the stream URLs and formats for the upcoming Short in the background.
 2. **Buffer Tuned to 500 ms**:  
    The video starts decoding as soon as 0.5s of data is buffered, minimizing wait time while maintaining smooth playback.
 3. **Continuous 10-20 Queue Prefetch**:  
@@ -122,7 +124,7 @@ SmartTube **Shorts Slider** est une version améliorée du célèbre client YouT
 - 🎮 **Navigation Haut / Bas à la télécommande** : Faites défiler les Shorts simplement avec les flèches Haut/Bas, comme sur TikTok ou l'application mobile.
 - 🔄 **Nouveau Bouton Défilement Automatique (Auto-Scroll)** : Un bouton dédié dans les contrôles du lecteur permet d'activer ou désactiver l'enchaînement automatique des Shorts sans toucher à la télécommande. Sauvegardé automatiquement dans vos préférences.
 - ♾️ **File d'Attente Continue (10 à 20 Shorts d'avance)** : L'application précharge en continu une réserve de 10 à 20 Shorts d'avance pour garantir un flux infini sans interruption.
-- ⚡ **Démarrage Ultra-Rapide (< 1 seconde)** : Dès qu'un Short démarre, les flux du Short suivant sont immédiatement préchargés. Associé au tampon réduit à **500 ms**, le passage d'une vidéo à l'autre s'effectue en **moins d'une seconde (~0,5s à 1s)** !
+- 🔄 **Chargement en Continu (Short actuel + Short suivant)** : À chaque instant, le Short en cours est lu pendant que le Short suivant est automatiquement chargé en tâche de fond.
 - 📡 **Mises à jour automatiques OTA** : L'application vous avertit et se met à jour directement depuis les releases de ce dépôt.
 
 ---
@@ -140,14 +142,16 @@ Choisissez l'APK adapté au matériel de votre téléviseur :
 
 ---
 
-### ⏱️ Analyse Technique & Benchmark sur Fire TV (< 1 seconde)
+### ⏱️ Analyse Technique & Benchmark sur Fire TV
 
 > [!NOTE]  
-> Testé et mesuré sur **Amazon Fire TV Stick** : grâce au préchargement immédiat du Short suivant et au maintien d'une réserve de 10 à 20 vidéos, le temps de transition réel tombe à **moins d'une seconde (environ 0,5 à 1 seconde max)**.
+> Détails mesurés sur **Amazon Fire TV Stick** :
+> - **Lancement du premier Short (Démarrage à froid)** : Lors du clic sur un premier Short juste après avoir ouvert l'application, un délai d'initialisation normal de **2 à 4 secondes** est présent (connexion réseau, handshake YouTube DASH et initialisation du décodeur matériel vidéo).
+> - **Transitions entre les Shorts suivants** : Une fois dans le lecteur, comme chaque Short est lu pendant que le Short suivant est déjà chargé en tâche de fond, le passage d'une vidéo à l'autre s'effectue de manière fluide et directe.
 
-#### Comment cette fluidité est-elle obtenue sur une clé TV d'entrée de gamme ?
-1. **Préchargement immédiat des flux YouTube** :  
-   Au lieu d'attendre la fin de la vidéo ou l'action de l'utilisateur, l'application extrait les formats et flux du Short suivant dès la première seconde de lecture.
+#### Comment fonctionne le chargement anticipé sur clé TV ?
+1. **Préchargement systématique du Short suivant** :  
+   Dès qu'un Short commence, l'application extrait immédiatement les formats et liens du Short suivant en arrière-plan.
 2. **Tampon ExoPlayer réglé à 500 ms** :  
    Le décodage démarre dès qu'une demi-seconde de flux est en mémoire vive.
 3. **Réserve permanente de 10 à 20 vidéos** :  
