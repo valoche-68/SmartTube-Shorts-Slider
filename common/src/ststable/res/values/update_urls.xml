@@ -1,6 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string-array name="update_urls">
-        <item>https://github.com/valoche-68/SmartTube-Shorts-Slider/releases/latest/download/smarttube_stable2.json</item>
+        <item>https://github.com/valoche-68/SmartTube-Shorts-Slider/releases/latest/download/smarttube_stable.json</item>
+        <item>https://raw.githubusercontent.com/valoche-68/SmartTube-Shorts-Slider/main/smarttube_stable.json</item>
     </string-array>
 </resources>

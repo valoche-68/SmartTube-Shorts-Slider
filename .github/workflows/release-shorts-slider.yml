@@ -125,7 +125,7 @@ jobs:
               GRADLE_TASK="assembleStstableRelease"
               FLAVOR="stable"
               FLAVOR_PREFIX="ststable"
-              JSON_FILE="smarttube_stable2.json"
+              JSON_FILE="smarttube_stable.json"
               TYPE_LABEL="Stable"
             else
               UPSTREAM_INFO=$(gh release list --repo yuliskov/SmartTube --limit 5 --json tagName,isPrerelease,name -q '.[] | select(.isPrerelease == true)' | head -n 1)
@@ -138,7 +138,7 @@ jobs:
               GRADLE_TASK="assembleStbetaRelease"
               FLAVOR="beta"
               FLAVOR_PREFIX="stbeta"
-              JSON_FILE="smarttube_beta2.json"
+              JSON_FILE="smarttube_beta.json"
               TYPE_LABEL="Beta (Pre-release)"
             fi
 
@@ -181,22 +181,20 @@ jobs:
               $RELEASE_FLAG \
               || gh release upload "$TARGET_TAG" release_assets/* --repo ${{ github.repository }} --clobber
 
-            # Update rolling 'latest' release with latest OTA update metadata
-            gh release upload latest release_assets/*.json --repo ${{ github.repository }} --clobber || true
-
             echo "🛡️ Triggering VirusTotal Scan for $TARGET_TAG..."
             gh workflow run virustotal_scan.yml --repo ${{ github.repository }} -f release_tag="$TARGET_TAG" || true
 
-            # If stable release, commit and push updated README.md
+            # Commit and push updated JSON and README.md (if stable)
+            git add smarttube_*.json
             if [ "$FLAVOR" = "stable" ]; then
               git add README.md
-              if ! git diff --cached --quiet; then
-                git config user.name "github-actions[bot]"
-                git config user.email "github-actions[bot]@users.noreply.github.com"
-                git commit -m "docs: update README download links to v${VERSION} Stable"
-                git push origin main || true
-                echo "📝 Committed updated README.md for Stable version ${VERSION}"
-              fi
+            fi
+            if ! git diff --cached --quiet; then
+              git config user.name "github-actions[bot]"
+              git config user.email "github-actions[bot]@users.noreply.github.com"
+              git commit -m "chore(release): update metadata for $TARGET_TAG"
+              git push origin main || true
+              echo "📝 Committed metadata updates for $TARGET_TAG"
             fi
 
             echo "✅ Successfully published $TARGET_TAG!"

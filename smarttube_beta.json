@@ -1,0 +1,30 @@
+{
+    "package": {
+        "downloadUrlList": [
+            "https://github.com/valoche-68/SmartTube-Shorts-Slider/releases/download/v32.56-beta-shorts-slider/SmartTube_Shorts_Slider_beta_32.59_armeabi-v7a.apk"
+        ],
+        "downloadUrlList_arm64-v8a": [
+            "https://github.com/valoche-68/SmartTube-Shorts-Slider/releases/download/v32.56-beta-shorts-slider/SmartTube_Shorts_Slider_beta_32.59_arm64-v8a.apk"
+        ],
+        "downloadUrlList_x86": [
+            "https://github.com/valoche-68/SmartTube-Shorts-Slider/releases/download/v32.56-beta-shorts-slider/SmartTube_Shorts_Slider_beta_32.59_x86.apk"
+        ]
+    },
+    "32.59": {
+        "versionCode": 2449,
+        "changelog": [
+            "SmartTube Shorts Slider Beta (Pre-release) Edition",
+            "Up/Down remote D-pad navigation for endless Shorts scrolling",
+            "Continuous queue background prefetching",
+            "ExoPlayer instant playback start buffer set to 500ms",
+            "Official upstream base 32.59"
+        ],
+        "changelog_fr": [
+            "Édition SmartTube Shorts Slider Beta (Pre-release)",
+            "Navigation fluide Haut/Bas sur télécommande pour défilement infini des Shorts",
+            "Préchargement automatique de la file d'attente en arrière-plan",
+            "Démarrage quasi-instantané du lecteur (tampon réduit à 500ms)",
+            "Base officielle 32.59"
+        ]
+    }
+}

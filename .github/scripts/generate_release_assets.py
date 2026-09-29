@@ -8,7 +8,7 @@ def main():
     version = os.environ.get("VERSION", "32.56")
     version_code = int(os.environ.get("VERSION_CODE", "2446"))
     target_tag = os.environ.get("TARGET_TAG", f"v{version}-shorts-slider")
-    json_file = os.environ.get("JSON_FILE", f"smarttube_{flavor}2.json")
+    json_file = os.environ.get("JSON_FILE", f"smarttube_{flavor}.json")
     repo = os.environ.get("GITHUB_REPO", "valoche-68/SmartTube-Shorts-Slider")
     type_label = os.environ.get("TYPE_LABEL", "Stable")
 
@@ -50,6 +50,11 @@ def main():
     with open(json_path, "w", encoding="utf-8") as f:
         json.dump(ota_data, f, indent=4, ensure_ascii=False)
     print(f"✅ Generated OTA update JSON: {json_path}")
+
+    root_json_path = f"smarttube_{flavor}.json"
+    with open(root_json_path, "w", encoding="utf-8") as f:
+        json.dump(ota_data, f, indent=4, ensure_ascii=False)
+    print(f"✅ Synced root JSON: {root_json_path}")
 
     # 2. Generate Release Notes Markdown
     notes = f"""### 🚀 SmartTube Shorts Slider {type_label} Edition
