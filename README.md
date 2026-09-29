@@ -2,9 +2,9 @@
 
 [<img src="images/badge_github.png" alt="Get it on GitHub" height="80">](https://github.com/valoche-68/SmartTube-Shorts-Slider/releases/latest)
 
-[![Release](https://img.shields.io/badge/Release-v32.56--stable-blue)](https://github.com/valoche-68/SmartTube-Shorts-Slider/releases/latest)
-[![Build](https://img.shields.io/badge/Build-Passing-brightgreen)](https://github.com/valoche-68/SmartTube-Shorts-Slider/actions)
-[![License](https://img.shields.io/badge/License-GPL--3.0-green)](LICENSE)
+[![Release](https://img.shields.io/github/v/release/valoche-68/SmartTube-Shorts-Slider?label=Latest%20Release&color=blue)](https://github.com/valoche-68/SmartTube-Shorts-Slider/releases/latest)
+[![Build & Release](https://github.com/valoche-68/SmartTube-Shorts-Slider/actions/workflows/release-shorts-slider.yml/badge.svg)](https://github.com/valoche-68/SmartTube-Shorts-Slider/actions/workflows/release-shorts-slider.yml)
+[![License](https://img.shields.io/github/license/valoche-68/SmartTube-Shorts-Slider)](LICENSE)
 
 > [!TIP]
 > 🇫🇷 **[Cliquez ici pour lire la documentation en Français](#-version-française)**
