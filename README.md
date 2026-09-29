@@ -91,7 +91,7 @@ adb install -r SmartTube_stable_32.56_armeabi-v7a.apk
 
 ---
 
-### 🤖 AI Prompt for Automated Migration or Installation via ADB
+### 🤖 AI Prompt (Automated Installation or Migration via ADB)
 
 If you use an AI coding assistant (such as Antigravity, Claude, or ChatGPT) connected to your terminal, copy-paste this prompt so it automatically detects your TV architecture, fetches the matching APK from GitHub, and handles the installation or migration:
 
@@ -199,7 +199,7 @@ adb install -r SmartTube_stable_32.56_armeabi-v7a.apk
 
 ---
 
-### 🤖 Prompt pour IA (Migration ou Installation Automatisée via ADB)
+### 🤖 Prompt pour IA (Installation ou migration automatisée via ADB)
 
 Si vous utilisez un assistant IA connecté à votre terminal (comme Google Antigravity, Claude ou ChatGPT), copiez-collez simplement ce prompt pour qu'il détecte automatiquement l'architecture de votre TV, télécharge la version compatible sur GitHub et effectue la migration ou l'installation :
 
