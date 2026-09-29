@@ -177,6 +177,9 @@ jobs:
               $RELEASE_FLAG \
               || gh release upload "$TARGET_TAG" release_assets/* --repo ${{ github.repository }} --clobber
 
+            # Update rolling 'latest' release with latest OTA update metadata
+            gh release upload latest release_assets/*.json --repo ${{ github.repository }} --clobber || true
+
             echo "🛡️ Triggering VirusTotal Scan for $TARGET_TAG..."
             gh workflow run virustotal_scan.yml --repo ${{ github.repository }} -f release_tag="$TARGET_TAG" || true
 
