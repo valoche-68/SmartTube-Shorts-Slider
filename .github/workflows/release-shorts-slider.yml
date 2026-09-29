@@ -183,5 +183,17 @@ jobs:
             echo "🛡️ Triggering VirusTotal Scan for $TARGET_TAG..."
             gh workflow run virustotal_scan.yml --repo ${{ github.repository }} -f release_tag="$TARGET_TAG" || true
 
+            # If stable release, commit and push updated README.md
+            if [ "$FLAVOR" = "stable" ]; then
+              git add README.md
+              if ! git diff --cached --quiet; then
+                git config user.name "github-actions[bot]"
+                git config user.email "github-actions[bot]@users.noreply.github.com"
+                git commit -m "docs: update README download links to v${VERSION} Stable"
+                git push origin main || true
+                echo "📝 Committed updated README.md for Stable version ${VERSION}"
+              fi
+            fi
+
             echo "✅ Successfully published $TARGET_TAG!"
           done

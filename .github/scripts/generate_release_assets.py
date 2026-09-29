@@ -73,5 +73,28 @@ Ce fork officiel de SmartTube intègre le **défilement vertical infini des Shor
         f.write(notes)
     print("✅ Generated Release Notes: release_notes.md")
 
+    # 3. Update README.md ONLY for Stable channel
+    if flavor == "stable":
+        update_readme(version)
+
+def update_readme(version):
+    readme_path = "README.md"
+    if not os.path.exists(readme_path):
+        return
+    with open(readme_path, "r", encoding="utf-8") as f:
+        content = f.read()
+
+    import re
+    # Replace version in English and French titles
+    content = re.sub(r"## 📥 Download APKs \(v[0-9.]+ Stable\)", f"## 📥 Download APKs (v{version} Stable)", content)
+    content = re.sub(r"## 📥 Téléchargements des APKs \(Version [0-9.]+ Stable\)", f"## 📥 Téléchargements des APKs (Version {version} Stable)", content)
+
+    # Replace APK filenames in links and commands
+    content = re.sub(r"SmartTube_Shorts_Slider_stable_[0-9.]+", f"SmartTube_Shorts_Slider_stable_{version}", content)
+
+    with open(readme_path, "w", encoding="utf-8") as f:
+        f.write(content)
+    print(f"✅ README.md updated with Stable version {version}")
+
 if __name__ == "__main__":
     main()
