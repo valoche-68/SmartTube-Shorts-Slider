@@ -129,7 +129,7 @@ SmartTube **Shorts Slider** est une version améliorée du célèbre client YouT
 
 ---
 
-### 📥 Téléchargements des APKs (Version 32.56 Stable)
+## 📥 Téléchargements des APKs (Version 32.56 Stable)
 
 Choisissez l'APK adapté au matériel de votre téléviseur :
 
@@ -142,14 +142,15 @@ Choisissez l'APK adapté au matériel de votre téléviseur :
 
 ---
 
-### ⏱️ Analyse Technique & Benchmark sur Fire TV
+## ⏱️ Analyse Technique & Benchmark sur Fire TV
 
 > [!NOTE]  
 > Détails mesurés sur **Amazon Fire TV Stick** :
 > - **Lancement du premier Short (Démarrage à froid)** : Lors du clic sur un premier Short juste après avoir ouvert l'application, un délai d'initialisation normal de **2 à 4 secondes** est présent (connexion réseau, handshake YouTube DASH et initialisation du décodeur matériel vidéo).
 > - **Transitions entre les Shorts suivants** : Une fois dans le lecteur, comme chaque Short est lu pendant que le Short suivant est déjà chargé en tâche de fond, le passage d'une vidéo à l'autre s'effectue de manière fluide et directe.
 
-#### Comment fonctionne le chargement anticipé sur clé TV ?
+### Comment fonctionne le chargement anticipé sur clé TV ?
+
 1. **Préchargement systématique du Short suivant** :  
    Dès qu'un Short commence, l'application extrait immédiatement les formats et liens du Short suivant en arrière-plan.
 2. **Tampon ExoPlayer réglé à 500 ms** :  
@@ -161,11 +162,11 @@ Choisissez l'APK adapté au matériel de votre téléviseur :
 
 ---
 
-### 🔄 Guide de Migration : Conserver ses Données & Comptes
+## 🔄 Guide de Migration : Conserver ses Données & Comptes
 
 Les signatures officielles de SmartTube et de ce fork étant différentes pour des raisons de sécurité cryptographique, Android n'autorise pas l'installation par-dessus sans migrer préalablement vos données.
 
-#### Méthode 1 : 100% sur la TV avec la télécommande (Sans PC requis)
+### Méthode 1 : 100% sur la TV avec la télécommande (Sans PC requis)
 
 1. Ouvrez votre application SmartTube actuelle sur votre téléviseur.
 2. Allez dans **Paramètres > Général > Sauvegarder les données** (cela sauvegarde vos comptes, abonnements, historique et réglages dans le stockage interne à `/sdcard/data/org.smarttube.stable/Backup/`).
@@ -176,7 +177,7 @@ Les signatures officielles de SmartTube et de ce fork étant différentes pour d
 
 ---
 
-#### Méthode 2 : Via ADB (Ligne de commande)
+### Méthode 2 : Via ADB (Ligne de commande)
 
 ```bash
 # 1. Connexion à votre TV
@@ -197,7 +198,7 @@ adb install -r SmartTube_stable_32.56_armeabi-v7a.apk
 
 ---
 
-#### 🤖 Prompt pour IA (Migration Automatisée via ADB)
+### 🤖 Prompt pour IA (Migration Automatisée via ADB)
 
 Si vous utilisez un assistant IA connecté à votre terminal (comme Google Antigravity, Claude ou ChatGPT), copiez-collez simplement ce prompt pour qu'il effectue la migration ADB à votre place :
 
