@@ -1,4 +1,4 @@
-name: Auto-Sync, Build & Release (Stable)
+name: Auto-Sync, Build & Release (Stable & Pre-release)
 
 on:
   schedule:
@@ -6,6 +6,11 @@ on:
     - cron: '0 6 * * *'
   workflow_dispatch:
     inputs:
+      include_prereleases:
+        description: 'Include Pre-releases (Betas) when checking upstream'
+        required: false
+        type: boolean
+        default: true
       force_build:
         description: 'Force build even if current version is already published'
         required: false
@@ -29,26 +34,50 @@ jobs:
           submodules: recursive
           fetch-depth: 0
 
-      - name: Check Official Stable Upstream Release
+      - name: Check Upstream Release (Stable & Pre-release)
         id: check_upstream
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          # Query latest official STABLE release (strictly ignoring all betas/pre-releases)
-          UPSTREAM_INFO=$(gh release list --repo yuliskov/SmartTube --exclude-pre-releases --limit 1 --json tagName,name -q '.[0]')
+          # Query latest release from official SmartTube
+          if [ "${{ inputs.include_prereleases }}" = "false" ]; then
+            UPSTREAM_INFO=$(gh release list --repo yuliskov/SmartTube --exclude-pre-releases --limit 1 --json tagName,isPrerelease,name -q '.[0]')
+          else
+            UPSTREAM_INFO=$(gh release list --repo yuliskov/SmartTube --limit 1 --json tagName,isPrerelease,name -q '.[0]')
+          fi
+
           UPSTREAM_TAG=$(echo "$UPSTREAM_INFO" | jq -r .tagName)
+          IS_PRERELEASE=$(echo "$UPSTREAM_INFO" | jq -r .isPrerelease)
           UPSTREAM_NAME=$(echo "$UPSTREAM_INFO" | jq -r .name)
 
-          # Extract clean version number (e.g., 32.56s -> 32.56)
+          # Extract clean version number (e.g. 32.56s -> 32.56 or 32.57 -> 32.57)
           CLEAN_VERSION=$(echo "$UPSTREAM_TAG" | sed 's/[sv]//g')
-          TARGET_TAG="v${CLEAN_VERSION}-shorts-slider"
+
+          if [ "$IS_PRERELEASE" = "true" ]; then
+            TARGET_TAG="v${CLEAN_VERSION}-beta-shorts-slider"
+            RELEASE_TITLE="SmartTube Shorts Slider v${CLEAN_VERSION} Beta (Pre-release)"
+            RELEASE_FLAG="--prerelease"
+          else
+            TARGET_TAG="v${CLEAN_VERSION}-shorts-slider"
+            RELEASE_TITLE="SmartTube Shorts Slider v${CLEAN_VERSION} Stable"
+            RELEASE_FLAG="--latest"
+          fi
 
           # If triggered by a manual pushed tag, respect that tag
           if [[ "${{ github.ref }}" == refs/tags/* ]]; then
             TARGET_TAG="${{ github.ref_name }}"
+            if [[ "$TARGET_TAG" == *"beta"* || "$TARGET_TAG" == *"pre"* ]]; then
+              RELEASE_FLAG="--prerelease"
+              RELEASE_TITLE="SmartTube Shorts Slider $TARGET_TAG (Pre-release)"
+            else
+              RELEASE_FLAG="--latest"
+              RELEASE_TITLE="SmartTube Shorts Slider $TARGET_TAG"
+            fi
           fi
 
           echo "TARGET_TAG=$TARGET_TAG" >> $GITHUB_ENV
+          echo "RELEASE_TITLE=$RELEASE_TITLE" >> $GITHUB_ENV
+          echo "RELEASE_FLAG=$RELEASE_FLAG" >> $GITHUB_ENV
           echo "UPSTREAM_NAME=$UPSTREAM_NAME" >> $GITHUB_ENV
           echo "CLEAN_VERSION=$CLEAN_VERSION" >> $GITHUB_ENV
 
@@ -59,7 +88,7 @@ jobs:
             exit 0
           fi
 
-          echo "New official stable release detected: $TARGET_TAG ($UPSTREAM_NAME). Proceeding with automated build..."
+          echo "New release detected: $TARGET_TAG ($UPSTREAM_NAME). Proceeding with automated build..."
           echo "SKIP_BUILD=false" >> $GITHUB_ENV
 
           # Setup Git and sync with upstream
@@ -68,9 +97,9 @@ jobs:
           git remote add upstream https://github.com/yuliskov/SmartTube.git || true
           git fetch upstream master --tags
 
-          if ! git merge upstream/master -m "chore(sync): automated sync with upstream stable $UPSTREAM_NAME"; then
+          if ! git merge upstream/master -m "chore(sync): automated sync with upstream $UPSTREAM_NAME"; then
             echo "Merge conflict detected! Aborting automated merge and notifying via Issue."
-            gh issue create --title "⚠️ Merge conflict with upstream stable $UPSTREAM_NAME" --body "Automated sync encountered a conflict while merging upstream/master into main. Please review and resolve."
+            gh issue create --title "⚠️ Merge conflict with upstream $UPSTREAM_NAME" --body "Automated sync encountered a conflict while merging upstream/master into main. Please review and resolve."
             exit 1
           fi
 
@@ -99,7 +128,7 @@ jobs:
         if: env.SKIP_BUILD != 'true'
         run: chmod +x gradlew
 
-      - name: Build Stable Release APKs
+      - name: Build Release APKs
         if: env.SKIP_BUILD != 'true'
         run: ./gradlew assembleStstableRelease
 
@@ -134,14 +163,14 @@ jobs:
                       "Up/Down remote D-pad navigation for endless Shorts scrolling",
                       "Continuous queue background prefetching",
                       "ExoPlayer instant playback start buffer set to 500ms",
-                      "Official stable upstream base ${VERSION}"
+                      "Official upstream base ${VERSION}"
                   ],
                   "changelog_fr": [
                       "Édition SmartTube Shorts Slider",
                       "Navigation fluide Haut/Bas sur télécommande pour défilement infini des Shorts",
                       "Préchargement automatique de la file d'attente en arrière-plan",
                       "Démarrage quasi-instantané du lecteur (tampon réduit à 500ms)",
-                      "Base officielle stable ${VERSION}"
+                      "Base officielle ${VERSION}"
                   ]
               }
           }
@@ -152,8 +181,6 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          TITLE="SmartTube Shorts Slider ${{ env.TARGET_TAG }}"
-          
           NOTES=$(cat << 'EOF'
           ### 🚀 SmartTube Shorts Slider Edition
 
@@ -174,7 +201,7 @@ jobs:
           )
 
           gh release create "$TARGET_TAG" release_assets/* \
-            --title "$TITLE" \
+            --title "$RELEASE_TITLE" \
             --notes "$NOTES" \
-            --latest \
+            $RELEASE_FLAG \
             || gh release upload "$TARGET_TAG" release_assets/* --clobber
