@@ -103,6 +103,8 @@ jobs:
 
           echo "Channels to check: ${CHANNELS[*]}"
 
+          gh repo set-default ${{ github.repository }} || true
+
           for CHANNEL in "${CHANNELS[@]}"; do
             echo "=========================================="
             echo "🔍 Checking channel: $CHANNEL"
@@ -169,13 +171,14 @@ jobs:
 
             echo "📦 Publishing GitHub Release $TARGET_TAG ($RELEASE_TITLE)..."
             gh release create "$TARGET_TAG" release_assets/* \
+              --repo ${{ github.repository }} \
               --title "$RELEASE_TITLE" \
               --notes-file release_notes.md \
               $RELEASE_FLAG \
-              || gh release upload "$TARGET_TAG" release_assets/* --clobber
+              || gh release upload "$TARGET_TAG" release_assets/* --repo ${{ github.repository }} --clobber
 
             echo "🛡️ Triggering VirusTotal Scan for $TARGET_TAG..."
-            gh workflow run virustotal_scan.yml -f release_tag="$TARGET_TAG" || true
+            gh workflow run virustotal_scan.yml --repo ${{ github.repository }} -f release_tag="$TARGET_TAG" || true
 
             echo "✅ Successfully published $TARGET_TAG!"
           done
