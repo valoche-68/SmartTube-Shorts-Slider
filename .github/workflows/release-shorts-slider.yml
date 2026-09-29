@@ -54,6 +54,10 @@ jobs:
             exit 1
           fi
 
+          # Enforce OTA update URLs always point to our repository
+          sed -i "s|yuliskov/SmartTubeNext|${{ github.repository }}|g" common/src/*/res/values/update_urls.xml || true
+          sed -i "s|yuliskov/SmartTube|${{ github.repository }}|g" common/src/*/res/values/update_urls.xml || true
+
           git push origin main || true
 
       - name: Set up JDK 17
