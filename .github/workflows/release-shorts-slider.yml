@@ -119,8 +119,13 @@ jobs:
           EOF
           )
 
+          EXTRA_FLAG="--latest"
+          if [[ "$TAG" == *"beta"* || "$TAG" == *"pre"* ]]; then
+            EXTRA_FLAG="--prerelease"
+          fi
+
           gh release create "$TAG" release_assets/* \
             --title "$TITLE" \
             --notes "$NOTES" \
-            --latest \
+            $EXTRA_FLAG \
             || gh release upload "$TAG" release_assets/* --clobber
