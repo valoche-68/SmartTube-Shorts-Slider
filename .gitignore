@@ -79,3 +79,5 @@ keystore.properties
 dist_apk/
 backup_org_smarttube_stable/
 *.patch
+.env
+*.env
