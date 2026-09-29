@@ -1,0 +1,127 @@
+name: Build & Release SmartTube Shorts Slider
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+  schedule:
+    # Check weekly on Sunday at 04:00 UTC
+    - cron: '0 4 * * 0'
+
+jobs:
+  build-release:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+          fetch-depth: 0
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          java-version: '17'
+          distribution: 'temurin'
+          cache: 'gradle'
+
+      - name: Configure Keystore & Signing
+        run: |
+          echo "${{ secrets.SIGNING_KEY }}" | base64 --decode > ${{ github.workspace }}/smarttube-release.jks
+          cat <<EOF > keystore.properties
+          storeFile=${{ github.workspace }}/smarttube-release.jks
+          storePassword=${{ secrets.KEY_STORE_PASSWORD }}
+          keyAlias=${{ secrets.ALIAS }}
+          keyPassword=${{ secrets.KEY_PASSWORD }}
+          EOF
+
+      - name: Grant Gradle permissions
+        run: chmod +x gradlew
+
+      - name: Build Stable Release APKs
+        run: ./gradlew assembleStstableRelease
+
+      - name: Prepare Release Artifacts
+        id: prepare_artifacts
+        run: |
+          mkdir -p release_assets
+          cp smarttubetv/build/outputs/apk/ststable/release/*.apk release_assets/
+          
+          # Extract version from build.gradle
+          VERSION=$(grep "versionName" smarttubetv/build.gradle | head -n 1 | awk -F'"' '{print $2}')
+          VERSION_CODE=$(grep "versionCode" smarttubetv/build.gradle | head -n 1 | awk '{print $2}')
+          TAG="v${VERSION}-shorts-slider"
+          echo "VERSION=$VERSION" >> $GITHUB_OUTPUT
+          echo "VERSION_CODE=$VERSION_CODE" >> $GITHUB_OUTPUT
+          echo "TAG=$TAG" >> $GITHUB_OUTPUT
+
+          # Generate OTA JSON update metadata
+          cat <<EOF > release_assets/smarttube_stable2.json
+          {
+              "package": {
+                  "downloadUrlList": [
+                      "https://github.com/${{ github.repository }}/releases/download/${TAG}/SmartTube_stable_${VERSION}_armeabi-v7a.apk"
+                  ],
+                  "downloadUrlList_arm64-v8a": [
+                      "https://github.com/${{ github.repository }}/releases/download/${TAG}/SmartTube_stable_${VERSION}_arm64-v8a.apk"
+                  ],
+                  "downloadUrlList_x86": [
+                      "https://github.com/${{ github.repository }}/releases/download/${TAG}/SmartTube_stable_${VERSION}_x86.apk"
+                  ]
+              },
+              "${VERSION}": {
+                  "versionCode": ${VERSION_CODE},
+                  "changelog": [
+                      "SmartTube Shorts Slider Edition",
+                      "Up/Down remote D-pad navigation for endless Shorts scrolling",
+                      "Continuous queue background prefetching",
+                      "ExoPlayer instant playback start buffer set to 500ms",
+                      "Official stable base ${VERSION}"
+                  ],
+                  "changelog_fr": [
+                      "Édition SmartTube Shorts Slider",
+                      "Navigation fluide Haut/Bas sur télécommande pour défilement infini des Shorts",
+                      "Préchargement automatique de la file d'attente en arrière-plan",
+                      "Démarrage quasi-instantané du lecteur (tampon réduit à 500ms)",
+                      "Base officielle stable ${VERSION}"
+                  ]
+              }
+          }
+          EOF
+
+      - name: Create or Update GitHub Release
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          TAG="${{ steps.prepare_artifacts.outputs.TAG }}"
+          TITLE="SmartTube Shorts Slider ${{ steps.prepare_artifacts.outputs.VERSION }}"
+          
+          NOTES=$(cat << 'EOF'
+          ### 🚀 SmartTube Shorts Slider Edition
+
+          Ce fork officiel de SmartTube intègre le **défilement vertical infini des Shorts** sur télécommande TV et le préchargement instantané des vidéos.
+
+          #### ✨ Nouveautés exclusives / Highlights
+          - 🎮 **Navigation Télécommande Haut / Bas** : Défilement fluide des Shorts comme sur smartphone / TikTok.
+          - ♾️ **Lecture continue infinie** : Les Shorts de la rangée s'enchaînent sans coupure avec rechargement automatique en tâche de fond.
+          - ⚡ **Préchargement instantané (Buffer 500ms)** : Lancement ultra-rapide des flux vidéo dès 0.5s de buffer.
+          - 📡 **Mises à jour OTA transparentes** : L'application recherche ses mises à jour directement sur ce dépôt.
+          - 🔑 **Signé officiellement** avec une clé de release permanente (valide 50 ans).
+
+          #### 📱 APKs disponibles ci-dessous :
+          - `SmartTube_stable_..._armeabi-v7a.apk` : **Recommandé pour Amazon Fire TV Stick**, Mi Box et la majorité des clés TV.
+          - `SmartTube_stable_..._arm64-v8a.apk` : **NVIDIA Shield TV** et box TV 64-bit récentes.
+          - `SmartTube_stable_..._universal.apk` : Version tout-en-un universelle.
+          - `SmartTube_stable_..._x86.apk` : Émulateurs PC & architectures Intel.
+          EOF
+          )
+
+          gh release create "$TAG" release_assets/* \
+            --title "$TITLE" \
+            --notes "$NOTES" \
+            --latest \
+            || gh release upload "$TAG" release_assets/* --clobber

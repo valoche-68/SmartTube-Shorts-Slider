@@ -71,3 +71,11 @@ tmp/
 fabric.properties
 *BAK.java
 hs_err_pid*.log
+
+# Keystore and signing files
+keystore.properties
+*.jks
+*.keystore
+dist_apk/
+backup_org_smarttube_stable/
+*.patch

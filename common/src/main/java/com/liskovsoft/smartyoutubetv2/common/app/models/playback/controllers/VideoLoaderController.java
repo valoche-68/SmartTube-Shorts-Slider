@@ -77,6 +77,7 @@ public class VideoLoaderController extends BasePlayerController {
             return;
         }
 
+        mLastPreloadedVideoId = null;
         item.isShuffled = false;
 
         if (!item.fromQueue && !item.belongsToPlaybackQueue()) {
@@ -116,8 +117,12 @@ public class VideoLoaderController extends BasePlayerController {
         }
         
         getPlayer().setButtonState(R.id.action_repeat, video.finishOnEnded ? PlayerConstants.PLAYBACK_MODE_CLOSE : getPlayerData().getPlaybackMode());
-        // Can't set title at this point
-        //checkSleepTimer();
+        preloadNextVideoIfNeeded();
+    }
+
+    @Override
+    public void onTickle() {
+        preloadNextVideoIfNeeded();
     }
 
     @Override
@@ -203,6 +208,7 @@ public class VideoLoaderController extends BasePlayerController {
      */
     private void loadVideo(Video item) {
         if (getPlayer() != null && item != null) {
+            Log.d(TAG, "TIMING: loadVideo started for " + item.videoId + " (" + item.getTitle() + ")");
             mPlaylist.setCurrent(item);
             getPlayer().setVideo(item);
             getPlayer().resetPlayerState();
@@ -271,6 +277,8 @@ public class VideoLoaderController extends BasePlayerController {
         if (player == null || getVideo() == null) {
             return;
         }
+
+        Log.d(TAG, "TIMING: processFormatInfo received and processing for " + getVideo().videoId);
 
         String bgImageUrl = null;
 
@@ -536,6 +544,7 @@ public class VideoLoaderController extends BasePlayerController {
     @Override
     public void onMetadata(MediaItemMetadata metadata) {
         initRandomNext();
+        preloadNextVideoIfNeeded();
     }
 
     private void initRandomNext() {
@@ -592,8 +601,12 @@ public class VideoLoaderController extends BasePlayerController {
         Video video = getVideo();
         if (video != null && video.finishOnEnded) {
             playbackMode = PlayerConstants.PLAYBACK_MODE_CLOSE;
-        } else if (video != null && video.belongsToShortsGroup() && getPlayerTweaksData().isLoopShortsEnabled()) {
-            playbackMode = PlayerConstants.PLAYBACK_MODE_ONE;
+        } else if (video != null && (video.isShorts() || video.belongsToShortsGroup())) {
+            if (getPlayerTweaksData().isShortsAutoScrollEnabled()) {
+                playbackMode = PlayerConstants.PLAYBACK_MODE_ALL;
+            } else {
+                playbackMode = PlayerConstants.PLAYBACK_MODE_ONE;
+            }
         }
         return playbackMode;
     }
@@ -612,6 +625,12 @@ public class VideoLoaderController extends BasePlayerController {
             int width = format.getWidth();
             int height = format.getHeight();
             boolean isShorts = width < height;
+            if (isShorts && getVideo() != null) {
+                getVideo().isShorts = true;
+                if (getPlayer() != null) {
+                    getPlayer().setVideo(getVideo());
+                }
+            }
             if (width > 0 && height > 0 && (getPlayerData().getAspectRatio() == PlayerData.ASPECT_RATIO_DEFAULT || isShorts)) {
                 getPlayer().setAspectRatio((float) width / height);
             } else {
@@ -620,13 +639,30 @@ public class VideoLoaderController extends BasePlayerController {
         }
     }
 
+    private String mLastPreloadedVideoId;
+
     private void preloadNextVideoIfNeeded() {
         if (isEmbedPlayer() || getPlayer() == null || getVideo() == null || getVideo().isLive) {
             return;
         }
 
-        if (getPlayer().getDurationMs() - getPlayer().getPositionMs() < 50_000) {
-            MediaServiceManager.instance().loadFormatInfo(mSuggestionsController.getNext(), formatInfo -> {});
+        boolean isShorts = getVideo().isShorts() || getVideo().belongsToShortsGroup();
+        long durationMs = getPlayer().getDurationMs();
+        long remainingMs = durationMs - getPlayer().getPositionMs();
+
+        // For Shorts: immediately preload format info (streams) for the next short upon launch without any remaining time condition.
+        // For regular videos: preload only when nearing the end (remainingMs < 50_000).
+        boolean shouldPreload = isShorts || (durationMs > 0 && remainingMs < 50_000);
+
+        if (shouldPreload) {
+            Video next = mSuggestionsController.getNext();
+            if (next != null && next.videoId != null && !next.videoId.equals(mLastPreloadedVideoId)) {
+                Log.d(TAG, "preloadNextVideoIfNeeded: preloading format info for next " + (isShorts ? "short" : "video") + ": " + next.videoId + " (" + next.getTitle() + ")");
+                mLastPreloadedVideoId = next.videoId;
+                MediaServiceManager.instance().loadFormatInfo(next, formatInfo -> {
+                    Log.d(TAG, "preloadNextVideoIfNeeded: preloaded format info successfully for " + next.videoId);
+                });
+            }
         }
     }
 }

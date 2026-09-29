@@ -27,6 +27,9 @@ import com.liskovsoft.smartyoutubetv2.tv.R;
 import com.liskovsoft.smartyoutubetv2.tv.ui.mod.leanback.playerglue.tweaks.MaxControlsVideoPlayerGlue;
 import com.liskovsoft.smartyoutubetv2.tv.ui.mod.leanback.playerglue.tweaks.PlaybackTransportRowPresenter;
 import com.liskovsoft.smartyoutubetv2.tv.ui.mod.leanback.widget.OnActionLongClickedListener;
+import com.liskovsoft.smartyoutubetv2.common.app.models.data.Video;
+import com.liskovsoft.smartyoutubetv2.common.app.models.playback.manager.PlayerUI;
+import com.liskovsoft.smartyoutubetv2.tv.ui.playback.actions.ShortsAutoScrollAction;
 import com.liskovsoft.smartyoutubetv2.tv.ui.playback.actions.AFRAction;
 import com.liskovsoft.smartyoutubetv2.tv.ui.playback.actions.ActionHelpers;
 import com.liskovsoft.smartyoutubetv2.tv.ui.playback.actions.ChannelAction;
@@ -134,6 +137,7 @@ public class VideoPlayerGlue extends MaxControlsVideoPlayerGlue<PlayerAdapter> i
         putAction(new RotateAction(context));
         putAction(new FlipAction(context));
         putAction(new SoundOffAction(context));
+        putAction(new ShortsAutoScrollAction(context));
     }
 
     @Override
@@ -204,6 +208,16 @@ public class VideoPlayerGlue extends MaxControlsVideoPlayerGlue<PlayerAdapter> i
         // Origin: {@link androidx.leanback.widget.ControlBarPresenter#MAX_CONTROLS}
         // Custom mod: {@link com.liskovsoft.smartyoutubetv2.tv.ui.mod.leanback.playerglue.ControlBarPresenter#MAX_CONTROLS}
 
+        if (mActions.get(R.id.action_shorts_auto_scroll) != null) {
+            Video video = getVideo();
+            boolean isShorts = video != null && (video.isShorts() || video.belongsToShortsGroup());
+            if (isShorts) {
+                adapter.add(mActions.get(R.id.action_shorts_auto_scroll));
+                setButtonState(R.id.action_shorts_auto_scroll,
+                        mPlayerTweaksData.isShortsAutoScrollEnabled() ? PlayerUI.BUTTON_ON : PlayerUI.BUTTON_OFF);
+            }
+        }
+
         if (mPlayerTweaksData.isPlayerButtonEnabled(PlayerTweaksData.PLAYER_BUTTON_HIGH_QUALITY)) {
             adapter.add(mActions.get(R.id.lb_control_high_quality));
         }
@@ -236,6 +250,40 @@ public class VideoPlayerGlue extends MaxControlsVideoPlayerGlue<PlayerAdapter> i
         }
         if (mPlayerTweaksData.isPlayerButtonEnabled(PlayerTweaksData.PLAYER_BUTTON_VIDEO_STATS)) {
             adapter.add(mActions.get(R.id.action_video_stats));
+        }
+    }
+
+    @Override
+    public void setVideo(Video video) {
+        super.setVideo(video);
+
+        updateShortsAutoScrollButton(video);
+    }
+
+    public void updateShortsAutoScrollButton(Video video) {
+        if (getControlsRow() == null || getControlsRow().getSecondaryActionsAdapter() == null) {
+            return;
+        }
+
+        ArrayObjectAdapter adapter = (ArrayObjectAdapter) getControlsRow().getSecondaryActionsAdapter();
+        Action action = mActions.get(R.id.action_shorts_auto_scroll);
+        if (action == null) {
+            return;
+        }
+
+        boolean isShorts = video != null && (video.isShorts() || video.belongsToShortsGroup());
+        int index = adapter.indexOf(action);
+
+        if (isShorts) {
+            if (index < 0) {
+                adapter.add(0, action);
+            }
+            setButtonState(R.id.action_shorts_auto_scroll,
+                    mPlayerTweaksData.isShortsAutoScrollEnabled() ? PlayerUI.BUTTON_ON : PlayerUI.BUTTON_OFF);
+        } else {
+            if (index >= 0) {
+                adapter.remove(action);
+            }
         }
     }
 

@@ -111,11 +111,8 @@ android {
                 signingConfig signingConfigs.release
             }
         }
-        // Use same key for release and debug for testing
+        // Use default debug keystore for debug builds so adb install -r preserves app data
         debug {
-            if (keystorePropertiesFile.exists()) {
-                signingConfig signingConfigs.release
-            }
         }
     }
 

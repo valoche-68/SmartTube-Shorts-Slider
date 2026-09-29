@@ -756,4 +756,7 @@
         <item quantity="one">%s second</item>
         <item quantity="other">%s seconds</item>
     </plurals>
+    <string name="action_shorts_auto_scroll">Auto-scroll Shorts</string>
+    <string name="shorts_auto_scroll_on">Auto-scroll: ON</string>
+    <string name="shorts_auto_scroll_off">Auto-scroll: OFF</string>
 </resources>
