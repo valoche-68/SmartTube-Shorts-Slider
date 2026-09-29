@@ -100,13 +100,13 @@ If you use an AI coding assistant (such as Antigravity, Claude, or ChatGPT) conn
 Please help me migrate my SmartTube installation on my Android TV (IP: <YOUR_TV_IP>) to the latest SmartTube-Shorts-Slider release from GitHub without losing any data:
 1. Connect via ADB to <YOUR_TV_IP>:5555.
 2. Check the TV hardware CPU architecture via ADB (e.g., `adb shell getprop ro.product.cpu.abi`).
-3. Verify that a backup exists in /sdcard/data/org.smarttube.stable/Backup. If not, trigger a backup or pull shared_prefs.
-4. Pull a copy of the backup to my computer as a safety measure.
-5. Go to the GitHub repository https://github.com/valoche-68/SmartTube-Shorts-Slider, fetch the latest release, and download the APK matching the TV architecture (armeabi-v7a, arm64-v8a, or universal).
-6. Uninstall the existing package org.smarttube.stable from the TV.
-7. Install the downloaded compatible APK via ADB.
-8. Grant storage permissions if needed (READ_EXTERNAL_STORAGE).
-9. Launch the application and verify it opens properly so I can restore my settings.
+3. Check if the app `org.smarttube.stable` is currently installed (`adb shell pm list packages org.smarttube.stable`):
+   - If installed: verify if a backup exists in `/sdcard/data/org.smarttube.stable/Backup/` (if missing, trigger a backup or pull shared_prefs), pull a safety copy to my computer, then uninstall the old package.
+   - If already uninstalled: check the TV storage (`/sdcard/data/org.smarttube.stable/Backup/`) to confirm whether a previous backup file is present, and pull a copy if found.
+4. Go to the GitHub repository https://github.com/valoche-68/SmartTube-Shorts-Slider, fetch the latest release, and download the APK matching the TV architecture (armeabi-v7a, arm64-v8a, or universal).
+5. Install the downloaded compatible APK via ADB.
+6. Grant storage permissions if needed (READ_EXTERNAL_STORAGE).
+7. Launch the application and verify it opens properly so I can restore my settings.
 ```
 
 ---
@@ -208,13 +208,13 @@ Si vous utilisez un assistant IA connecté à votre terminal (comme Google Antig
 Aide-moi à migrer mon installation SmartTube sur mon téléviseur Android TV (IP : <IP_DE_VOTRE_TV>) vers la dernière version de SmartTube-Shorts-Slider sur GitHub sans perdre aucune de mes données :
 1. Connecte-toi via ADB à <IP_DE_VOTRE_TV>:5555.
 2. Détecte l'architecture CPU du matériel de la TV via ADB (ex: `adb shell getprop ro.product.cpu.abi`).
-3. Vérifie qu'une sauvegarde existe bien dans /sdcard/data/org.smarttube.stable/Backup. Si ce n'est pas le cas, déclenche une sauvegarde ou télécharge shared_prefs.
-4. Rapatrie une copie de sauvegarde sur mon ordinateur en lieu sûr par précaution.
-5. Va sur le dépôt GitHub https://github.com/valoche-68/SmartTube-Shorts-Slider, récupère la dernière release et télécharge l'APK correspondant à l'architecture de la TV (armeabi-v7a, arm64-v8a ou universal).
-6. Désinstalle le paquet existant org.smarttube.stable de la TV.
-7. Installe l'APK compatible téléchargé via ADB.
-8. Accorde les autorisations de stockage si nécessaire (READ_EXTERNAL_STORAGE).
-9. Démarre l'application et vérifie qu'elle se lance correctement pour que je puisse restaurer mes réglages.
+3. Vérifie si l'application `org.smarttube.stable` est actuellement installée (`adb shell pm list packages org.smarttube.stable`) :
+   - Si l'application est installée : vérifie si une sauvegarde existe dans `/sdcard/data/org.smarttube.stable/Backup/` (si manquante, déclenche une sauvegarde ou télécharge shared_prefs), rapatrie une copie de sauvegarde sur mon ordinateur en lieu sûr, puis désinstalle l'ancien paquet.
+   - Si elle a déjà été désinstallée : vérifie dans le stockage de la TV (`/sdcard/data/org.smarttube.stable/Backup/`) si un fichier de sauvegarde est toujours présent et rapatrie-le par sécurité.
+4. Va sur le dépôt GitHub https://github.com/valoche-68/SmartTube-Shorts-Slider, récupère la dernière release et télécharge l'APK correspondant à l'architecture de la TV (armeabi-v7a, arm64-v8a ou universal).
+5. Installe l'APK compatible téléchargé via ADB.
+6. Accorde les autorisations de stockage si nécessaire (READ_EXTERNAL_STORAGE).
+7. Démarre l'application et vérifie qu'elle se lance correctement pour que je puisse restaurer mes réglages.
 ```
 
 ---
