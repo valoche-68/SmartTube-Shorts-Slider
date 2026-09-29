@@ -2,8 +2,8 @@ name: Auto-Sync, Build & Release (Stable & Pre-release)
 
 on:
   schedule:
-    # Check automatically every day at 06:00 UTC
-    - cron: '0 6 * * *'
+    # Check automatically every hour for both Beta and Stable releases
+    - cron: '15 * * * *'
   workflow_dispatch:
     inputs:
       channel:
