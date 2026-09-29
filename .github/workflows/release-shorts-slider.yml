@@ -1,19 +1,26 @@
-name: Build & Release SmartTube Shorts Slider
+name: Auto-Sync, Build & Release (Stable)
 
 on:
+  schedule:
+    # Check automatically every day at 06:00 UTC
+    - cron: '0 6 * * *'
+  workflow_dispatch:
+    inputs:
+      force_build:
+        description: 'Force build even if current version is already published'
+        required: false
+        type: boolean
+        default: false
   push:
     tags:
       - 'v*'
-  workflow_dispatch:
-  schedule:
-    # Check weekly on Sunday at 04:00 UTC
-    - cron: '0 4 * * 0'
 
 jobs:
-  build-release:
+  check-and-release:
     runs-on: ubuntu-latest
     permissions:
       contents: write
+      issues: write
 
     steps:
       - name: Checkout Code
@@ -22,7 +29,55 @@ jobs:
           submodules: recursive
           fetch-depth: 0
 
+      - name: Check Official Stable Upstream Release
+        id: check_upstream
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          # Query latest official STABLE release (strictly ignoring all betas/pre-releases)
+          UPSTREAM_INFO=$(gh release list --repo yuliskov/SmartTube --exclude-pre-releases --limit 1 --json tagName,name -q '.[0]')
+          UPSTREAM_TAG=$(echo "$UPSTREAM_INFO" | jq -r .tagName)
+          UPSTREAM_NAME=$(echo "$UPSTREAM_INFO" | jq -r .name)
+
+          # Extract clean version number (e.g., 32.56s -> 32.56)
+          CLEAN_VERSION=$(echo "$UPSTREAM_TAG" | sed 's/[sv]//g')
+          TARGET_TAG="v${CLEAN_VERSION}-shorts-slider"
+
+          # If triggered by a manual pushed tag, respect that tag
+          if [[ "${{ github.ref }}" == refs/tags/* ]]; then
+            TARGET_TAG="${{ github.ref_name }}"
+          fi
+
+          echo "TARGET_TAG=$TARGET_TAG" >> $GITHUB_ENV
+          echo "UPSTREAM_NAME=$UPSTREAM_NAME" >> $GITHUB_ENV
+          echo "CLEAN_VERSION=$CLEAN_VERSION" >> $GITHUB_ENV
+
+          # Check if this release is already published on our repository
+          if gh release view "$TARGET_TAG" --repo ${{ github.repository }} >/dev/null 2>&1 && [ "${{ inputs.force_build }}" != "true" ]; then
+            echo "Release $TARGET_TAG is already published on ${{ github.repository }}. No build needed."
+            echo "SKIP_BUILD=true" >> $GITHUB_ENV
+            exit 0
+          fi
+
+          echo "New official stable release detected: $TARGET_TAG ($UPSTREAM_NAME). Proceeding with automated build..."
+          echo "SKIP_BUILD=false" >> $GITHUB_ENV
+
+          # Setup Git and sync with upstream
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git remote add upstream https://github.com/yuliskov/SmartTube.git || true
+          git fetch upstream master --tags
+
+          if ! git merge upstream/master -m "chore(sync): automated sync with upstream stable $UPSTREAM_NAME"; then
+            echo "Merge conflict detected! Aborting automated merge and notifying via Issue."
+            gh issue create --title "⚠️ Merge conflict with upstream stable $UPSTREAM_NAME" --body "Automated sync encountered a conflict while merging upstream/master into main. Please review and resolve."
+            exit 1
+          fi
+
+          git push origin main || true
+
       - name: Set up JDK 17
+        if: env.SKIP_BUILD != 'true'
         uses: actions/setup-java@v4
         with:
           java-version: '17'
@@ -30,6 +85,7 @@ jobs:
           cache: 'gradle'
 
       - name: Configure Keystore & Signing
+        if: env.SKIP_BUILD != 'true'
         run: |
           echo "${{ secrets.SIGNING_KEY }}" | base64 --decode > ${{ github.workspace }}/smarttube-release.jks
           cat <<EOF > keystore.properties
@@ -40,37 +96,35 @@ jobs:
           EOF
 
       - name: Grant Gradle permissions
+        if: env.SKIP_BUILD != 'true'
         run: chmod +x gradlew
 
       - name: Build Stable Release APKs
+        if: env.SKIP_BUILD != 'true'
         run: ./gradlew assembleStstableRelease
 
       - name: Prepare Release Artifacts
+        if: env.SKIP_BUILD != 'true'
         id: prepare_artifacts
         run: |
           mkdir -p release_assets
           cp smarttubetv/build/outputs/apk/ststable/release/*.apk release_assets/
           
-          # Extract version from build.gradle
           VERSION=$(grep "versionName" smarttubetv/build.gradle | head -n 1 | awk -F'"' '{print $2}')
           VERSION_CODE=$(grep "versionCode" smarttubetv/build.gradle | head -n 1 | awk '{print $2}')
-          TAG="v${VERSION}-shorts-slider"
-          echo "VERSION=$VERSION" >> $GITHUB_OUTPUT
-          echo "VERSION_CODE=$VERSION_CODE" >> $GITHUB_OUTPUT
-          echo "TAG=$TAG" >> $GITHUB_OUTPUT
-
+          
           # Generate OTA JSON update metadata
           cat <<EOF > release_assets/smarttube_stable2.json
           {
               "package": {
                   "downloadUrlList": [
-                      "https://github.com/${{ github.repository }}/releases/download/${TAG}/SmartTube_Shorts_Slider_stable_${VERSION}_armeabi-v7a.apk"
+                      "https://github.com/${{ github.repository }}/releases/download/${TARGET_TAG}/SmartTube_Shorts_Slider_stable_${VERSION}_armeabi-v7a.apk"
                   ],
                   "downloadUrlList_arm64-v8a": [
-                      "https://github.com/${{ github.repository }}/releases/download/${TAG}/SmartTube_Shorts_Slider_stable_${VERSION}_arm64-v8a.apk"
+                      "https://github.com/${{ github.repository }}/releases/download/${TARGET_TAG}/SmartTube_Shorts_Slider_stable_${VERSION}_arm64-v8a.apk"
                   ],
                   "downloadUrlList_x86": [
-                      "https://github.com/${{ github.repository }}/releases/download/${TAG}/SmartTube_Shorts_Slider_stable_${VERSION}_x86.apk"
+                      "https://github.com/${{ github.repository }}/releases/download/${TARGET_TAG}/SmartTube_Shorts_Slider_stable_${VERSION}_x86.apk"
                   ]
               },
               "${VERSION}": {
@@ -80,7 +134,7 @@ jobs:
                       "Up/Down remote D-pad navigation for endless Shorts scrolling",
                       "Continuous queue background prefetching",
                       "ExoPlayer instant playback start buffer set to 500ms",
-                      "Official stable base ${VERSION}"
+                      "Official stable upstream base ${VERSION}"
                   ],
                   "changelog_fr": [
                       "Édition SmartTube Shorts Slider",
@@ -94,11 +148,11 @@ jobs:
           EOF
 
       - name: Create or Update GitHub Release
+        if: env.SKIP_BUILD != 'true'
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          TAG="${{ steps.prepare_artifacts.outputs.TAG }}"
-          TITLE="SmartTube Shorts Slider ${{ steps.prepare_artifacts.outputs.VERSION }}"
+          TITLE="SmartTube Shorts Slider ${{ env.TARGET_TAG }}"
           
           NOTES=$(cat << 'EOF'
           ### 🚀 SmartTube Shorts Slider Edition
@@ -119,13 +173,8 @@ jobs:
           EOF
           )
 
-          EXTRA_FLAG="--latest"
-          if [[ "$TAG" == *"beta"* || "$TAG" == *"pre"* ]]; then
-            EXTRA_FLAG="--prerelease"
-          fi
-
-          gh release create "$TAG" release_assets/* \
+          gh release create "$TARGET_TAG" release_assets/* \
             --title "$TITLE" \
             --notes "$NOTES" \
-            $EXTRA_FLAG \
-            || gh release upload "$TAG" release_assets/* --clobber
+            --latest \
+            || gh release upload "$TARGET_TAG" release_assets/* --clobber
