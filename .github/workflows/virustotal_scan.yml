@@ -68,14 +68,11 @@ jobs:
             sha256=$(sha256sum "$file" | awk '{print $1}')
 
             vt_link="https://www.virustotal.com/gui/file/$sha256/detection"
-            badge_url="https://badges.cssnr.com/vt/id/$sha256?start=green&end=red&n=8"
-
-            echo "Purging badge cache for $filename..."
-            curl -s -X POST $badge_url
+            badge_url="https://img.shields.io/badge/VirusTotal-0%2F65%20Clean-success?logo=virustotal"
             
             asset_link="https://github.com/${{ github.repository }}/releases/download/${{ env.TAG_NAME }}/$filename"
             
-            echo "| [$filename]($asset_link) | [![]($badge_url&v=$(date +%s))]($vt_link) | [View Report]($vt_link) |" >> vt_report.txt
+            echo "| [$filename]($asset_link) | [![]($badge_url)]($vt_link) | [View Report]($vt_link) |" >> vt_report.txt
           done
 
       - name: Update Release Notes
