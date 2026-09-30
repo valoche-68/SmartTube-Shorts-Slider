@@ -31,17 +31,19 @@ def main():
             "versionCode": version_code,
             "changelog": [
                 f"SmartTube Shorts Slider {type_label} Edition",
-                "Up/Down remote D-pad navigation for endless Shorts scrolling",
-                "Continuous queue background prefetching",
-                "ExoPlayer instant playback start buffer set to 500ms",
-                f"Official upstream base {version}"
+                f"Based on official SmartTube v{version} with addition of:",
+                "• Up/Down remote D-pad navigation for endless Shorts scrolling",
+                "• Automatic next-short preloading in background",
+                "• Persistent player control toggle for Shorts Auto-Scroll",
+                "• Continuous queue (10 to 20 Shorts ahead)"
             ],
             "changelog_fr": [
                 f"Édition SmartTube Shorts Slider {type_label}",
-                "Navigation fluide Haut/Bas sur télécommande pour défilement infini des Shorts",
-                "Préchargement automatique de la file d'attente en arrière-plan",
-                "Démarrage quasi-instantané du lecteur (tampon réduit à 500ms)",
-                f"Base officielle {version}"
+                f"Sur la base de SmartTube officiel en version {version} avec ajout de :",
+                "• Navigation fluide Haut/Bas sur télécommande pour défilement infini des Shorts",
+                "• Préchargement automatique du Short suivant en arrière-plan",
+                "• Bouton Défilement Automatique (Auto-Scroll) dans le lecteur",
+                "• File d'attente continue (10 à 20 Shorts d'avance)"
             ]
         }
     }
@@ -66,9 +68,7 @@ def main():
 
 ### 🇬🇧 English
 
-Enhanced SmartTube edition featuring **smooth vertical YouTube Shorts scrolling** using TV remote control Up/Down keys, persistent auto-scroll toggle, and continuous background prefetching.
-
-#### ✨ Key Highlights
+Based on official SmartTube v{version} with addition of:
 - 🎮 **Up / Down Remote D-Pad Navigation**: Seamlessly navigate YouTube Shorts using the Up and Down keys on your TV remote control, just like mobile / TikTok.
 - 🔄 **Automatic Next-Short Preloading**: While watching a Short, the next video format and stream URLs are automatically prepared in the background for instant transitions.
 - ⏯️ **Auto-Scroll Toggle Button**: A dedicated player control button to enable or disable automatic hands-free scrolling when the current Short finishes.
@@ -84,9 +84,7 @@ Enhanced SmartTube edition featuring **smooth vertical YouTube Shorts scrolling*
 
 ### 🇫🇷 Version Française
 
-Édition enrichie de SmartTube intégrant le **défilement vertical fluide des YouTube Shorts** sur télécommande TV et le préchargement continu en arrière-plan.
-
-#### ✨ Nouveautés & Points Clés
+Sur la base de SmartTube officiel en version {version} avec ajout de :
 - 🎮 **Navigation Télécommande Haut / Bas** : Défilement fluide des Shorts avec les touches Haut et Bas de la télécommande, comme sur smartphone / TikTok.
 - 🔄 **Préchargement Automatique du Short Suivant** : Pendant la lecture d'un Short, le format et les flux de la vidéo suivante sont déjà préparés en tâche de fond.
 - ⏯️ **Bouton Défilement Automatique (Auto-Scroll)** : Bouton dédié dans l'interface du lecteur permettant d'activer ou désactiver l'enchaînement automatique sans toucher à la télécommande.

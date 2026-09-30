@@ -14,17 +14,19 @@
         "versionCode": 2449,
         "changelog": [
             "SmartTube Shorts Slider Beta (Pre-release) Edition",
-            "Up/Down remote D-pad navigation for endless Shorts scrolling",
-            "Continuous queue background prefetching",
-            "ExoPlayer instant playback start buffer set to 500ms",
-            "Official upstream base 32.59"
+            "Based on official SmartTube v32.59 with addition of:",
+            "• Up/Down remote D-pad navigation for endless Shorts scrolling",
+            "• Automatic next-short preloading in background",
+            "• Persistent player control toggle for Shorts Auto-Scroll",
+            "• Continuous queue (10 to 20 Shorts ahead)"
         ],
         "changelog_fr": [
-            "Édition SmartTube Shorts Slider Beta (Pre-release)",
-            "Navigation fluide Haut/Bas sur télécommande pour défilement infini des Shorts",
-            "Préchargement automatique de la file d'attente en arrière-plan",
-            "Démarrage quasi-instantané du lecteur (tampon réduit à 500ms)",
-            "Base officielle 32.59"
+            "Édition SmartTube Shorts Slider Bêta (Pre-release)",
+            "Sur la base de SmartTube officiel en version 32.59 avec ajout de :",
+            "• Navigation fluide Haut/Bas sur télécommande pour défilement infini des Shorts",
+            "• Préchargement automatique du Short suivant en arrière-plan",
+            "• Bouton Défilement Automatique (Auto-Scroll) dans le lecteur",
+            "• File d'attente continue (10 à 20 Shorts d'avance)"
         ]
     }
 }
