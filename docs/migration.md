@@ -2,7 +2,7 @@
 
 ## Mettre à jour SmartTube Shorts Slider
 
-Télécharger la nouvelle stable ou bêta correspondant au canal installé. Vérifier `SHA256SUMS` et l'empreinte du certificat publiée dans le README. Conserver une sauvegarde récente hors de la TV.
+Télécharger la nouvelle stable ou bêta correspondant au canal installé. Vérifier `SHA256SUMS` et l'empreinte du certificat publiée dans le [guide complet](user-guide.fr.md#certificat-de-signature). Conserver une sauvegarde récente hors de la TV.
 
 Une mise à jour de même identifiant et même signature s'installe sans désinstallation :
 
