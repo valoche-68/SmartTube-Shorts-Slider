@@ -79,11 +79,9 @@ Cela peut éviter une partie du travail au changement de vidéo. **Le gain de vi
 
 Le modèle commercial ne suffit pas toujours à choisir : un appareil 64 bits peut exécuter un système 32 bits. ADB peut afficher les architectures autorisées avec `adb shell getprop ro.product.cpu.abilist`.
 
-### Vous utilisez déjà l’ancien fork
+### Installer et mettre à jour
 
-Les nouveaux APK gardent les identifiants `org.smarttube.stable` / `org.smarttube.beta` et la même signature personnelle. Une mise à jour compatible conserve les données : **ne désinstallez pas l’application**. Faites néanmoins une sauvegarde récente avant migration.
-
-L’ancienne stable disposait d’une adresse de mise à jour cassée : le fichier de compatibilité `smarttube_stable2.json` est fourni avec les nouvelles stables. L’ancienne bêta pointait vers l’officiel : installer manuellement une première fois la nouvelle bêta du fork.
+Les identifiants Android sont `org.smarttube.stable` et `org.smarttube.beta`. Les mises à jour de Shorts Slider utilisent le certificat publié ci-dessous. Une mise à jour de même identifiant et même signature conserve les données : **ne désinstallez pas l’application pour la mettre à jour**. Gardez une sauvegarde récente.
 
 ### Vous utilisez l’application officielle
 

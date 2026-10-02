@@ -42,7 +42,7 @@ Preparation fetches playback formats and stream addresses for **one next Short**
 
 Available APKs: `armeabi-v7a`, `arm64-v8a`, `x86`, and a universal package containing those three native architectures. Check Android's supported ABIs with `adb shell getprop ro.product.cpu.abilist`; the hardware's marketing name is not sufficient.
 
-The fork retains `org.smarttube.stable` and `org.smarttube.beta`, signed with the same private release certificate as its previous published APKs. A compatible upgrade preserves data: **do not uninstall it**. The old beta requires one manual upgrade because its embedded updater targeted the official repository. A legacy metadata alias repairs the old stable update URL.
+The Android package IDs are `org.smarttube.stable` and `org.smarttube.beta`. Shorts Slider updates use the release certificate listed below. An update with the same package ID and signature preserves data: **do not uninstall the app to update it**. Keep a recent backup.
 
 Official APKs use a different signing key, so the same channel cannot coexist or be directly replaced. Prefer native settings first. If migrating, make a complete backup, copy it to your PC and verify it before any uninstall; download and verify the replacement APK first. Debug-signed installations also require a separate migration. See the [migration guide](docs/migration.md).
 

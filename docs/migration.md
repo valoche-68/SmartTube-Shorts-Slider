@@ -1,6 +1,6 @@
 # Mettre à jour ou changer de signature
 
-## Ancien fork signé avec la clé personnelle
+## Mettre à jour SmartTube Shorts Slider
 
 Télécharger la nouvelle stable ou bêta correspondant au canal installé. Vérifier `SHA256SUMS` et l'empreinte du certificat publiée dans le README. Conserver une sauvegarde récente hors de la TV.
 
@@ -11,8 +11,6 @@ adb install -r /chemin/vers/APK.apk
 ```
 
 Si Android signale une signature incompatible ou un numéro de version trop bas, arrêter et identifier la version installée. Ne pas ajouter automatiquement une désinstallation ou un contournement de rétrogradation.
-
-L'ancienne bêta doit recevoir une première mise à jour manuelle. Pour l'ancienne stable, le nouvel alias `smarttube_stable2.json` permet au mécanisme existant de trouver le nouvel APK.
 
 ## Application officielle ou version de debug
 

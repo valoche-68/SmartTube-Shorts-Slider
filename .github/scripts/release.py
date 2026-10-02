@@ -201,15 +201,15 @@ Version APK : **{provenance['version_name']}**, code Android **{provenance['vers
 
 ''' + '\n'.join('- ' + item for item in notes_fr) + '''
 
-Les tests automatisés et les contrôles des APK précèdent la publication. L'essai sur la Fire TV du mainteneur et la mesure de vitesse restent à faire pour cette refonte.
-Mise à jour du précédent fork avec la même signature ; ne pas désinstaller. Depuis l'application officielle, consulter le guide de sauvegarde et de migration. L'ancienne bêta nécessite une première mise à jour manuelle.
+Les tests automatisés et les contrôles des APK précèdent la publication. L'essai sur la Fire TV du mainteneur et la mesure de vitesse restent à faire.
+Les mises à jour de Shorts Slider conservent la même signature ; ne pas désinstaller l'application pour la mettre à jour. Depuis l'application officielle, consulter le guide de sauvegarde et de migration.
 
 ## English
 ''' + '\n'.join('- ' + item for item in notes_en) + f'''
 
 Built from the exact upstream tag, with its pinned submodules and the reviewed fork patches.
 See [source](https://github.com/{REPO}/tree/{provenance['source_commit']}), `build-info.json` and `SHA256SUMS` for provenance.
-The maintainer's Fire TV test and speed comparison remain pending for this redesign.
+The maintainer's Fire TV test and speed comparison remain pending.
 '''
     (folder / 'release_notes.md').write_text(notes)
     return assets

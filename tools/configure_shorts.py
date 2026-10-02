@@ -92,7 +92,7 @@ class Backup:
         if profile is not None and profile != active and not self.has_profile(profile):
             raise ConfigError("Profil absent de la sauvegarde.")
         if self.get_slot(TWEAKS, 61) in ("true", "false"):
-            raise ConfigError("Cette sauvegarde vient de l'ancien fork. Utiliser cet outil avec SmartTube officiel.")
+            raise ConfigError("Cette sauvegarde contient des réglages personnalisés. Utiliser cet outil avec SmartTube officiel.")
 
     def has_profile(self, profile):
         key = (profile + "_" if profile else "") + TWEAKS

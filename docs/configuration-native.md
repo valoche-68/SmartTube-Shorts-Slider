@@ -67,4 +67,4 @@ Le script rétablit les anciennes valeurs ciblées et conserve les autres régla
 
 Les sauvegardes peuvent contenir des accès aux comptes. Le script ne les envoie à aucun service externe et ne les affiche pas. Les sorties sont créées dans le répertoire utilisateur, avec des permissions restreintes lorsque le système les prend en charge. Sous Windows, conserver ces fichiers dans votre dossier utilisateur protégé ; les modes Unix ne remplacent pas les autorisations Windows.
 
-Ne joindre ni sauvegarde ni journal d'annulation à un ticket GitHub. Les archives ambiguës, chemins dangereux, préférences inconnues et sauvegardes de l'ancien fork sont refusés. La prise en charge d'une future version nécessite la vérification de son schéma officiel.
+Ne joindre ni sauvegarde ni journal d'annulation à un ticket GitHub. Les archives ambiguës, chemins dangereux, préférences inconnues et sauvegardes d'applications personnalisées sont refusés. La prise en charge d'une future version nécessite la vérification de son schéma officiel.
