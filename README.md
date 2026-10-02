@@ -17,13 +17,25 @@ Shorts navigation and automatic playback already exist:
 - **Settings → Video player → Misc:** turn off “Loop Shorts” and select the playback mode that advances to the next video.
 - Optionally enable “Use current section content as playlist”. The global playback mode also affects regular videos.
 
-The [guided configuration tool](docs/configuration-native.md) runs with Python 3.10+ and ADB on Linux, macOS and Windows:
+### Copy, paste, follow the assistant
+
+Open a terminal and paste the command for your computer. It downloads and runs the small assistant directly; **no Git clone or manual file download is needed**.
+
+**Linux and macOS — Terminal**
 
 ```sh
-python3 tools/configure_shorts.py
+sh -c 's=$(curl -fsSL https://raw.githubusercontent.com/valoche-68/SmartTube-Shorts-Slider/main/tools/start.sh) && sh -c "$s" sh "$@"' sh
 ```
 
-On Windows use `tools\configure_shorts.cmd`. It modifies a recent official backup, retains the original, and lets you restore it through SmartTube's own interface. No root, uninstall or replacement APK is involved. You can inspect settings, choose navigation, configure automatic playback and the section playlist, preview changes, and selectively undo them using a fresh backup.
+**Windows — PowerShell** (not Command Prompt)
+
+```powershell
+& ([scriptblock]::Create((Invoke-WebRequest -UseBasicParsing -Uri 'https://raw.githubusercontent.com/valoche-68/SmartTube-Shorts-Slider/main/tools/start.ps1').Content))
+```
+
+Install [Python 3.10+](https://www.python.org/downloads/) and [ADB](https://developer.android.com/tools/releases/platform-tools) once, then connect your TV with ADB as explained in the [setup guide](docs/configuration-native.md). The launcher checks Python and reports missing prerequisites. Its temporary script is removed when it exits; your private backups are kept separately. The menus are currently in French.
+
+The assistant modifies a recent official backup, retains the original, and lets you restore it through SmartTube's own interface. No root, uninstall or replacement APK is involved. You can inspect settings, choose navigation, configure automatic playback and the section playlist, preview changes, and selectively undo them using a fresh backup.
 
 The verified source schema is official **32.56 stable and beta**. Unknown versions are rejected. End-to-end Fire TV validation remains pending. The tool does **not** add the player button or speculative preparation. Manual settings remain an option.
 

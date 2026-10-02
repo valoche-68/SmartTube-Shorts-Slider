@@ -10,16 +10,33 @@ Installer [Python 3.10 ou supérieur](https://www.python.org/downloads/) et les 
 
 Activer le débogage ADB dans les options développeur de la TV, connecter l'ordinateur et accepter la demande sur la TV. Selon l'appareil, utiliser `adb connect ADRESSE:PORT` ou l'association `adb pair`. Ne pas exposer ADB sur Internet. La [documentation Android](https://developer.android.com/tools/adb) décrit ces modes.
 
+## Lancer sans télécharger de fichier à la main
+
+Après la préparation ci-dessus, copiez-collez **une seule commande** dans votre console :
+
+**Linux / macOS — Terminal**
+
 ```sh
-adb devices -l
-python3 tools/configure_shorts.py --channel stable
-# Avec plusieurs appareils : ajouter --device IDENTIFIANT_ADB
-# Pour la bêta officielle : --channel beta
+sh -c 's=$(curl -fsSL https://raw.githubusercontent.com/valoche-68/SmartTube-Shorts-Slider/main/tools/start.sh) && sh -c "$s" sh "$@"' sh
 ```
 
-Sous Linux/macOS, `tools/configure_shorts.sh` est aussi disponible. Sous Windows : `tools\configure_shorts.cmd`, ou `py -3 tools\configure_shorts.py`.
+**Windows — PowerShell**
 
-Le menu reste en français sur les trois systèmes. Les paramètres en ligne de commande sont identiques.
+```powershell
+& ([scriptblock]::Create((Invoke-WebRequest -UseBasicParsing -Uri 'https://raw.githubusercontent.com/valoche-68/SmartTube-Shorts-Slider/main/tools/start.ps1').Content))
+```
+
+La commande récupère le lanceur de ce dépôt, puis celui-ci télécharge uniquement `configure_shorts.py` dans un dossier temporaire. Le menu garde l’accès au clavier. Si le téléchargement échoue, aucun fichier incomplet n’est exécuté. Le fichier temporaire est supprimé à la fermeture, sans supprimer les sauvegardes privées. Git n’est pas nécessaire ; les lanceurs n’installent pas Python ou ADB et ne modifient pas les règles d’exécution de PowerShell.
+
+Pour obtenir l’aide ou utiliser la bêta, on peut ajouter `--help` ou `--channel beta` à la fin de la commande. Les autres options du script fonctionnent de la même manière.
+
+Si le projet est déjà présent sur le PC, les commandes locales restent disponibles :
+
+```sh
+python3 tools/configure_shorts.py
+# Linux / macOS : tools/configure_shorts.sh
+# Windows : tools\configure_shorts.cmd
+```
 
 ## Parcours guidé
 

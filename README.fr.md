@@ -22,17 +22,25 @@ La navigation entre Shorts et leur enchaînement existent déjà dans l’applic
 
 L’enchaînement dépend des vidéos disponibles et de leur identification comme Shorts. Le mode de lecture global concerne aussi les vidéos longues.
 
-### Un assistant depuis le PC
+### Copier, coller, suivre l’assistant
 
-Le [script guidé](docs/configuration-native.md) accompagne une modification réversible des réglages à partir d’une **sauvegarde officielle récente**. Il fonctionne avec Python 3.10+ et ADB sous Linux, macOS et Windows. Il n’utilise pas le root et n’installe pas d’application.
+Ouvrez une console et collez la commande correspondant à votre ordinateur. Elle télécharge et lance directement le petit assistant : **aucun dépôt à cloner, aucun fichier à récupérer à la main**.
+
+**Linux et macOS — Terminal**
 
 ```sh
-# Depuis le dossier du projet, après connexion ADB à la TV
-python3 tools/configure_shorts.py
-# Windows : tools\configure_shorts.cmd
+sh -c 's=$(curl -fsSL https://raw.githubusercontent.com/valoche-68/SmartTube-Shorts-Slider/main/tools/start.sh) && sh -c "$s" sh "$@"' sh
 ```
 
-Il propose haut/bas, gauche/droite ou aucun raccourci ; lecture automatique ou boucle ; playlist de la section ; consultation et annulation des changements. L’import doit être validé sur la TV.
+**Windows — PowerShell** (pas l’invite de commandes `cmd`)
+
+```powershell
+& ([scriptblock]::Create((Invoke-WebRequest -UseBasicParsing -Uri 'https://raw.githubusercontent.com/valoche-68/SmartTube-Shorts-Slider/main/tools/start.ps1').Content))
+```
+
+Installez une seule fois [Python 3.10+](https://www.python.org/downloads/) et [ADB](https://developer.android.com/tools/releases/platform-tools), puis connectez votre TV avec ADB en suivant le [guide de préparation](docs/configuration-native.md). Le lanceur vérifie Python et explique les prérequis manquants. Le script temporaire est retiré à la fermeture ; vos sauvegardes privées sont conservées à part.
+
+Le menu en français propose haut/bas, gauche/droite ou aucun raccourci ; lecture automatique ou boucle ; playlist de la section ; consultation et annulation des changements. Il utilise une **sauvegarde officielle récente** et l’import doit être validé sur la TV. Aucun root ni installation d’APK.
 
 **Compatibilité vérifiée dans le code : SmartTube officiel 32.56 stable et bêta.** Les versions inconnues sont refusées plutôt que modifiées à l’aveugle. Le test de bout en bout sur Fire TV reste à effectuer ; les réglages manuels ci-dessus restent disponibles.
 

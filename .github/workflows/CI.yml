@@ -23,6 +23,13 @@ jobs:
       - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10
       - name: Test configuration and release checks
         run: python -m unittest discover -s tools/tests -v
+      - name: Launch downloaded assistant help (Linux and macOS)
+        if: runner.os != 'Windows'
+        run: sh tools/start.sh --help
+      - name: Launch downloaded assistant help (Windows PowerShell)
+        if: runner.os == 'Windows'
+        shell: powershell
+        run: '& ([scriptblock]::Create((Get-Content -Raw tools/start.ps1))) --help'
       - name: Reject private files and credentials
         if: runner.os == 'Linux'
         run: python3 .github/scripts/check_sensitive_files.py
