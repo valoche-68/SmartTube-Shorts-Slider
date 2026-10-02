@@ -8,6 +8,8 @@ Shorts on TV: native settings or a dedicated autoplay button.
 
 Shorts navigation and autoplay are already built in. Our assistant helps configure them through a backup you restore on your TV.
 
+[Set up with your remote: up/down navigation & autoplay →](docs/manual-setup.md)
+
 Paste the command below: it checks Python and ADB, installs missing prerequisites on supported systems, then starts the assistant. Your system may ask for permission.
 
 **Linux / macOS — Terminal**
@@ -24,7 +26,7 @@ sh -c 's=$(curl -fsSL https://raw.githubusercontent.com/valoche-68/SmartTube-Sho
 
 French menus · Official **32.56 stable/beta** · No player button added.
 
-[Setup, manual settings & undo →](docs/user-guide.md#official-smarttube)
+[Script setup & undo →](docs/user-guide.md#official-smarttube)
 
 ## ▶️ Shorts Slider — our version of SmartTube
 

@@ -8,6 +8,8 @@ Les Shorts sur TV : réglages natifs ou bouton de lecture automatique.
 
 La navigation entre Shorts et la lecture automatique sont déjà intégrées. Notre assistant aide à les configurer à partir d’une sauvegarde à restaurer sur la TV.
 
+[Configurer à la télécommande : haut/bas et lecture automatique →](docs/manual-setup.fr.md)
+
 Collez la commande ci-dessous : elle vérifie Python et ADB, installe les prérequis manquants sur les systèmes pris en charge, puis lance l’assistant. Une autorisation système peut être demandée.
 
 **Linux / macOS — Terminal**
@@ -24,7 +26,7 @@ sh -c 's=$(curl -fsSL https://raw.githubusercontent.com/valoche-68/SmartTube-Sho
 
 Menus en français · Version officielle **32.56 stable/bêta** · Aucun bouton ajouté au lecteur.
 
-[Préparation, réglages manuels et annulation →](docs/user-guide.fr.md#smarttube-officiel)
+[Aide du script et annulation →](docs/user-guide.fr.md#smarttube-officiel)
 
 ## ▶️ Shorts Slider — notre version de SmartTube
 

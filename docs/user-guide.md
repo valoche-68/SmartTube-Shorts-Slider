@@ -4,11 +4,7 @@
 
 ## Official SmartTube
 
-Shorts navigation and automatic playback already exist:
-
-- **Settings → General → Key remapping:** choose Shorts navigation with up/down or left/right, or disable those shortcuts.
-- **Settings → Video player → Misc:** turn off “Loop Shorts” and select the playback mode that advances to the next video.
-- Optionally enable “Use current section content as playlist”. The global playback mode also affects regular videos.
+Shorts navigation and automatic playback already exist. Follow the [manual setup tutorial](manual-setup.md) to enable them with your remote, choose the section playlist and restore your settings later. No computer is needed for this method.
 
 ### Copy, paste, follow the assistant
 

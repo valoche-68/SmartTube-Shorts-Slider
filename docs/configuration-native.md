@@ -4,6 +4,8 @@
 
 Le script configure les fonctions natives. Il n'ajoute ni bouton ni préparation anticipée, n'installe aucun APK, ne désinstalle rien et ne nécessite pas le root sur la TV. Sa logique de modification et d'annulation est testée sur des sauvegardes synthétiques. Le parcours complet sur Fire TV reste à valider.
 
+[Faire ces réglages manuellement, à la télécommande →](manual-setup.fr.md)
+
 ## Installation automatique des prérequis
 
 La commande ci-dessous vérifie **Python 3.10+** et **ADB**, conserve les outils déjà utilisables et installe uniquement les prérequis manquants :
@@ -56,7 +58,7 @@ Si ADB vient d’être installé, ouvrir un nouveau terminal avant d’utiliser 
 
 ## Parcours guidé
 
-1. Le script contrôle la version installée. Les versions vérifiées sont **32.56 stable et bêta, code Android 2446**. Il refuse une version inconnue ; suivre les [réglages manuels du guide](user-guide.fr.md#smarttube-officiel) dans ce cas.
+1. Le script contrôle la version installée. Les versions vérifiées sont **32.56 stable et bêta, code Android 2446**. Il refuse une version inconnue ; suivre le [tutoriel manuel](manual-setup.fr.md) dans ce cas, en tenant compte des éventuelles différences de menus.
 2. Créer une **nouvelle sauvegarde complète** avec Paramètres → Sauvegarde/restauration → Sauvegarde locale. Indiquer au script le chemin complet du ZIP affiché sur la TV. Les emplacements varient selon Android ; aucune ancienne sauvegarde n'est choisie silencieusement.
 3. Choisir navigation, lecture automatique et playlist de section, ou consulter les réglages. Le profil actif est utilisé ; `--profile NOM` permet de choisir un profil déjà présent.
 4. Lire le récapitulatif. Activer l'automatique désactive la boucle Shorts et peut sélectionner le mode global « vidéo suivante », qui s'applique également aux vidéos longues.

@@ -4,16 +4,7 @@
 
 ## SmartTube officiel
 
-La navigation entre Shorts et leur enchaînement existent déjà dans l’application officielle. Aucun APK personnalisé n’est nécessaire pour les activer.
-
-| Besoin | Réglage officiel |
-| --- | --- |
-| Short suivant/précédent avec haut/bas | Paramètres → Général → Réaffectation des touches → Naviguer entre les Shorts avec les boutons haut/bas |
-| Préférer gauche/droite, ou désactiver les raccourcis | Même menu ; choisir la navigation souhaitée |
-| Enchaîner à la fin d’un Short | Paramètres → Lecteur vidéo → Divers → désactiver « Short en boucle », et choisir le mode de lecture « vidéo suivante » |
-| Suivre les vidéos de la section ouverte | Lecteur vidéo → Divers → Utiliser le contenu de la section actuelle comme playlist |
-
-L’enchaînement dépend des vidéos disponibles et de leur identification comme Shorts. Le mode de lecture global concerne aussi les vidéos longues.
+La navigation entre Shorts et leur enchaînement existent déjà dans l’application officielle. Le [tutoriel manuel](manual-setup.fr.md) explique comment les activer à la télécommande, choisir la playlist de section et rétablir vos réglages ensuite. Cette méthode ne nécessite aucun ordinateur.
 
 ### Copier, coller, suivre l’assistant
 
@@ -35,7 +26,7 @@ Le lanceur réutilise Python 3.10+ et ADB s’ils sont utilisables, puis install
 
 Le menu en français propose haut/bas, gauche/droite ou aucun raccourci ; lecture automatique ou boucle ; playlist de la section ; consultation et annulation des changements. Il utilise une **sauvegarde officielle récente** et l’import doit être validé sur la TV. Aucun root sur la TV ni installation d’APK.
 
-**Compatibilité vérifiée dans le code : SmartTube officiel 32.56 stable et bêta.** Les versions inconnues sont refusées plutôt que modifiées à l’aveugle. Le test de bout en bout sur Fire TV reste à effectuer ; les réglages manuels ci-dessus restent disponibles.
+**Compatibilité vérifiée dans le code : SmartTube officiel 32.56 stable et bêta.** Les versions inconnues sont refusées plutôt que modifiées à l’aveugle. Le test de bout en bout sur Fire TV reste à effectuer ; les [réglages manuels](manual-setup.fr.md) restent disponibles.
 
 > Le script n’ajoute **ni bouton dans le lecteur, ni préparation anticipée**. Il conserve votre APK officiel et ses mises à jour.
 
