@@ -26,10 +26,14 @@ Menus en français · Version officielle **32.56 stable/bêta** · Aucun bouton 
 
 [Préparation, réglages manuels et annulation →](docs/user-guide.fr.md#smarttube-officiel)
 
-## ▶️ Installer Shorts Slider
+## ▶️ Shorts Slider — notre version de SmartTube
 
-- **Bouton automatique :** ON enchaîne, OFF met en boucle. Vous pouvez le masquer dans les réglages.
+Un APK personnalisé de SmartTube, avec deux ajouts pour les Shorts :
+
+- **Bouton automatique dans le lecteur :** ON enchaîne, OFF met en boucle. Vous pouvez le masquer dans les réglages.
 - **Préparation du suivant :** récupère à l’avance les informations de lecture du prochain Short. Désactivable.
+
+**Sur un nouveau profil :** navigation haut/bas et lecture automatique activées, bouton visible et préparation du suivant active. Tout reste réglable ; vos choix sont conservés lors des mises à jour.
 
 **[Télécharger la stable](https://github.com/valoche-68/SmartTube-Shorts-Slider/releases/latest)** · **[Bêtas et toutes les versions](https://github.com/valoche-68/SmartTube-Shorts-Slider/releases)**
 

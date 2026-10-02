@@ -26,10 +26,14 @@ French menus · Official **32.56 stable/beta** · No player button added.
 
 [Setup, manual settings & undo →](docs/user-guide.md#official-smarttube)
 
-## ▶️ Get Shorts Slider
+## ▶️ Shorts Slider — our version of SmartTube
 
-- **Autoplay button:** ON advances, OFF loops. Show or hide it in settings.
+A custom SmartTube APK with two additions for Shorts:
+
+- **Autoplay button in the player:** ON advances, OFF loops. Show or hide it in settings.
 - **Next-Short preparation:** fetches the next Short’s playback details ahead of time. Can be disabled.
+
+**On a new profile:** up/down navigation and autoplay are enabled, the button is visible and next-Short preparation is on. All options remain adjustable; updates preserve your choices.
 
 **[Download stable](https://github.com/valoche-68/SmartTube-Shorts-Slider/releases/latest)** · **[Beta & all releases](https://github.com/valoche-68/SmartTube-Shorts-Slider/releases)**
 
