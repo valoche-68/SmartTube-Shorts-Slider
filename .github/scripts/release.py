@@ -237,7 +237,7 @@ def publish(folder, provenance, assets):
     remote = f'https://github.com/{REPO}.git'
     run('git', 'push', remote, provenance['source_commit'] + ':refs/tags/' + tag, cwd=folder)
     args = ['release', 'create', tag, '--repo', REPO, '--verify-tag', '--draft', '--title',
-            f'SmartTube Shorts Slider {provenance["version_name"]} — {provenance["channel"]}',
+            f'SmartTube Shorts Slider {provenance["upstream_tag"].removesuffix("s")} — {provenance["channel"]}',
             '--notes-file', str(folder / 'release_notes.md')]
     if provenance['channel'] == 'beta': args.append('--prerelease')
     gh(*args, *map(str, assets.iterdir()))
