@@ -1,0 +1,73 @@
+name: Build verified stable and beta releases
+
+on:
+  schedule:
+    - cron: '17 */6 * * *'
+  workflow_dispatch:
+    inputs:
+      channel:
+        description: Channel
+        type: choice
+        options: [all, stable, beta]
+        default: all
+      retry:
+        description: Retry a previously failed source revision
+        type: boolean
+        default: false
+
+concurrency:
+  group: shorts-slider-release
+  cancel-in-progress: false
+
+permissions:
+  contents: write
+  actions: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-java@be666c2fcd27ec809703dec50e508c2fdc7f6654
+        with:
+          distribution: temurin
+          java-version: '17'
+          cache: gradle
+      - name: Install Android build tools
+        run: >-
+          "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" 'build-tools;30.0.3' 'platforms;android-34' 'ndk;21.0.6113669'
+      - name: Check public sources and configuration tool
+        run: |
+          python3 .github/scripts/check_sensitive_files.py
+          python3 -m unittest discover -s tools/tests -v
+      - name: Build, verify, then publish exact upstream releases
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          SIGNING_KEY: ${{ secrets.SIGNING_KEY }}
+          KEY_STORE_PASSWORD: ${{ secrets.KEY_STORE_PASSWORD }}
+          KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
+          ALIAS: ${{ secrets.ALIAS }}
+          CHANNEL: ${{ inputs.channel || 'all' }}
+          RETRY: ${{ inputs.retry || false }}
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          gh auth setup-git
+          retry_args=()
+          if [ "$RETRY" = true ]; then retry_args+=(--retry); fi
+          python3 .github/scripts/release.py automate --channel "$CHANNEL" "${retry_args[@]}"
+      - name: Remove temporary signing material
+        if: always()
+        run: |
+          find release-build -type f \( -name keystore.properties -o -name release-key.jks \) -delete 2>/dev/null || test ! -d release-build
+      - name: Keep test reports
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
+        with:
+          name: release-test-reports
+          path: release-build/*/common/build/reports/tests/
+          retention-days: 30
+          if-no-files-found: ignore
