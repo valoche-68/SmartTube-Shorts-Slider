@@ -1,6 +1,8 @@
 package com.liskovsoft.smartyoutubetv2.common.app.models.playback.controllers;
 
 import android.os.Build.VERSION;
+import android.os.SystemClock;
+import com.liskovsoft.youtubeapi.service.PreparedShort;
 
 import com.liskovsoft.mediaserviceinterfaces.MediaItemService;
 import com.liskovsoft.mediaserviceinterfaces.ServiceManager;
@@ -22,6 +24,7 @@ import com.liskovsoft.smartyoutubetv2.common.app.presenters.AppDialogPresenter;
 import com.liskovsoft.smartyoutubetv2.common.app.presenters.dialogs.VideoActionPresenter;
 import com.liskovsoft.smartyoutubetv2.common.app.views.PlaybackView;
 import com.liskovsoft.smartyoutubetv2.common.misc.MediaServiceManager;
+import com.liskovsoft.smartyoutubetv2.common.misc.NextVideoPreloader;
 import com.liskovsoft.smartyoutubetv2.common.prefs.PlayerData;
 import com.liskovsoft.smartyoutubetv2.common.utils.Utils;
 import com.liskovsoft.youtubeapi.service.YouTubeServiceManager;
@@ -36,6 +39,8 @@ public class VideoLoaderController extends BasePlayerController {
     private SuggestionsController mSuggestionsController;
     private ErrorFixerController mErrorFixerController;
     private Disposable mFormatInfoAction;
+    private final NextVideoPreloader<PreparedShort> mNextVideoPreloader = new NextVideoPreloader<>(
+            PreparedShort::load, SystemClock::elapsedRealtime, PreparedShort::isValid);
     private final Runnable mReloadVideo = () -> {
         getMainController().onNewVideo(getVideo());
     };
@@ -77,7 +82,6 @@ public class VideoLoaderController extends BasePlayerController {
             return;
         }
 
-        mLastPreloadedVideoId = null;
         item.isShuffled = false;
 
         if (!item.fromQueue && !item.belongsToPlaybackQueue()) {
@@ -107,6 +111,7 @@ public class VideoLoaderController extends BasePlayerController {
 
     @Override
     public void onEngineReleased() {
+        mNextVideoPreloader.reset();
         disposeActions();
     }
 
@@ -161,6 +166,11 @@ public class VideoLoaderController extends BasePlayerController {
         }
 
         Video next = mSuggestionsController.getNext();
+        if (getVideo().isShorts() && getPlayerTweaksData().isShortsAutoScrollEnabled() &&
+                (next == null || !next.isShorts() || next.isLive)) {
+            stopPlayback();
+            return;
+        }
 
         if (next != null) {
             openVideoInt(next);
@@ -208,7 +218,6 @@ public class VideoLoaderController extends BasePlayerController {
      */
     private void loadVideo(Video item) {
         if (getPlayer() != null && item != null) {
-            Log.d(TAG, "TIMING: loadVideo started for " + item.videoId + " (" + item.getTitle() + ")");
             mPlaylist.setCurrent(item);
             getPlayer().setVideo(item);
             getPlayer().resetPlayerState();
@@ -259,7 +268,15 @@ public class VideoLoaderController extends BasePlayerController {
         // Fix no progress on next video (the engine may still buffering a bit)
         //getPlayer().showProgressBar(true);
         Utils.post(mShowProgressBar);
+        PreparedShort prepared = mNextVideoPreloader.take(video.videoId);
         disposeActions();
+        if (prepared != null && getPlayerTweaksData().isShortsPreparationEnabled()) {
+            MediaItemFormatInfo format = prepared.activate();
+            if (format != null) {
+                processFormatInfo(format);
+                return;
+            }
+        }
 
         ServiceManager service = YouTubeServiceManager.instance();
         MediaItemService mediaItemManager = service.getMediaItemService();
@@ -277,8 +294,6 @@ public class VideoLoaderController extends BasePlayerController {
         if (player == null || getVideo() == null) {
             return;
         }
-
-        Log.d(TAG, "TIMING: processFormatInfo received and processing for " + getVideo().videoId);
 
         String bgImageUrl = null;
 
@@ -625,12 +640,6 @@ public class VideoLoaderController extends BasePlayerController {
             int width = format.getWidth();
             int height = format.getHeight();
             boolean isShorts = width < height;
-            if (isShorts && getVideo() != null) {
-                getVideo().isShorts = true;
-                if (getPlayer() != null) {
-                    getPlayer().setVideo(getVideo());
-                }
-            }
             if (width > 0 && height > 0 && (getPlayerData().getAspectRatio() == PlayerData.ASPECT_RATIO_DEFAULT || isShorts)) {
                 getPlayer().setAspectRatio((float) width / height);
             } else {
@@ -639,30 +648,27 @@ public class VideoLoaderController extends BasePlayerController {
         }
     }
 
-    private String mLastPreloadedVideoId;
+    @Override
+    public void onFinish() {
+        mNextVideoPreloader.reset();
+        disposeActions();
+    }
 
     private void preloadNextVideoIfNeeded() {
-        if (isEmbedPlayer() || getPlayer() == null || getVideo() == null || getVideo().isLive) {
+        if (!getPlayerTweaksData().isShortsPreparationEnabled()) {
+            mNextVideoPreloader.reset();
             return;
         }
-
-        boolean isShorts = getVideo().isShorts() || getVideo().belongsToShortsGroup();
-        long durationMs = getPlayer().getDurationMs();
-        long remainingMs = durationMs - getPlayer().getPositionMs();
-
-        // For Shorts: immediately preload format info (streams) for the next short upon launch without any remaining time condition.
-        // For regular videos: preload only when nearing the end (remainingMs < 50_000).
-        boolean shouldPreload = isShorts || (durationMs > 0 && remainingMs < 50_000);
-
-        if (shouldPreload) {
-            Video next = mSuggestionsController.getNext();
-            if (next != null && next.videoId != null && !next.videoId.equals(mLastPreloadedVideoId)) {
-                Log.d(TAG, "preloadNextVideoIfNeeded: preloading format info for next " + (isShorts ? "short" : "video") + ": " + next.videoId + " (" + next.getTitle() + ")");
-                mLastPreloadedVideoId = next.videoId;
-                MediaServiceManager.instance().loadFormatInfo(next, formatInfo -> {
-                    Log.d(TAG, "preloadNextVideoIfNeeded: preloaded format info successfully for " + next.videoId);
-                });
-            }
+        if (isEmbedPlayer() || getPlayer() == null || !getPlayer().isPlaying() || getPlayer().getDurationMs() <= 0 ||
+                getVideo() == null || getVideo().isLive || !getVideo().isShorts()) {
+            return;
+        }
+        // Keep one separate format/URL result. No media bytes or second decoder are loaded.
+        Video next = mSuggestionsController.getNext();
+        if (next != null && next.videoId != null && next.isShorts() && !next.isLive && !next.videoId.equals(getVideo().videoId)) {
+            mNextVideoPreloader.prefetch(next.videoId);
+        } else {
+            mNextVideoPreloader.reset();
         }
     }
 }

@@ -50,9 +50,6 @@ public class SuggestionsController extends BasePlayerController {
     private final Runnable mChapterHandler = this::startChapterNotificationServiceIfNeededInt;
     private static final int MAX_PLAYLIST_CONTINUATIONS = 20;
     private static final int CHAPTER_NOTIFICATION_Id = 565;
-    private static final int SHORTS_PREFETCH_MARGIN = 10;
-    private static final int SHORTS_MIN_QUEUE_SIZE = 20;
-    private Disposable mContinueGroupAction;
 
     private interface OnVideoGroup {
         void onVideoGroup(VideoGroup group);
@@ -84,26 +81,6 @@ public class SuggestionsController extends BasePlayerController {
     @Override
     public void onVideoLoaded(Video item) {
         loadSuggestions(item);
-        prefetchShortsIfNeeded(item);
-    }
-
-    private void prefetchShortsIfNeeded(Video current) {
-        if (current == null) {
-            return;
-        }
-
-        if (current.isShorts() || current.belongsToShortsGroup()) {
-            VideoGroup group = current.getGroup();
-            if (group != null && !group.isEmpty() && group.getMediaGroup() != null) {
-                List<Video> videos = group.getVideos();
-                int currentIndex = videos.indexOf(current);
-                int remaining = currentIndex >= 0 ? videos.size() - (currentIndex + 1) : 0;
-                if (remaining <= SHORTS_PREFETCH_MARGIN || videos.size() < SHORTS_MIN_QUEUE_SIZE) {
-                    Log.d(TAG, "prefetchShortsIfNeeded: prefetching shorts queue for group: " + group.getTitle() + " (remaining=" + remaining + ", size=" + videos.size() + ")");
-                    continueGroup(group, false);
-                }
-            }
-        }
     }
 
     // Could make negative impact on the video load time.
@@ -196,13 +173,8 @@ public class SuggestionsController extends BasePlayerController {
     }
 
     private void continueGroup(VideoGroup group, OnVideoGroup callback, boolean showLoading) {
-        if (getPlayer() == null || group == null || group.getMediaGroup() == null) {
-            Log.e(TAG, "Can't continue group. The group or mediaGroup is null.");
-            return;
-        }
-
-        if (mContinueGroupAction != null && !mContinueGroupAction.isDisposed()) {
-            Log.d(TAG, "continueGroup: already running, skipping duplicate call for: " + group.getTitle());
+        if (getPlayer() == null || group == null) {
+            Log.e(TAG, "Can't continue group. The group is null.");
             return;
         }
 
@@ -214,10 +186,9 @@ public class SuggestionsController extends BasePlayerController {
 
         MediaGroup mediaGroup = group.getMediaGroup();
 
-        mContinueGroupAction = mContentService.continueGroupObserve(mediaGroup)
+        Disposable continueAction = mContentService.continueGroupObserve(mediaGroup)
                 .subscribe(
                         continueMediaGroup -> {
-                            mContinueGroupAction = null;
                             getPlayer().showProgressBar(false);
 
                             VideoGroup videoGroup = VideoGroup.from(group, continueMediaGroup);
@@ -233,21 +204,19 @@ public class SuggestionsController extends BasePlayerController {
                             }
                         },
                         error -> {
-                            mContinueGroupAction = null;
                             Log.e(TAG, "continueGroup error: %s", error.getMessage());
                             if (getPlayer() != null) {
                                 getPlayer().showProgressBar(false);
                             }
                         },
                         () -> {
-                            mContinueGroupAction = null;
                             if (getPlayer() != null) {
                                 getPlayer().showProgressBar(false);
                             }
                         }
                 );
 
-        mActions.add(mContinueGroupAction);
+        mActions.add(continueAction);
     }
 
     private void syncCurrentVideo(MediaItemMetadata mediaItemMetadata, Video video) {
@@ -314,56 +283,10 @@ public class SuggestionsController extends BasePlayerController {
         if (next != null) {
             next.fromQueue = true;
             result = next;
-        } else if (getVideo().isShorts() || getVideo().belongsToShortsGroup()) {
-            result = getNextFromGroup(getVideo());
-            if (result == null && mNextSectionVideo != null && !getVideo().isShuffled) {
-                result = mNextSectionVideo;
-            } else if (result == null && getVideo().nextMediaItem != null) {
-                result = Video.from(getVideo().nextMediaItem);
-            }
         } else if (mNextSectionVideo != null && !getVideo().isShuffled) {
             result = mNextSectionVideo;
         } else if (getVideo().nextMediaItem != null) {
             result = Video.from(getVideo().nextMediaItem);
-        }
-
-        return result;
-    }
-
-    private Video getNextFromGroup(Video current) {
-        Video result = null;
-
-        if (current != null) {
-            VideoGroup group = current.getGroup();
-
-            if (group != null && !group.isEmpty()) {
-                List<Video> videos = group.getVideos();
-                boolean found = false;
-
-                for (Video item : videos) {
-                    if (found && item.hasVideo() && !item.isUpcoming) {
-                        result = item;
-                        break;
-                    }
-
-                    if (item.equals(current)) {
-                        found = true;
-                    }
-                }
-
-                boolean isShorts = current.isShorts() || current.belongsToShortsGroup();
-                int currentIndex = videos.indexOf(current);
-                int remaining = currentIndex >= 0 ? videos.size() - (currentIndex + 1) : 0;
-
-                if (result != null) {
-                    int prefetchMargin = isShorts ? SHORTS_PREFETCH_MARGIN : 3;
-                    if ((remaining <= prefetchMargin || (isShorts && videos.size() < SHORTS_MIN_QUEUE_SIZE)) && group.getMediaGroup() != null) {
-                        continueGroup(group, false);
-                    }
-                } else if (found && group.getMediaGroup() != null) {
-                    continueGroup(group, false);
-                }
-            }
         }
 
         return result;
@@ -922,8 +845,6 @@ public class SuggestionsController extends BasePlayerController {
 
     private void disposeActions() {
         RxHelper.disposeActions(mActions);
-        RxHelper.disposeActions(mContinueGroupAction);
-        mContinueGroupAction = null;
         mChapters = null;
         mNextSectionVideo = null;
         if (mBrowseProcessor != null) {

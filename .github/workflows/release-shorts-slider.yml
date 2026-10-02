@@ -1,201 +1,72 @@
-name: Auto-Sync, Build & Release (Stable & Pre-release)
+name: Build verified stable and beta releases
 
 on:
   schedule:
-    # Check automatically every hour for both Beta and Stable releases
-    - cron: '15 * * * *'
+    - cron: '17 */6 * * *'
   workflow_dispatch:
     inputs:
       channel:
-        description: 'Channel to check/build'
-        required: true
+        description: Channel
         type: choice
-        options:
-          - all
-          - beta
-          - stable
+        options: [all, stable, beta]
         default: all
-      force_build:
-        description: 'Force build even if version is already published'
-        required: false
+      retry:
+        description: Retry a previously failed source revision
         type: boolean
         default: false
-  push:
-    tags:
-      - 'v*'
+
+concurrency:
+  group: shorts-slider-release
+  cancel-in-progress: false
+
+permissions:
+  contents: write
+  actions: write
 
 jobs:
-  check-and-release:
+  release:
     runs-on: ubuntu-latest
-    permissions:
-      contents: write
-      issues: write
-      actions: write
-
+    timeout-minutes: 90
     steps:
-      - name: Checkout Code
-        uses: actions/checkout@v4
+      - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10
         with:
-          submodules: recursive
           fetch-depth: 0
-
-      - name: Setup Git & Sync Upstream
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "github-actions[bot]@users.noreply.github.com"
-          git remote add upstream https://github.com/yuliskov/SmartTube.git || true
-          git fetch upstream master --no-tags
-
-          if ! git merge upstream/master -m "chore(sync): automated sync with upstream"; then
-            echo "Merge conflict detected! Aborting automated merge and notifying via Issue."
-            gh issue create --title "⚠️ Merge conflict with upstream" --body "Automated sync encountered a conflict while merging upstream/master into main. Please review and resolve."
-            exit 1
-          fi
-
-          # Enforce OTA update URLs always point to our repository
-          sed -i "s|yuliskov/SmartTubeNext|${{ github.repository }}|g" common/src/*/res/values/update_urls.xml || true
-          sed -i "s|yuliskov/SmartTube|${{ github.repository }}|g" common/src/*/res/values/update_urls.xml || true
-
-          git push origin main || true
-
-      - name: Set up JDK 17
-        uses: actions/setup-java@v4
+      - uses: actions/setup-java@be666c2fcd27ec809703dec50e508c2fdc7f6654
         with:
+          distribution: temurin
           java-version: '17'
-          distribution: 'temurin'
-          cache: 'gradle'
-
-      - name: Configure Keystore & Signing
+          cache: gradle
+      - name: Install Android build tools
+        run: sdkmanager 'build-tools;30.0.3' 'platforms;android-34' 'ndk;21.0.6113669'
+      - name: Check public sources and configuration tool
         run: |
-          echo "${{ secrets.SIGNING_KEY }}" | base64 --decode > ${{ github.workspace }}/smarttube-release.jks
-          cat <<EOF > keystore.properties
-          storeFile=${{ github.workspace }}/smarttube-release.jks
-          storePassword=${{ secrets.KEY_STORE_PASSWORD }}
-          keyAlias=${{ secrets.ALIAS }}
-          keyPassword=${{ secrets.KEY_PASSWORD }}
-          EOF
-
-      - name: Grant Gradle permissions
-        run: chmod +x gradlew
-
-      - name: Process Releases (Stable & Pre-release)
+          python3 .github/scripts/check_sensitive_files.py
+          python3 -m unittest discover -s tools/tests -v
+      - name: Build, verify, then publish exact upstream releases
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          SIGNING_KEY: ${{ secrets.SIGNING_KEY }}
+          KEY_STORE_PASSWORD: ${{ secrets.KEY_STORE_PASSWORD }}
+          KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
+          ALIAS: ${{ secrets.ALIAS }}
+          CHANNEL: ${{ inputs.channel || 'all' }}
+          RETRY: ${{ inputs.retry || false }}
         run: |
-          # Determine channels to inspect
-          CHANNELS=()
-          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
-            if [ "${{ inputs.channel }}" = "stable" ]; then
-              CHANNELS=("stable")
-            elif [ "${{ inputs.channel }}" = "beta" ]; then
-              CHANNELS=("beta")
-            else
-              CHANNELS=("stable" "beta")
-            fi
-          elif [[ "${{ github.ref }}" == refs/tags/* ]]; then
-            TAG_NAME="${{ github.ref_name }}"
-            if [[ "$TAG_NAME" == *"beta"* || "$TAG_NAME" == *"pre"* ]]; then
-              CHANNELS=("beta")
-            else
-              CHANNELS=("stable")
-            fi
-          else
-            CHANNELS=("stable" "beta")
-          fi
-
-          echo "Channels to check: ${CHANNELS[*]}"
-
-          gh repo set-default ${{ github.repository }} || true
-
-          for CHANNEL in "${CHANNELS[@]}"; do
-            echo "=========================================="
-            echo "🔍 Checking channel: $CHANNEL"
-            echo "=========================================="
-
-            if [ "$CHANNEL" = "stable" ]; then
-              UPSTREAM_INFO=$(gh release list --repo yuliskov/SmartTube --exclude-pre-releases --limit 1 --json tagName,name -q '.[0]')
-              UPSTREAM_TAG=$(echo "$UPSTREAM_INFO" | jq -r .tagName)
-              UPSTREAM_NAME=$(echo "$UPSTREAM_INFO" | jq -r .name)
-              CLEAN_VERSION=$(echo "$UPSTREAM_TAG" | sed 's/[sv]//g')
-              TARGET_TAG="v${CLEAN_VERSION}-shorts-slider"
-              RELEASE_TITLE="SmartTube Shorts Slider v${CLEAN_VERSION} Stable"
-              RELEASE_FLAG="--latest"
-              GRADLE_TASK="assembleStstableRelease"
-              FLAVOR="stable"
-              FLAVOR_PREFIX="ststable"
-              JSON_FILE="smarttube_stable.json"
-              TYPE_LABEL="Stable"
-            else
-              UPSTREAM_INFO=$(gh release list --repo yuliskov/SmartTube --limit 5 --json tagName,isPrerelease,name -q '.[] | select(.isPrerelease == true)' | head -n 1)
-              UPSTREAM_TAG=$(echo "$UPSTREAM_INFO" | jq -r .tagName)
-              UPSTREAM_NAME=$(echo "$UPSTREAM_INFO" | jq -r .name)
-              CLEAN_VERSION=$(echo "$UPSTREAM_TAG" | sed 's/[sv]//g')
-              TARGET_TAG="v${CLEAN_VERSION}-beta-shorts-slider"
-              RELEASE_TITLE="SmartTube Shorts Slider v${CLEAN_VERSION} Beta (Pre-release)"
-              RELEASE_FLAG="--prerelease"
-              GRADLE_TASK="assembleStbetaRelease"
-              FLAVOR="beta"
-              FLAVOR_PREFIX="stbeta"
-              JSON_FILE="smarttube_beta.json"
-              TYPE_LABEL="Beta (Pre-release)"
-            fi
-
-            # Check if triggered by manual tag push
-            if [[ "${{ github.ref }}" == refs/tags/* ]]; then
-              TARGET_TAG="${{ github.ref_name }}"
-            fi
-
-            # Check if this release tag already exists on our repository
-            if gh release view "$TARGET_TAG" --repo ${{ github.repository }} >/dev/null 2>&1 && [ "${{ inputs.force_build }}" != "true" ]; then
-              echo "✅ Release $TARGET_TAG ($TYPE_LABEL) already exists on ${{ github.repository }}. Skipping."
-              continue
-            fi
-
-            echo "🚀 New $TYPE_LABEL release to build: $TARGET_TAG (Upstream: $UPSTREAM_NAME)"
-
-            # Clean previous outputs
-            ./gradlew clean
-            rm -rf release_assets
-            mkdir -p release_assets
-
-            # Build APKs
-            echo "🔨 Running: ./gradlew $GRADLE_TASK"
-            ./gradlew "$GRADLE_TASK"
-
-            # Copy APKs
-            cp smarttubetv/build/outputs/apk/${FLAVOR_PREFIX}/release/*.apk release_assets/
-
-            VERSION=$(grep "versionName" smarttubetv/build.gradle | head -n 1 | awk -F'"' '{print $2}')
-            VERSION_CODE=$(grep "versionCode" smarttubetv/build.gradle | head -n 1 | awk '{print $2}')
-
-            # Generate OTA update JSON and Release Notes using python helper
-            GITHUB_REPO="${{ github.repository }}" VERSION="$VERSION" VERSION_CODE="$VERSION_CODE" TARGET_TAG="$TARGET_TAG" FLAVOR="$FLAVOR" JSON_FILE="$JSON_FILE" TYPE_LABEL="$TYPE_LABEL" python3 .github/scripts/generate_release_assets.py
-
-            echo "📦 Publishing GitHub Release $TARGET_TAG ($RELEASE_TITLE)..."
-            gh release create "$TARGET_TAG" release_assets/* \
-              --repo ${{ github.repository }} \
-              --title "$RELEASE_TITLE" \
-              --notes-file release_notes.md \
-              $RELEASE_FLAG \
-              || gh release upload "$TARGET_TAG" release_assets/* --repo ${{ github.repository }} --clobber
-
-            echo "🛡️ Triggering VirusTotal Scan for $TARGET_TAG..."
-            gh workflow run virustotal_scan.yml --repo ${{ github.repository }} -f release_tag="$TARGET_TAG" || true
-
-            # Commit and push updated JSON and README.md (if stable)
-            git add smarttube_*.json
-            if [ "$FLAVOR" = "stable" ]; then
-              git add README.md
-            fi
-            if ! git diff --cached --quiet; then
-              git config user.name "github-actions[bot]"
-              git config user.email "github-actions[bot]@users.noreply.github.com"
-              git commit -m "chore(release): update metadata for $TARGET_TAG"
-              git push origin main || true
-              echo "📝 Committed metadata updates for $TARGET_TAG"
-            fi
-
-            echo "✅ Successfully published $TARGET_TAG!"
-          done
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          gh auth setup-git
+          retry_args=()
+          if [ "$RETRY" = true ]; then retry_args+=(--retry); fi
+          python3 .github/scripts/release.py automate --channel "$CHANNEL" "${retry_args[@]}"
+      - name: Remove temporary signing material
+        if: always()
+        run: |
+          find release-build -type f \( -name keystore.properties -o -name release-key.jks \) -delete 2>/dev/null || test ! -d release-build
+      - name: Keep test reports
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
+        with:
+          name: release-test-reports
+          path: release-build/*/common/build/reports/tests/
+          retention-days: 30
+          if-no-files-found: ignore

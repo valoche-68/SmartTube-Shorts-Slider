@@ -211,7 +211,7 @@ public class VideoPlayerGlue extends MaxControlsVideoPlayerGlue<PlayerAdapter> i
         if (mActions.get(R.id.action_shorts_auto_scroll) != null) {
             Video video = getVideo();
             boolean isShorts = video != null && (video.isShorts() || video.belongsToShortsGroup());
-            if (isShorts) {
+            if (isShorts && mPlayerTweaksData.isShortsButtonVisible()) {
                 adapter.add(mActions.get(R.id.action_shorts_auto_scroll));
                 setButtonState(R.id.action_shorts_auto_scroll,
                         mPlayerTweaksData.isShortsAutoScrollEnabled() ? PlayerUI.BUTTON_ON : PlayerUI.BUTTON_OFF);
@@ -274,11 +274,11 @@ public class VideoPlayerGlue extends MaxControlsVideoPlayerGlue<PlayerAdapter> i
         boolean isShorts = video != null && (video.isShorts() || video.belongsToShortsGroup());
         int index = adapter.indexOf(action);
 
-        if (isShorts) {
+        if (isShorts && mPlayerTweaksData.isShortsButtonVisible()) {
             if (index < 0) {
                 adapter.add(0, action);
             }
-            setButtonState(R.id.action_shorts_auto_scroll,
+            setActionIndex(action,
                     mPlayerTweaksData.isShortsAutoScrollEnabled() ? PlayerUI.BUTTON_ON : PlayerUI.BUTTON_OFF);
         } else {
             if (index >= 0) {
@@ -359,6 +359,7 @@ public class VideoPlayerGlue extends MaxControlsVideoPlayerGlue<PlayerAdapter> i
 
     public void setButtonState(int buttonId, int buttonState) {
         setActionIndex(mActions.get(buttonId), buttonState);
+        if (buttonId == R.id.action_shorts_auto_scroll) updateShortsAutoScrollButton(getVideo());
     }
 
     public void setChannelIcon(String iconUrl) {

@@ -121,6 +121,10 @@ public class PlayerUIController extends BasePlayerController {
 
         if (shown) {
             enableUiAutoHideTimeout();
+            if (getPlayer() != null) {
+                getPlayer().setButtonState(R.id.action_shorts_auto_scroll,
+                        getPlayerTweaksData().isShortsAutoScrollEnabled() ? PlayerUI.BUTTON_ON : PlayerUI.BUTTON_OFF);
+            }
         }
     }
 

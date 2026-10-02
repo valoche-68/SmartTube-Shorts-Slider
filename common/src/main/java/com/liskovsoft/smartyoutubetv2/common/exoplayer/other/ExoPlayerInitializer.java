@@ -106,11 +106,11 @@ public class ExoPlayerInitializer {
         //DefaultLoadControl.DEFAULT_BUFFER_FOR_PLAYBACK_MS // 2_500
         //DefaultLoadControl.DEFAULT_BUFFER_FOR_PLAYBACK_AFTER_REBUFFER_MS // 5_000
 
-        // Default values: reduced bufferForPlaybackMs from 2500ms to 500ms for near-instant playback start
+        // Default values
         int minBufferMs = 30_000;
         int maxBufferMs = 30_000;
-        int bufferForPlaybackMs = 500;
-        int bufferForPlaybackAfterRebufferMs = 1_500;
+        int bufferForPlaybackMs = 2_500;
+        int bufferForPlaybackAfterRebufferMs = 5_000;
 
         switch (mPlayerData.getVideoBufferType()) {
             case PlayerData.BUFFER_HIGHEST:
@@ -134,8 +134,8 @@ public class ExoPlayerInitializer {
             case PlayerData.BUFFER_LOW:
                 minBufferMs = 5_000; // LIVE fix
                 maxBufferMs = 5_000; // LIVE fix
-                bufferForPlaybackMs = 300;
-                bufferForPlaybackAfterRebufferMs = 1_000;
+                //bufferForPlaybackMs = 1_000;
+                //bufferForPlaybackAfterRebufferMs = 1_000;
                 break;
         }
 

@@ -1,0 +1,214 @@
+diff --git a/youtubeapi/src/main/java/com/liskovsoft/youtubeapi/app/AppService.java b/youtubeapi/src/main/java/com/liskovsoft/youtubeapi/app/AppService.java
+index fd0fac31..688fdd3e 100644
+--- a/youtubeapi/src/main/java/com/liskovsoft/youtubeapi/app/AppService.java
++++ b/youtubeapi/src/main/java/com/liskovsoft/youtubeapi/app/AppService.java
+@@ -17,7 +17,7 @@ import kotlin.Pair;
+ public class AppService {
+     private static AppService sInstance;
+     private final AppServiceInt mAppServiceInt;
+-    private String mClientPlaybackNonce;
++    private final PlaybackNonceState mPlaybackNonce = new PlaybackNonceState();
+ 
+     private AppService() {
+         mAppServiceInt = new AppServiceIntCached();
+@@ -101,7 +101,7 @@ public class AppService {
+     }
+ 
+     public void resetClientPlaybackNonce() {
+-        mClientPlaybackNonce = null;
++        mPlaybackNonce.reset();
+     }
+ 
+     /**
+@@ -109,19 +109,14 @@ public class AppService {
+      * A nonce is a unique value chosen by an entity in a protocol, and it is used to protect that entity against attacks which fall under the very large umbrella of "replay".
+      */
+     public synchronized String getClientPlaybackNonce() {
+-        if (mClientPlaybackNonce != null) {
+-            return mClientPlaybackNonce;
+-        }
+-
+-        if (mAppServiceInt.getPlayerDataExtractor() == null) {
+-            return null;
+-        }
+-
+-        mClientPlaybackNonce = mAppServiceInt.getPlayerDataExtractor().createClientPlaybackNonce();
+-
+-        return mClientPlaybackNonce;
++        return mPlaybackNonce.get(() -> mAppServiceInt.getPlayerDataExtractor() == null ? null :
++                mAppServiceInt.getPlayerDataExtractor().createClientPlaybackNonce());
+     }
+ 
++    public void beginShortsPreparation() { mPlaybackNonce.beginIsolated(); }
++    public void endShortsPreparation() { mPlaybackNonce.endIsolated(); }
++    public void activatePreparedNonce(String nonce) { mPlaybackNonce.activate(nonce); }
++
+     /**
+      * Constant used in {@link AuthApi}
+      */
+diff --git a/youtubeapi/src/main/java/com/liskovsoft/youtubeapi/app/PlaybackNonceState.java b/youtubeapi/src/main/java/com/liskovsoft/youtubeapi/app/PlaybackNonceState.java
+new file mode 100644
+index 00000000..538ff57b
+--- /dev/null
++++ b/youtubeapi/src/main/java/com/liskovsoft/youtubeapi/app/PlaybackNonceState.java
+@@ -0,0 +1,32 @@
++package com.liskovsoft.youtubeapi.app;
++
++/** Keeps speculative lookups from replacing the current video's history identifier. */
++public final class PlaybackNonceState {
++    public interface Factory { String create(); }
++    private String active;
++    private final ThreadLocal<String[]> isolated = new ThreadLocal<>();
++
++    public synchronized String get(Factory factory) {
++        String[] local = isolated.get();
++        if (local != null) {
++            if (local[0] == null) local[0] = factory.create();
++            return local[0];
++        }
++        if (active == null) active = factory.create();
++        return active;
++    }
++
++    public synchronized void reset() {
++        String[] local = isolated.get();
++        if (local != null) local[0] = null;
++        else active = null;
++    }
++
++    public void beginIsolated() {
++        if (isolated.get() != null) throw new IllegalStateException("Nested playback preparation");
++        isolated.set(new String[1]);
++    }
++
++    public void endIsolated() { isolated.remove(); }
++    public synchronized void activate(String nonce) { active = nonce; }
++}
+diff --git a/youtubeapi/src/main/java/com/liskovsoft/youtubeapi/service/PreparedShort.java b/youtubeapi/src/main/java/com/liskovsoft/youtubeapi/service/PreparedShort.java
+new file mode 100644
+index 00000000..b54bf551
+--- /dev/null
++++ b/youtubeapi/src/main/java/com/liskovsoft/youtubeapi/service/PreparedShort.java
+@@ -0,0 +1,60 @@
++package com.liskovsoft.youtubeapi.service;
++
++import com.liskovsoft.mediaserviceinterfaces.data.MediaItemFormatInfo;
++import com.liskovsoft.mediaserviceinterfaces.oauth.Account;
++import com.liskovsoft.sharedutils.rx.RxHelper;
++import com.liskovsoft.youtubeapi.app.AppService;
++import com.liskovsoft.youtubeapi.service.data.YouTubeMediaItemFormatInfo;
++import com.liskovsoft.youtubeapi.videoinfo.V2.VideoInfoService;
++import io.reactivex.Observable;
++
++/** A speculative result; playback cache and history change only on activation. */
++public final class PreparedShort {
++    private final MediaItemFormatInfo format;
++    private final VideoInfoService service;
++    private final String nonce;
++    private final Account account;
++    private final long created = System.nanoTime();
++
++    private PreparedShort(MediaItemFormatInfo format, VideoInfoService service, String nonce, Account account) {
++        this.format = format;
++        this.service = service;
++        this.nonce = nonce;
++        this.account = account;
++    }
++
++    public static Observable<PreparedShort> load(String videoId) {
++        return RxHelper.fromCallable(() -> {
++            Account account = YouTubeSignInService.instance().getSelectedAccount();
++            AppService app = AppService.instance();
++            app.beginShortsPreparation();
++            try {
++                if (Thread.currentThread().isInterrupted()) throw new InterruptedException();
++                VideoInfoService service = VideoInfoService.createForPreparation();
++                MediaItemFormatInfo format = YouTubeMediaItemFormatInfo.from(service.getVideoInfo(videoId, null));
++                if (Thread.currentThread().isInterrupted()) throw new InterruptedException();
++                PreparedShort result = new PreparedShort(format, service, app.getClientPlaybackNonce(), account);
++                if (!result.isValid() || !videoId.equals(format.getVideoId())) {
++                    throw new IllegalStateException("No usable prepared format");
++                }
++                return result;
++            } finally {
++                app.endShortsPreparation();
++            }
++        });
++    }
++
++    public boolean isValid() {
++        return format != null && !format.isUnplayable() && !format.isLive() && format.isCacheActual() &&
++                System.nanoTime() - created < 60_000_000_000L &&
++                account == YouTubeSignInService.instance().getSelectedAccount();
++    }
++
++    public MediaItemFormatInfo activate() {
++        if (!isValid()) return null;
++        AppService.instance().activatePreparedNonce(nonce);
++        VideoInfoService.instance().activatePreparedState(service);
++        YouTubeMediaItemService.instance().activatePreparedFormat(format);
++        return format;
++    }
++}
+diff --git a/youtubeapi/src/main/java/com/liskovsoft/youtubeapi/service/YouTubeMediaItemService.java b/youtubeapi/src/main/java/com/liskovsoft/youtubeapi/service/YouTubeMediaItemService.java
+index 09beae09..0246dd5c 100644
+--- a/youtubeapi/src/main/java/com/liskovsoft/youtubeapi/service/YouTubeMediaItemService.java
++++ b/youtubeapi/src/main/java/com/liskovsoft/youtubeapi/service/YouTubeMediaItemService.java
+@@ -559,6 +559,10 @@ public class YouTubeMediaItemService implements MediaItemService {
+         mCachedFormatInfo = null;
+     }
+ 
++    public void activatePreparedFormat(MediaItemFormatInfo formatInfo) {
++        mCachedFormatInfo = formatInfo;
++    }
++
+     private MediaItemFormatInfo getCachedFormatInfo(String videoId) {
+         return  mCachedFormatInfo != null &&
+                 mCachedFormatInfo.getVideoId() != null &&
+diff --git a/youtubeapi/src/main/java/com/liskovsoft/youtubeapi/videoinfo/V2/VideoInfoService.java b/youtubeapi/src/main/java/com/liskovsoft/youtubeapi/videoinfo/V2/VideoInfoService.java
+index c3b000e9..8562dd1d 100644
+--- a/youtubeapi/src/main/java/com/liskovsoft/youtubeapi/videoinfo/V2/VideoInfoService.java
++++ b/youtubeapi/src/main/java/com/liskovsoft/youtubeapi/videoinfo/V2/VideoInfoService.java
+@@ -55,11 +55,25 @@ public class VideoInfoService extends VideoInfoServiceBase {
+     private boolean mUseAuth;
+     private List<TranslationLanguage> mCachedTranslationLanguages;
+     private boolean mIsUnplayable;
++    private boolean mIsIsolated;
+ 
+     private VideoInfoService() {
+         mVideoInfoApi = RetrofitHelper.create(VideoInfoApi.class);
+     }
+ 
++    public static VideoInfoService createForPreparation() {
++        VideoInfoService service = new VideoInfoService();
++        service.mIsIsolated = true;
++        return service;
++    }
++
++    public void activatePreparedState(VideoInfoService prepared) {
++        mActualInfoType = prepared.mActualInfoType;
++        mNextInfoType = prepared.mNextInfoType;
++        mIsUnplayable = prepared.mIsUnplayable;
++        persistVideoInfoType();
++    }
++
+     public static VideoInfoService instance() {
+         if (sInstance == null) {
+             sInstance = new VideoInfoService();
+@@ -139,6 +153,7 @@ public class VideoInfoService extends VideoInfoServiceBase {
+         AppClient nextType = beginType;
+ 
+         do {
++            if (mIsIsolated && Thread.currentThread().isInterrupted()) return null;
+             VideoInfo result = getVideoInfoWithRentFix(nextType, videoId, clickTrackingParams);
+ 
+             if (result != null && infoTester.test(result)) {
+@@ -336,7 +351,7 @@ public class VideoInfoService extends VideoInfoServiceBase {
+     }
+ 
+     private void persistVideoInfoType() {
+-        if (!GlobalPreferences.isInitialized()) {
++        if (mIsIsolated || !GlobalPreferences.isInitialized()) {
+             return;
+         }
+ 

@@ -110,7 +110,6 @@ public class PlayerTweaksData implements ProfileChangeListener {
     private boolean mIsDontResizeVideoToFitDialogEnabled;
     private boolean mIsSuggestionsHorizontallyScrolled;
     private boolean mIsQueueRespectsPlaybackMode;
-    private boolean mIsShortsAutoScrollEnabled;
     private final Runnable mPersistDataInt = this::persistDataInt;
 
     private PlayerTweaksData(Context context) {
@@ -599,12 +598,28 @@ public class PlayerTweaksData implements ProfileChangeListener {
         persistData();
     }
 
+    public boolean isShortsButtonVisible() {
+        return !"false".equals(mPrefs.getProfileData("shorts_slider_button_visible"));
+    }
+
+    public void setShortsButtonVisible(boolean visible) {
+        mPrefs.setProfileData("shorts_slider_button_visible", Boolean.toString(visible));
+    }
+
+    public boolean isShortsPreparationEnabled() {
+        return !"false".equals(mPrefs.getProfileData("shorts_slider_preparation_enabled"));
+    }
+
+    public void setShortsPreparationEnabled(boolean enabled) {
+        mPrefs.setProfileData("shorts_slider_preparation_enabled", Boolean.toString(enabled));
+    }
+
     public boolean isShortsAutoScrollEnabled() {
-        return mIsShortsAutoScrollEnabled;
+        return !mIsLoopShortsEnabled;
     }
 
     public void setShortsAutoScrollEnabled(boolean enable) {
-        mIsShortsAutoScrollEnabled = enable;
+        mIsLoopShortsEnabled = !enable;
         persistNow();
     }
 
@@ -755,7 +770,7 @@ public class PlayerTweaksData implements ProfileChangeListener {
         mIsSyncRowButtonIndexEnabled = Helpers.parseBoolean(split, 41, true);
         mIsUnsafeAudioFormatsEnabled = Helpers.parseBoolean(split, 42, true);
         //mIsHighBitrateFormatsEnabled = Helpers.parseBoolean(split, 43, false);
-        mIsLoopShortsEnabled = Helpers.parseBoolean(split, 44, true);
+        mIsLoopShortsEnabled = Helpers.parseBoolean(split, 44, false);
         mIsQuickSkipShortsEnabled = Helpers.parseBoolean(split, 45, false);
         mIsRememberPositionOfLiveVideosEnabled = Helpers.parseBoolean(split, 46, true);
         mIsOculusQuestFixEnabled = Helpers.parseBoolean(split, 47, Utils.isOculusQuest());
@@ -774,7 +789,13 @@ public class PlayerTweaksData implements ProfileChangeListener {
         mIsQuickSkipVideosAltEnabled = Helpers.parseBoolean(split, 58, false);
         mIsAudioTimeStretchingEnabled = Helpers.parseBoolean(split, 59, true);
         mIsQueueRespectsPlaybackMode = Helpers.parseBoolean(split, 60, false);
-        mIsShortsAutoScrollEnabled = Helpers.parseBoolean(split, 61, false);
+        // Migrate the first fork's separate toggle once; slot 61 is cleared on save.
+        if (!"true".equals(mPrefs.getProfileData("shorts_slider_migrated")) && split != null && split.length > 61 &&
+                ("true".equals(split[61]) || "false".equals(split[61]))) {
+            mIsLoopShortsEnabled = !Helpers.parseBoolean(split, 61, false);
+            mPrefs.setProfileData("shorts_slider_migrated", "true");
+            persistNow();
+        }
 
         updateDefaultValues();
     }
@@ -803,7 +824,7 @@ public class PlayerTweaksData implements ProfileChangeListener {
                 mIsOculusQuestFixEnabled, null, mIsExtraLongSpeedListEnabled, mIsQuickSkipVideosEnabled, mIsNetworkErrorFixingDisabled, mIsCommentsPlacedLeft,
                 null, mIsAudioFocusEnabled, mIsDontResizeVideoToFitDialogEnabled, mIsSuggestionsHorizontallyScrolled,
                 mIsQuickSkipShortsAltEnabled, mIsQuickSkipVideosAltEnabled, mIsAudioTimeStretchingEnabled, mIsQueueRespectsPlaybackMode,
-                mIsShortsAutoScrollEnabled
+                null // retired fork toggle; use the native loop setting
                 ));
     }
 

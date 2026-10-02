@@ -1,226 +1,114 @@
-# SmartTube Shorts Slider Edition
+# SmartTube Shorts Slider
 
-[<img src="images/badge_github.png" alt="Get it on GitHub" height="80">](https://github.com/valoche-68/SmartTube-Shorts-Slider/releases/latest)
+**Les Shorts sur TV, avec les réglages qui vous conviennent.**
 
-[![Release](https://img.shields.io/github/v/release/valoche-68/SmartTube-Shorts-Slider?label=Latest%20Release&color=blue)](https://github.com/valoche-68/SmartTube-Shorts-Slider/releases/latest)
-[![Build & Release](https://github.com/valoche-68/SmartTube-Shorts-Slider/actions/workflows/release-shorts-slider.yml/badge.svg)](https://github.com/valoche-68/SmartTube-Shorts-Slider/actions/workflows/release-shorts-slider.yml)
-[![License](https://img.shields.io/badge/License-MIT-success.svg)](LICENSE)
+**Français** · [English](README.en.md) · [Versions APK](https://github.com/valoche-68/SmartTube-Shorts-Slider/releases) · [Projet officiel](https://github.com/yuliskov/SmartTube)
 
-> [!TIP]
-> 🇫🇷 **[Cliquez ici pour lire la documentation en Français](#-version-française)**
+[![Validation](https://github.com/valoche-68/SmartTube-Shorts-Slider/actions/workflows/CI.yml/badge.svg)](https://github.com/valoche-68/SmartTube-Shorts-Slider/actions/workflows/CI.yml)
+[![Licence MIT](https://img.shields.io/badge/licence-MIT-blue.svg)](LICENSE)
 
-SmartTube **Shorts Slider** is an enhanced fork of the original [SmartTube by Yurii Liskov](https://github.com/yuliskov/SmartTube). It is designed specifically to provide a **smooth, continuous, smartphone-like experience for YouTube Shorts on Android TV and Amazon Fire TV**, utilizing simple remote control Up/Down arrows.
+Deux possibilités : **garder SmartTube officiel et configurer ses fonctions natives**, ou **installer cette version personnalisée pour son bouton de lecture automatique et la préparation du Short suivant**.
 
----
+## 1. Garder SmartTube officiel
 
-## 🚀 Key Features (Shorts Slider Edition)
+La navigation entre Shorts et leur enchaînement existent déjà dans l’application officielle. Aucun APK personnalisé n’est nécessaire pour les activer.
 
-- 🎮 **Up / Down Remote D-Pad Navigation**: Seamlessly navigate between YouTube Shorts using the Up and Down keys on your TV remote control, just like scrolling through TikTok or YouTube Shorts on mobile.
-- 🔄 **Automatic Next-Short Preloading**: While you are watching a Short, the next video is automatically fetched and prepared in the background for a seamless transition.
-- ⏯️ **New Auto-Scroll Toggle Button**: A dedicated button in player controls to enable or disable automatic hands-free scrolling to the next Short when the current one finishes. Persistently saved across sessions.
-- ♾️ **Continuous Queue (10 to 20 Shorts Ahead)**: Automatically maintains a continuous buffer of 10 to 20 Shorts ahead in the queue so the feed never interrupts or ends.
+| Besoin | Réglage officiel |
+| --- | --- |
+| Short suivant/précédent avec haut/bas | Paramètres → Général → Réaffectation des touches → Naviguer entre les Shorts avec les boutons haut/bas |
+| Préférer gauche/droite, ou désactiver les raccourcis | Même menu ; choisir la navigation souhaitée |
+| Enchaîner à la fin d’un Short | Paramètres → Lecteur vidéo → Divers → désactiver « Short en boucle », et choisir le mode de lecture « vidéo suivante » |
+| Suivre les vidéos de la section ouverte | Lecteur vidéo → Divers → Utiliser le contenu de la section actuelle comme playlist |
 
----
+L’enchaînement dépend des vidéos disponibles et de leur identification comme Shorts. Le mode de lecture global concerne aussi les vidéos longues.
 
-## 📥 Download APKs (v32.56 Stable)
+### Un assistant depuis le PC
 
-Choose the APK matching your TV hardware:
+Le [script guidé](docs/configuration-native.md) accompagne une modification réversible des réglages à partir d’une **sauvegarde officielle récente**. Il fonctionne avec Python 3.10+ et ADB sous Linux, macOS et Windows. Il n’utilise pas le root et n’installe pas d’application.
 
-| Architecture | Recommended Devices | Direct Download Link |
-| :--- | :--- | :---: |
-| **`armeabi-v7a`** | **Amazon Fire TV Stick** (Lite, HD, 4K), Xiaomi Mi Box, most 32-bit Android TVs | [Download APK](https://github.com/valoche-68/SmartTube-Shorts-Slider/releases/latest/download/SmartTube_Shorts_Slider_stable_32.56_armeabi-v7a.apk) |
-| **`arm64-v8a`** | **NVIDIA Shield TV**, modern 64-bit Android TVs & Google TVs | [Download APK](https://github.com/valoche-68/SmartTube-Shorts-Slider/releases/latest/download/SmartTube_Shorts_Slider_stable_32.56_arm64-v8a.apk) |
-| **`universal`** | All-in-one package (contains all architectures, ~38 MB) | [Download APK](https://github.com/valoche-68/SmartTube-Shorts-Slider/releases/latest/download/SmartTube_Shorts_Slider_stable_32.56_universal.apk) |
-| **`x86`** | PC Emulators, Android-x86, Intel devices | [Download APK](https://github.com/valoche-68/SmartTube-Shorts-Slider/releases/latest/download/SmartTube_Shorts_Slider_stable_32.56_x86.apk) |
-
----
-
-## 📊 Hardware Benchmark & Latency (Fire TV Stick)
-
-> [!NOTE]  
-> Benchmark details on an **Amazon Fire TV Stick**:
-> - **First Short Launch (Cold Start)**: When opening a Short right after launching the application, expect a normal initial buffering delay of **2 to 4 seconds** (network connection establishment, initial video codec allocation, and YouTube DASH handshake).
-> - **Subsequent Shorts Transitions**: Once inside playback, because each Short is played while the next Short is already loaded in the background, transitions between consecutive Shorts become smooth and seamless.
-
-### How background loading works on TV hardware:
-
-1. **Continuous Next-Short Loading**:  
-   As soon as a Short starts playing, the application immediately requests the stream URLs and formats for the upcoming Short in the background.
-2. **Buffer Tuned to 500 ms**:  
-   The video starts decoding as soon as 0.5s of data is buffered, minimizing wait time while maintaining smooth playback.
-3. **Continuous 10-20 Queue Prefetch**:  
-   The application always keeps 10 to 20 Shorts ready in memory, avoiding any pause or shelf end.
-4. **Hardware Decoder Limits Handled**:  
-   On TV sticks with 1 GB of RAM, running dual concurrent decoders causes memory crashes. Our eager pipeline feeds the single hardware decoder ahead of time, extracting the highest possible performance without stability risks.
-
----
-
-## 🔄 Migration Guide: Keeping Your Settings & Accounts
-
-Because this fork is signed with a dedicated release key and the official app is signed with Yurii Liskov's private key, Android does not allow installing one over the other directly without first migrating your data.
-
-### Method 1: 100% on TV with Remote Control (No PC required)
-
-1. Open your current SmartTube app on TV.
-2. Go to **Settings > General > Backup data** (this saves your accounts, subscriptions, history, and settings to the TV's internal storage, typically at `/sdcard/data/org.smarttube.stable/Backup/` or `/sdcard/Android/media/org.smarttube.stable/`).
-3. Uninstall the previous SmartTube app from the Fire TV / Android TV app settings. (*Note: Your backup file remains safe in storage!*)
-4. Open the **Downloader** app on your TV and install the new APK from the download table above.
-5. Launch the new SmartTube app and go to **Settings > General > Restore data**.
-6. Everything is restored instantly! All future updates will install automatically.
-
----
-
-### Method 2: Via ADB (Command Line)
-
-```bash
-# 1. Connect to your TV
-adb connect <TV_IP_ADDRESS>:5555
-
-# 2. Backup current settings (optional local copy - adapts to path if stored in Android/media)
-adb pull /sdcard/data/org.smarttube.stable/Backup /tmp/smarttube_backup 2>/dev/null || adb pull /sdcard/Android/media/org.smarttube.stable /tmp/smarttube_backup
-
-# 3. Uninstall previous version
-adb uninstall org.smarttube.stable
-
-# 4. Install the new Shorts Slider APK
-adb install -r SmartTube_Shorts_Slider_stable_32.56_armeabi-v7a.apk
-
-# 5. Restore settings on the TV
-# Open SmartTube -> Settings -> General -> Restore data
+```sh
+# Depuis le dossier du projet, après connexion ADB à la TV
+python3 tools/configure_shorts.py
+# Windows : tools\configure_shorts.cmd
 ```
 
----
+Il propose haut/bas, gauche/droite ou aucun raccourci ; lecture automatique ou boucle ; playlist de la section ; consultation et annulation des changements. L’import doit être validé sur la TV.
 
-### 🤖 AI Prompt (Automated Installation or Migration via ADB)
+**Compatibilité vérifiée dans le code : SmartTube officiel 32.56 stable et bêta.** Les versions inconnues sont refusées plutôt que modifiées à l’aveugle. Le test de bout en bout sur Fire TV reste à effectuer ; les réglages manuels ci-dessus restent disponibles.
 
-If you use an AI coding assistant (such as Antigravity, Claude, or ChatGPT) connected to your terminal, copy-paste this prompt so it automatically detects your TV architecture, fetches the matching APK from GitHub, and handles the installation or migration:
+> Le script n’ajoute **ni bouton dans le lecteur, ni préparation anticipée**. Il conserve votre APK officiel et ses mises à jour.
+
+## 2. Installer SmartTube Shorts Slider
+
+Cette version reprend le code de SmartTube avec un ensemble limité de modifications. C’est un projet indépendant, maintenu à partir de l’officiel, sans affiliation avec son développeur.
+
+| Fonction | SmartTube officiel | Shorts Slider |
+| --- | --- | --- |
+| Navigation haut/bas ou gauche/droite | Réglage natif | Même réglage ; haut/bas activé sur un nouveau profil |
+| Lecture automatique des Shorts | Réglages natifs | Activée sur un nouveau profil, avec bouton ON/OFF |
+| Bouton avant « Qualité » | Absent | Présent uniquement sur les Shorts, masquable |
+| Préparation des informations du Short suivant | Pas notre préparation anticipée | Activée par défaut, désactivable |
+| Tampons vidéo et pagination | Comportement officiel | Comportement officiel conservé |
+
+### Le bouton, simplement
+
+- **ON :** enchaîner les Shorts disponibles.
+- **OFF :** répéter le Short en cours.
+- Le bouton et « Short en boucle » partagent le même réglage.
+- Pour masquer le bouton : **Lecteur vidéo → Boutons du lecteur → Afficher le bouton de lecture automatique des Shorts**. Le masquer ne change pas la lecture automatique.
+- Pour désactiver la préparation : **Lecteur vidéo → Divers → Préparer le Short suivant**.
+
+Les choix existants sont conservés lors d’une mise à jour. Les réglages du fork s’appliquent aux Shorts identifiés ; une vidéo longue verticale n’est pas automatiquement un Short. L’enchaînement des Shorts s’arrête lorsqu’aucun Short suivant n’est disponible.
+
+### Ce que prépare l’application
+
+Pendant la lecture, une demande récupère les formats et adresses de lecture d’**un seul Short suivant**. Son résultat reste séparé du cache et de l’identifiant d’historique de la vidéo courante, puis peut être utilisé au passage au suivant. En cas d’échec ou d’expiration, le chargement normal reste disponible.
+
+Cela peut éviter une partie du travail au changement de vidéo. **Le gain de vitesse n’a pas encore été mesuré sur la Fire TV du mainteneur.** Il dépend du réseau, de la TV et de YouTube. Il n’y a ni second décodeur, ni vidéo entièrement téléchargée à l’avance, ni réserve garantie de 10 à 20 Shorts.
+
+## Télécharger et mettre à jour
+
+**[Dernière stable](https://github.com/valoche-68/SmartTube-Shorts-Slider/releases/latest)** · **[Bêtas et toutes les versions](https://github.com/valoche-68/SmartTube-Shorts-Slider/releases)**
+
+| APK | À choisir selon les architectures prises en charge par Android |
+| --- | --- |
+| `armeabi-v7a` | ARM 32 bits, fréquent sur les Fire TV |
+| `arm64-v8a` | ARM 64 bits |
+| `x86` | Android x86 / émulateurs compatibles |
+| `universal` | Contient les trois architectures ci-dessus ; plus volumineux |
+
+Le modèle commercial ne suffit pas toujours à choisir : un appareil 64 bits peut exécuter un système 32 bits. ADB peut afficher les architectures autorisées avec `adb shell getprop ro.product.cpu.abilist`.
+
+### Vous utilisez déjà l’ancien fork
+
+Les nouveaux APK gardent les identifiants `org.smarttube.stable` / `org.smarttube.beta` et la même signature personnelle. Une mise à jour compatible conserve les données : **ne désinstallez pas l’application**. Faites néanmoins une sauvegarde récente avant migration.
+
+L’ancienne stable disposait d’une adresse de mise à jour cassée : le fichier de compatibilité `smarttube_stable2.json` est fourni avec les nouvelles stables. L’ancienne bêta pointait vers l’officiel : installer manuellement une première fois la nouvelle bêta du fork.
+
+### Vous utilisez l’application officielle
+
+L’identifiant Android est le même, mais la signature est différente : les deux versions du même canal ne peuvent pas cohabiter ou se remplacer directement. **Essayez d’abord les réglages natifs ou le script.**
+
+Si vous choisissez le fork, créez une sauvegarde complète, copiez-la sur votre PC, vérifiez que le ZIP est lisible et conservez les fichiers de comptes avec précaution. Téléchargez et vérifiez le nouvel APK avant toute désinstallation. Une signature de debug différente nécessite également une migration ; le projet ne promet pas une mise à jour directe dans ce cas. Voir le [guide de migration](docs/migration.md).
+
+## Des publications vérifiables
+
+- Deux canaux : chaque stable et chaque bêta provient du **tag officiel correspondant**, avec ses sous-modules épinglés et nos modifications versionnées.
+- Recherche de nouvelles releases toutes les six heures. Si les sources changent de façon incompatible, la publication est bloquée ; aucune fusion forcée de `master`.
+- Un même échec n’est pas relancé en boucle : il faut une nouvelle source, une nouvelle révision des modifications ou une relance manuelle.
+- Contrôle des versions, identifiants, architectures, adresses de mise à jour et signatures des APK avant publication.
+- Chaque release contient `build-info.json` et `SHA256SUMS`, ainsi que des liens vers les rapports VirusTotal lorsqu’ils sont disponibles. **Aucun score antivirus n’est inventé.**
+
+Empreinte SHA-256 du certificat de ce fork :
 
 ```text
-Please help me install or migrate SmartTube on my Android TV (IP: <YOUR_TV_IP>) to the latest SmartTube-Shorts-Slider release from GitHub without losing any data:
-1. Connect via ADB to <YOUR_TV_IP>:5555.
-2. Check the TV hardware CPU architecture via ADB (e.g., `adb shell getprop ro.product.cpu.abi`).
-3. Check if the app `org.smarttube.stable` is currently installed (`adb shell pm list packages org.smarttube.stable`):
-   - If installed: verify if a backup exists (search dynamically across possible paths: `/sdcard/data/org.smarttube.*/Backup/`, `/sdcard/Android/media/org.smarttube.*/`, or search for `SmartTube*.zip` / `Backup` folders on `/sdcard`), trigger a backup or extract shared_prefs if missing, pull a safety copy to my computer, then uninstall the old package.
-   - If already uninstalled: check the TV storage for any remaining backup directory or zip file and pull a copy to safety.
-   - If fresh installation (no previous app or backup): proceed directly to step 4.
-4. Go to the GitHub repository https://github.com/valoche-68/SmartTube-Shorts-Slider, fetch the latest release, and download the APK matching the TV architecture (armeabi-v7a, arm64-v8a, or universal).
-5. Install the downloaded compatible APK via ADB.
-6. Grant storage permissions if needed (READ_EXTERNAL_STORAGE).
-7. Launch the application and verify it opens properly so I can restore my settings.
+80a1a2db29be237b85486957804c21ddfa1a6c0371b93f2bd293e134aa138838
 ```
 
----
+La publication automatique ne garantit pas la compatibilité de toutes les futures modifications officielles. Les essais sur les appareils restent utiles, notamment pour les bêtas.
 
-<br>
+## Développer et contribuer
 
----
+Voir [la construction, les tests et l’automatisation](docs/development.md). Les clés privées, mots de passe, exports de conversations et sauvegardes personnelles sont exclus de Git et contrôlés avant commit et en CI. Les sauvegardes peuvent contenir des accès aux comptes : ne les joindre ni aux tickets ni aux rapports publics.
 
-# 🇫🇷 Version Française
-
-SmartTube **Shorts Slider** est une version améliorée du célèbre client YouTube pour téléviseurs [SmartTube](https://github.com/yuliskov/SmartTube). Ce fork apporte une **expérience fluide et continue pour la lecture des YouTube Shorts sur Android TV et Fire TV Stick**, grâce aux flèches Haut et Bas de votre télécommande.
-
----
-
-## 🌟 Fonctionnalités Exclusives (Shorts Slider)
-
-- 🎮 **Navigation Haut / Bas à la télécommande** : Faites défiler les Shorts simplement avec les flèches Haut/Bas, comme sur TikTok ou l'application mobile.
-- 🔄 **Préchargement Automatique du Short Suivant** : Pendant que vous regardez une vidéo, le Short suivant est déjà chargé en arrière-plan pour s'enchaîner de manière fluide.
-- ⏯️ **Nouveau Bouton Défilement Automatique (Auto-Scroll)** : Un bouton dédié dans les contrôles du lecteur permet d'activer ou désactiver l'enchaînement automatique des Shorts sans toucher à la télécommande. Sauvegardé automatiquement dans vos préférences.
-- ♾️ **File d'Attente Continue (10 à 20 Shorts d'avance)** : L'application précharge en continu une réserve de 10 à 20 Shorts d'avance pour garantir un flux infini sans interruption.
-
----
-
-## 📥 Téléchargements des APKs (Version 32.56 Stable)
-
-Choisissez l'APK adapté au matériel de votre téléviseur :
-
-| Architecture | Périphériques Recommandés | Lien de Téléchargement Direct |
-| :--- | :--- | :---: |
-| **`armeabi-v7a`** | **Amazon Fire TV Stick** (Lite, HD, 4K), Xiaomi Mi Box, majorité des clés TV 32-bit | [Télécharger l'APK](https://github.com/valoche-68/SmartTube-Shorts-Slider/releases/latest/download/SmartTube_Shorts_Slider_stable_32.56_armeabi-v7a.apk) |
-| **`arm64-v8a`** | **NVIDIA Shield TV**, box TV et téléviseurs 64-bit récents | [Télécharger l'APK](https://github.com/valoche-68/SmartTube-Shorts-Slider/releases/latest/download/SmartTube_Shorts_Slider_stable_32.56_arm64-v8a.apk) |
-| **`universal`** | Version tout-en-un (contient toutes les architectures, ~38 Mo) | [Télécharger l'APK](https://github.com/valoche-68/SmartTube-Shorts-Slider/releases/latest/download/SmartTube_Shorts_Slider_stable_32.56_universal.apk) |
-| **`x86`** | Émulateurs PC / Android-x86 / Processeurs Intel | [Télécharger l'APK](https://github.com/valoche-68/SmartTube-Shorts-Slider/releases/latest/download/SmartTube_Shorts_Slider_stable_32.56_x86.apk) |
-
----
-
-## ⏱️ Analyse Technique & Benchmark sur Fire TV
-
-> [!NOTE]  
-> Détails mesurés sur **Amazon Fire TV Stick** :
-> - **Lancement du premier Short (Démarrage à froid)** : Lors du clic sur un premier Short juste après avoir ouvert l'application, un délai d'initialisation normal de **2 à 4 secondes** est présent (connexion réseau, handshake YouTube DASH et initialisation du décodeur matériel vidéo).
-> - **Transitions entre les Shorts suivants** : Une fois dans le lecteur, comme chaque Short est lu pendant que le Short suivant est déjà chargé en tâche de fond, le passage d'une vidéo à l'autre s'effectue de manière fluide et directe.
-
-### Comment fonctionne le chargement anticipé sur clé TV ?
-
-1. **Préchargement systématique du Short suivant** :  
-   Dès qu'un Short commence, l'application extrait immédiatement les formats et liens du Short suivant en arrière-plan.
-2. **Tampon ExoPlayer réglé à 500 ms** :  
-   Le décodage démarre dès qu'une demi-seconde de flux est en mémoire vive.
-3. **Réserve permanente de 10 à 20 vidéos** :  
-   L'application anticipe en permanence la suite de la liste de lecture.
-4. **Optimisation sans surcharger la mémoire** :  
-   Sur une clé TV dotée de seulement 1 Go de RAM, ouvrir plusieurs lecteurs vidéo en même temps ferait planter l'appareil. Ce pipeline alimente le décodeur matériel existant de façon optimale et sans aucun risque d'instabilité.
-
----
-
-## 🔄 Guide de Migration : Conserver ses Données & Comptes
-
-Les signatures officielles de SmartTube et de ce fork étant différentes pour des raisons de sécurité cryptographique, Android n'autorise pas l'installation par-dessus sans migrer préalablement vos données.
-
-### Méthode 1 : 100% sur la TV avec la télécommande (Sans PC requis)
-
-1. Ouvrez votre application SmartTube actuelle sur votre téléviseur.
-2. Allez dans **Paramètres > Général > Sauvegarder les données** (cela sauvegarde vos comptes, abonnements, historique et réglages dans le stockage interne de la TV, généralement sous `/sdcard/data/org.smarttube.stable/Backup/` ou `/sdcard/Android/media/org.smarttube.stable/`).
-3. Désinstallez l'ancienne application SmartTube depuis les paramètres d'applications de votre TV. (*Note : Votre fichier de sauvegarde reste intact dans le stockage !*)
-4. Ouvrez l'application **Downloader** sur votre TV et installez le nouvel APK depuis le tableau de téléchargement ci-dessus.
-5. Lancez le nouveau SmartTube et allez dans **Paramètres > Général > Restaurer les données**.
-6. Tout est restauré instantanément ! Toutes les futures mises à jour s'installeront ensuite automatiquement.
-
----
-
-### Méthode 2 : Via ADB (Ligne de commande)
-
-```bash
-# 1. Connexion à votre TV
-adb connect <IP_DE_VOTRE_TV>:5555
-
-# 2. Sauvegarde des réglages actuels (copie locale - adapter le chemin si situé dans Android/media)
-adb pull /sdcard/data/org.smarttube.stable/Backup /tmp/smarttube_backup 2>/dev/null || adb pull /sdcard/Android/media/org.smarttube.stable /tmp/smarttube_backup
-
-# 3. Désinstallation de l'ancienne version
-adb uninstall org.smarttube.stable
-
-# 4. Installation du nouvel APK Shorts Slider
-adb install -r SmartTube_Shorts_Slider_stable_32.56_armeabi-v7a.apk
-
-# 5. Restauration des réglages sur la TV
-# Ouvrir SmartTube -> Paramètres -> Général -> Restaurer les données
-```
-
----
-
-### 🤖 Prompt pour IA (Installation ou migration automatisée via ADB)
-
-Si vous utilisez un assistant IA connecté à votre terminal (comme Google Antigravity, Claude ou ChatGPT), copiez-collez simplement ce prompt pour qu'il détecte automatiquement l'architecture de votre TV, télécharge la version compatible sur GitHub et effectue la migration ou l'installation :
-
-```text
-Aide-moi à installer ou migrer SmartTube sur mon téléviseur Android TV (IP : <IP_DE_VOTRE_TV>) vers la dernière version de SmartTube-Shorts-Slider sur GitHub sans perdre aucune de mes données :
-1. Connecte-toi via ADB à <IP_DE_VOTRE_TV>:5555.
-2. Détecte l'architecture CPU du matériel de la TV via ADB (ex: `adb shell getprop ro.product.cpu.abi`).
-3. Vérifie si l'application `org.smarttube.stable` est actuellement installée (`adb shell pm list packages org.smarttube.stable`) :
-   - Si l'application est installée : recherche les sauvegardes existantes sur le stockage de la TV (explorer les chemins possibles comme `/sdcard/data/org.smarttube.*/Backup/`, `/sdcard/Android/media/org.smarttube.*/`, ou rechercher les dossiers `Backup` et archives `.zip` sur `/sdcard`), assure-toi qu'une sauvegarde existe (ou extrait shared_prefs), rapatrie une copie de sécurité sur mon ordinateur, puis désinstalle l'ancien paquet.
-   - Si elle a déjà été désinstallée : recherche tout de même l'emplacement de sauvegarde ou l'archive zip restante sur le stockage et rapatrie-la par précaution.
-   - S'il s'agit d'une première installation (aucune application ni sauvegarde préalable) : passe directement à l'étape 4.
-4. Va sur le dépôt GitHub https://github.com/valoche-68/SmartTube-Shorts-Slider, récupère la dernière release et télécharge l'APK correspondant à l'architecture de la TV (armeabi-v7a, arm64-v8a ou universal).
-5. Installe l'APK compatible téléchargé via ADB.
-6. Accorde les autorisations de stockage si nécessaire (READ_EXTERNAL_STORAGE).
-7. Démarre l'application et vérifie qu'elle se lance correctement pour que je puisse restaurer mes réglages.
-```
-
----
-
-## 📄 License & Credits
-
-- SmartTube is licensed under [GNU GPL v3.0](LICENSE).
-- Original creator and maintainer: [Yurii Liskov (yuliskov)](https://github.com/yuliskov/SmartTube).
-- Shorts Slider Edition maintained by [valoche-68](https://github.com/valoche-68).
+[Licence MIT](LICENSE). Crédits à [Yurii Liskov et aux contributeurs de SmartTube](https://github.com/yuliskov/SmartTube). Les dépendances conservent leurs licences respectives.

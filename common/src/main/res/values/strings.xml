@@ -759,4 +759,7 @@
     <string name="action_shorts_auto_scroll">Auto-scroll Shorts</string>
     <string name="shorts_auto_scroll_on">Auto-scroll: ON</string>
     <string name="shorts_auto_scroll_off">Auto-scroll: OFF</string>
+    <string name="shorts_show_auto_scroll">Show Shorts auto-scroll button</string>
+    <string name="shorts_prepare_next">Prepare the next Short</string>
+    <string name="shorts_prepare_next_desc">Fetch playback information in advance. Speed depends on the device and network.</string>
 </resources>

@@ -751,4 +751,7 @@
   <string name="action_shorts_auto_scroll">Défilement auto des Shorts</string>
   <string name="shorts_auto_scroll_on">Défilement auto : Activé</string>
   <string name="shorts_auto_scroll_off">Défilement auto : Désactivé</string>
+    <string name="shorts_show_auto_scroll">Afficher le bouton de lecture automatique des Shorts</string>
+    <string name="shorts_prepare_next">Préparer le Short suivant</string>
+    <string name="shorts_prepare_next_desc">Récupérer ses informations de lecture à l\'avance. Le gain dépend de l\'appareil et du réseau.</string>
 </resources>
