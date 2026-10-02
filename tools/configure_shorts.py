@@ -221,6 +221,11 @@ def choice(prompt, values, default):
 
 
 def main(argv=None):
+    # Older Windows consoles and redirected output may use a legacy encoding.
+    # An unrepresentable character in a path or message must not abort a backup.
+    for stream in (sys.stdout, sys.stderr):
+        if hasattr(stream, "reconfigure"):
+            stream.reconfigure(errors="backslashreplace")
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--device", help="Identifiant adb de la TV déjà connectée")
     parser.add_argument("--channel", choices=["stable", "beta"], default="stable")
@@ -245,7 +250,7 @@ def main(argv=None):
     else:
         adb = Adb(args.device)
         args.version = adb.version(package)
-        print("Dans SmartTube : Paramètres → Sauvegarde/restauration → Sauvegarde locale.")
+        print("Dans SmartTube : Paramètres > Sauvegarde/restauration > Sauvegarde locale.")
         print("Créez maintenant une sauvegarde complète, puis indiquez le chemin ZIP affiché sur la TV.")
         remote = input("Chemin complet du ZIP sur la TV : ").strip()
         if not remote.startswith(("/sdcard/", "/storage/emulated/0/")) or not remote.endswith(".zip"):
@@ -277,7 +282,7 @@ def main(argv=None):
     if not changes:
         print("Les réglages demandés sont déjà appliqués.")
         return 0
-    for key, value in changes.items(): print(f"  {key}: {value['before']} → {value['after']}")
+    for key, value in changes.items(): print(f"  {key}: {value['before']} -> {value['after']}")
     if "playback" in changes:
         print("Le mode natif ‘vidéo suivante’ concerne aussi les vidéos longues. La boucle reste propre aux Shorts.")
     print("Aucun bouton ajouté et aucune préparation anticipée ajoutée à l'application officielle.")

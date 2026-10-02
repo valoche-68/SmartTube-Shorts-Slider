@@ -4,6 +4,7 @@ import json
 from pathlib import Path
 import tempfile
 import unittest
+from unittest.mock import patch
 import zipfile
 
 SPEC = importlib.util.spec_from_file_location('configure_shorts', Path(__file__).parents[1] / 'configure_shorts.py')
@@ -81,6 +82,11 @@ class ConfigureTest(unittest.TestCase):
             args = ['--backup', str(path), '--version', '32.56', '--navigation', 'up-down', '--dry-run', '--output', str(Path(folder) / 'result')]
             self.assertEqual(cfg.main(args), 0)
             self.assertFalse((Path(folder) / 'result').exists())
+            # Reproduce Windows output redirected by CI, including ASCII-only terminals.
+            for encoding in ('cp1252', 'ascii'):
+                with io.TextIOWrapper(io.BytesIO(), encoding=encoding) as stream:
+                    with patch.object(cfg.sys, 'stdout', stream):
+                        self.assertEqual(cfg.main(args), 0)
             args[3] = '99.99'
             with self.assertRaises(cfg.ConfigError): cfg.main(args)
 
