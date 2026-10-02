@@ -31,9 +31,9 @@ sh -c 's=$(curl -fsSL https://raw.githubusercontent.com/valoche-68/SmartTube-Sho
 & ([scriptblock]::Create((Invoke-WebRequest -UseBasicParsing -Uri 'https://raw.githubusercontent.com/valoche-68/SmartTube-Shorts-Slider/main/tools/start.ps1').Content))
 ```
 
-Installez une seule fois [Python 3.10+](https://www.python.org/downloads/) et [ADB](https://developer.android.com/tools/releases/platform-tools), puis connectez votre TV avec ADB en suivant le [guide de préparation](configuration-native.md). Le lanceur vérifie Python et explique les prérequis manquants. Le script temporaire est retiré à la fermeture ; vos sauvegardes privées sont conservées à part.
+Le lanceur réutilise Python 3.10+ et ADB s’ils sont utilisables, puis installe les prérequis manquants avec le gestionnaire de paquets Linux, Homebrew sur macOS ou WinGet sur Windows. Homebrew est installé si nécessaire ; Windows nécessite WinGet. Le système peut demander un mot de passe administrateur ou une confirmation. Le [guide de préparation](configuration-native.md#installation-automatique-des-prérequis) détaille les systèmes pris en charge et la connexion ADB à la TV. Le script temporaire est retiré à la fermeture ; les outils installés et vos sauvegardes privées sont conservés.
 
-Le menu en français propose haut/bas, gauche/droite ou aucun raccourci ; lecture automatique ou boucle ; playlist de la section ; consultation et annulation des changements. Il utilise une **sauvegarde officielle récente** et l’import doit être validé sur la TV. Aucun root ni installation d’APK.
+Le menu en français propose haut/bas, gauche/droite ou aucun raccourci ; lecture automatique ou boucle ; playlist de la section ; consultation et annulation des changements. Il utilise une **sauvegarde officielle récente** et l’import doit être validé sur la TV. Aucun root sur la TV ni installation d’APK.
 
 **Compatibilité vérifiée dans le code : SmartTube officiel 32.56 stable et bêta.** Les versions inconnues sont refusées plutôt que modifiées à l’aveugle. Le test de bout en bout sur Fire TV reste à effectuer ; les réglages manuels ci-dessus restent disponibles.
 

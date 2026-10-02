@@ -2,17 +2,27 @@
 
 [Accueil en français](../README.fr.md) · [English overview](../README.md)
 
-Le script configure les fonctions natives. Il n'ajoute ni bouton ni préparation anticipée, n'installe aucun APK, ne désinstalle rien et n'utilise pas le root. Sa logique de modification et d'annulation est testée sur des sauvegardes synthétiques. Le parcours complet sur Fire TV reste à valider.
+Le script configure les fonctions natives. Il n'ajoute ni bouton ni préparation anticipée, n'installe aucun APK, ne désinstalle rien et ne nécessite pas le root sur la TV. Sa logique de modification et d'annulation est testée sur des sauvegardes synthétiques. Le parcours complet sur Fire TV reste à valider.
 
-## Préparer l'ordinateur et la TV
+## Installation automatique des prérequis
 
-Installer [Python 3.10 ou supérieur](https://www.python.org/downloads/) et les [Android SDK Platform Tools](https://developer.android.com/tools/releases/platform-tools). Ajouter `adb` au PATH.
+La commande ci-dessous vérifie **Python 3.10+** et **ADB**, conserve les outils déjà utilisables et installe uniquement les prérequis manquants :
 
-Activer le débogage ADB dans les options développeur de la TV, connecter l'ordinateur et accepter la demande sur la TV. Selon l'appareil, utiliser `adb connect ADRESSE:PORT` ou l'association `adb pair`. Ne pas exposer ADB sur Internet. La [documentation Android](https://developer.android.com/tools/adb) décrit ces modes.
+| Système | Installation utilisée |
+| --- | --- |
+| Linux | `apt-get`, `dnf`, `pacman`, `zypper` ou `apk`, avec les paquets des dépôts configurés |
+| macOS | [Homebrew](https://docs.brew.sh/Installation), installé depuis sa source officielle s’il manque ; Python et [Android Platform Tools](https://formulae.brew.sh/cask/android-platform-tools) |
+| Windows | [WinGet](https://learn.microsoft.com/en-us/windows/package-manager/winget/install), avec `Python.Python.3.13` et `Google.PlatformTools`, pour l’utilisateur courant |
+
+Le système peut demander une confirmation ou un mot de passe administrateur. Sur Linux, seuls les appels au gestionnaire de paquets utilisent `sudo` si nécessaire. Homebrew peut aussi demander l’installation des outils de développement Apple. **Ne lancez pas toute la commande avec `sudo`.**
+
+Sous Linux/macOS, la commande nécessite `curl`. Sous Windows, si WinGet manque, le lanceur indique comment installer [App Installer de Microsoft](https://apps.microsoft.com/detail/9nblggh4nns1), puis s’arrête. Un gestionnaire non pris en charge, des paquets indisponibles ou une version de Python trop ancienne après installation provoquent aussi un arrêt. Il reste possible d’installer [Python](https://www.python.org/downloads/) et [ADB](https://developer.android.com/tools/releases/platform-tools) manuellement, puis de relancer.
+
+Les prérequis sont revérifiés après installation. L’aide (`--help`) et le travail sur une sauvegarde locale (`--backup`) nécessitent Python, mais n’installent pas ADB. Les outils installés restent sur le PC pour les prochains lancements.
 
 ## Lancer sans télécharger de fichier à la main
 
-Après la préparation ci-dessus, copiez-collez **une seule commande** dans votre console :
+Copiez-collez **une seule commande** dans votre console :
 
 **Linux / macOS — Terminal**
 
@@ -26,17 +36,23 @@ sh -c 's=$(curl -fsSL https://raw.githubusercontent.com/valoche-68/SmartTube-Sho
 & ([scriptblock]::Create((Invoke-WebRequest -UseBasicParsing -Uri 'https://raw.githubusercontent.com/valoche-68/SmartTube-Shorts-Slider/main/tools/start.ps1').Content))
 ```
 
-La commande récupère le lanceur de ce dépôt, puis celui-ci télécharge uniquement `configure_shorts.py` dans un dossier temporaire. Le menu garde l’accès au clavier. Si le téléchargement échoue, aucun fichier incomplet n’est exécuté. Le fichier temporaire est supprimé à la fermeture, sans supprimer les sauvegardes privées. Git n’est pas nécessaire ; les lanceurs n’installent pas Python ou ADB et ne modifient pas les règles d’exécution de PowerShell.
+La commande récupère le lanceur de ce dépôt. Après vérification et installation éventuelle des prérequis, celui-ci télécharge `configure_shorts.py` dans un dossier temporaire. Le menu garde l’accès au clavier. Si le téléchargement échoue, aucun fichier incomplet n’est exécuté. Le dossier temporaire est supprimé à la fermeture, sans supprimer les sauvegardes privées. Git n’est pas nécessaire ; les règles d’exécution de PowerShell restent inchangées.
 
 Pour obtenir l’aide ou utiliser la bêta, on peut ajouter `--help` ou `--channel beta` à la fin de la commande. Les autres options du script fonctionnent de la même manière.
 
-Si le projet est déjà présent sur le PC, les commandes locales restent disponibles :
+Si le projet est déjà présent sur le PC, `sh tools/start.sh` ou `& ([scriptblock]::Create((Get-Content -Raw .\tools\start.ps1)))` proposent la même installation automatique. Pour lancer uniquement le script local, avec les prérequis déjà installés :
 
 ```sh
 python3 tools/configure_shorts.py
 # Linux / macOS : tools/configure_shorts.sh
 # Windows : tools\configure_shorts.cmd
 ```
+
+## Connecter la TV
+
+Activer le débogage ADB dans les options développeur de la TV, connecter l’ordinateur et accepter la demande sur la TV. Selon l’appareil, utiliser `adb connect ADRESSE:PORT` ou l’association `adb pair`. La [documentation Android](https://developer.android.com/tools/adb) décrit ces modes. Ne pas exposer ADB sur Internet.
+
+Si ADB vient d’être installé, ouvrir un nouveau terminal avant d’utiliser `adb connect`. Avec Homebrew, suivre si nécessaire ses instructions pour ajouter ses outils au `PATH`. Si l’assistant ne trouve aucun appareil connecté, connecter la TV puis relancer la commande ; les prérequis déjà présents ne seront pas réinstallés.
 
 ## Parcours guidé
 

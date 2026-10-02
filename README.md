@@ -8,7 +8,7 @@ Shorts on TV: native settings or a dedicated autoplay button.
 
 Shorts navigation and autoplay are already built in. Our assistant helps configure them through a backup you restore on your TV.
 
-Install [Python 3.10+](https://www.python.org/downloads/) and [ADB](https://developer.android.com/tools/releases/platform-tools), connect your TV, then paste:
+Paste the command below: it checks Python and ADB, installs missing prerequisites on supported systems, then starts the assistant. Your system may ask for permission.
 
 **Linux / macOS — Terminal**
 

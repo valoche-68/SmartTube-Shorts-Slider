@@ -8,7 +8,7 @@ Les Shorts sur TV : réglages natifs ou bouton de lecture automatique.
 
 La navigation entre Shorts et la lecture automatique sont déjà intégrées. Notre assistant aide à les configurer à partir d’une sauvegarde à restaurer sur la TV.
 
-Installez [Python 3.10+](https://www.python.org/downloads/) et [ADB](https://developer.android.com/tools/releases/platform-tools), connectez votre TV, puis collez :
+Collez la commande ci-dessous : elle vérifie Python et ADB, installe les prérequis manquants sur les systèmes pris en charge, puis lance l’assistant. Une autorisation système peut être demandée.
 
 **Linux / macOS — Terminal**
 

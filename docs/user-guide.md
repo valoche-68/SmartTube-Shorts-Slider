@@ -26,9 +26,9 @@ sh -c 's=$(curl -fsSL https://raw.githubusercontent.com/valoche-68/SmartTube-Sho
 & ([scriptblock]::Create((Invoke-WebRequest -UseBasicParsing -Uri 'https://raw.githubusercontent.com/valoche-68/SmartTube-Shorts-Slider/main/tools/start.ps1').Content))
 ```
 
-Install [Python 3.10+](https://www.python.org/downloads/) and [ADB](https://developer.android.com/tools/releases/platform-tools) once, then connect your TV with ADB as explained in the [setup guide](configuration-native.md). The launcher checks Python and reports missing prerequisites. Its temporary script is removed when it exits; your private backups are kept separately. The menus are currently in French.
+The launcher reuses working Python 3.10+ and ADB installations, and installs missing prerequisites through your Linux package manager, Homebrew on macOS or WinGet on Windows. Homebrew is installed if needed; Windows requires WinGet. Your system may ask for an administrator password or confirmation. See the [setup guide](configuration-native.md#installation-automatique-des-prérequis) for supported systems and connecting your TV with ADB. Its temporary script is removed when it exits; installed tools and private backups are kept. The menus are currently in French.
 
-The assistant modifies a recent official backup, retains the original, and lets you restore it through SmartTube's own interface. No root, uninstall or replacement APK is involved. You can inspect settings, choose navigation, configure automatic playback and the section playlist, preview changes, and selectively undo them using a fresh backup.
+The assistant modifies a recent official backup, retains the original, and lets you restore it through SmartTube's own interface. No TV root, uninstall or replacement APK is involved. You can inspect settings, choose navigation, configure automatic playback and the section playlist, preview changes, and selectively undo them using a fresh backup.
 
 The verified source schema is official **32.56 stable and beta**. Unknown versions are rejected. End-to-end Fire TV validation remains pending. The tool does **not** add the player button or speculative preparation. Manual settings remain an option.
 
