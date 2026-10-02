@@ -1,6 +1,6 @@
 # Configurer SmartTube officiel depuis un PC
 
-[Accueil](../README.md) · [English overview](../README.en.md)
+[Accueil en français](../README.fr.md) · [English overview](../README.md)
 
 Le script configure les fonctions natives. Il n'ajoute ni bouton ni préparation anticipée, n'installe aucun APK, ne désinstalle rien et n'utilise pas le root. Sa logique de modification et d'annulation est testée sur des sauvegardes synthétiques. Le parcours complet sur Fire TV reste à valider.
 
