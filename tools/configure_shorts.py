@@ -255,6 +255,9 @@ def main(argv=None):
             raise ConfigError("Sauvegarde inaccessible. Copier son ZIP sur le PC et utiliser --backup et --version.")
         original = result.stdout
     backup = Backup(original, package, args.profile)
+    stored_code = backup.get_slot(GENERAL, 39)
+    if stored_code not in ("null", "", str(SUPPORTED[args.version])):
+        raise ConfigError("La version mémorisée dans la sauvegarde ne correspond pas à la version annoncée.")
     print("Réglages natifs : haut/bas=" + backup.effective("vertical") + ", gauche/droite=" + backup.effective("horizontal") +
           ", boucle=" + backup.effective("loop") + ", section-playlist=" + backup.effective("section"))
     if args.status: return 0

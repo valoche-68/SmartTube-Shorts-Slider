@@ -118,7 +118,7 @@ def prepare(channel, upstream_tag, folder):
         target = folder / name
         if target.exists(): shutil.rmtree(target)
         shutil.copytree(ROOT / name, target, ignore=shutil.ignore_patterns('__pycache__'))
-    for name in ['README.md', 'README.en.md', 'LICENSE', '.gitignore']:
+    for name in ['README.md', 'README.en.md', 'LICENSE', '.gitignore', '.gitattributes']:
         shutil.copy2(ROOT / name, folder / name)
     (folder / 'fork').mkdir(exist_ok=True)
     for name in ['config.json', 'shorts.patch', 'mediaservice.patch', 'apply_media_patch.py']:
@@ -126,7 +126,7 @@ def prepare(channel, upstream_tag, folder):
     (folder / 'fork/build.json').write_text(json.dumps(provenance, indent=2) + '\n')
     run('git', 'config', 'user.name', 'SmartTube Shorts Slider build', cwd=folder)
     run('git', 'config', 'user.email', '69769543+valoche-68@users.noreply.github.com', cwd=folder)
-    run('git', 'add', '-A', '--', 'common', 'smarttubetv', '.github', '.githooks', 'tools', 'docs', 'README.md', 'README.en.md', 'LICENSE', '.gitignore', cwd=folder)
+    run('git', 'add', '-A', '--', 'common', 'smarttubetv', '.github', '.githooks', 'tools', 'docs', 'README.md', 'README.en.md', 'LICENSE', '.gitignore', '.gitattributes', cwd=folder)
     run('git', 'add', '-f', '--', 'fork', cwd=folder)
     run('git', 'commit', '--quiet', '-m', f'Build {target_tag} from {upstream_tag}', cwd=folder)
     provenance['source_commit'] = run('git', 'rev-parse', 'HEAD', cwd=folder, capture=True)
@@ -299,7 +299,7 @@ def automate(channels, retry=False):
             existing = existing_release(target)
             if existing:
                 # Never silently replace an already published binary.
-                if existing['isDraft']: raise RuntimeError('A draft exists; inspect and remove it before retrying this tag')
+                if existing['isDraft']: raise RuntimeError('A draft exists; inspect and remove both the draft and its custom tag before retrying')
                 with tempfile.TemporaryDirectory() as temp:
                     gh('release', 'download', target, '--repo', REPO, '--dir', temp, '--pattern', '*.json')
                     info = json.loads((Path(temp) / 'build-info.json').read_text())

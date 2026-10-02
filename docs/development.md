@@ -53,7 +53,7 @@ Le workflow `release-shorts-slider.yml` s'exécute toutes les six heures ou manu
 
 La publication passe par un brouillon dont les fichiers sont téléchargés et comparés avant exposition. Le tag référence le commit de source compilé. Les métadonnées OTA ne changent qu'après publication vérifiée. L'ancienne adresse stable reçoit un alias compatible.
 
-La branche `automation-state` conserve les résultats par canal, commit officiel et empreinte des modifications. Un échec identique est ignoré lors des passages suivants. Pour réessayer : lancement manuel avec `retry=true`. Si un brouillon existe après interruption, l'inspecter et le retirer avant de réessayer ; ne pas écraser un APK publié. Un défaut de publication des métadonnées peut être réparé par une relance qui vérifie les sources de la release existante.
+La branche `automation-state` conserve les résultats par canal, commit officiel et empreinte des modifications. Un échec identique est ignoré lors des passages suivants. Pour réessayer : lancement manuel avec `retry=true`. Si un brouillon existe après interruption, l'inspecter et retirer le brouillon ainsi que son tag personnalisé avant de réessayer (y compris un tag sans release après interruption) ; ne pas écraser un APK publié. Un défaut de publication des métadonnées peut être réparé par une relance qui vérifie les sources de la release existante.
 
 Les rapports de tests sont conservés 30 jours dans les artefacts Actions. Aucun workflow ne supprime immédiatement tous les journaux. VirusTotal est indépendant de la preuve de construction : l'action soumet les APK si une clé est configurée, puis ajoute uniquement des liens vers les rapports réels.
 

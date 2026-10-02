@@ -37,7 +37,8 @@ jobs:
           java-version: '17'
           cache: gradle
       - name: Install Android build tools
-        run: sdkmanager 'build-tools;30.0.3' 'platforms;android-34' 'ndk;21.0.6113669'
+        run: >-
+          "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" 'build-tools;30.0.3' 'platforms;android-34' 'ndk;21.0.6113669'
       - name: Check public sources and configuration tool
         run: |
           python3 .github/scripts/check_sensitive_files.py
