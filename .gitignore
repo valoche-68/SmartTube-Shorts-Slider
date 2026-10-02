@@ -71,3 +71,36 @@ tmp/
 fabric.properties
 *BAK.java
 hs_err_pid*.log
+
+# Keystore and signing files
+keystore.properties
+*.jks
+*.keystore
+dist_apk/
+backup_org_smarttube_stable/
+*.patch
+.env
+*.env
+
+# Private conversation exports and account backups (may contain credentials)
+/chat-google-antigravity/
+/Chat Google Antigravity/
+/backup_*/
+/.env.*
+*.p12
+*.pfx
+*.key
+/release_assets/
+/release_notes.md
+/release-build/
+
+# The reviewed source-only patch used by release builds is public.
+!/fork/shorts.patch
+
+# Additional reviewed patch and private configuration outputs
+!/fork/mediaservice.patch
+__pycache__/
+original.zip
+configured.zip
+undo.json
+/validation-output/
