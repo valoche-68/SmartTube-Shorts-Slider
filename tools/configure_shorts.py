@@ -268,7 +268,9 @@ def main(argv=None):
     if args.status: return 0
     interactive = not any([args.navigation, args.autoplay, args.section, args.undo])
     if interactive:
-        action = choice("Action : configurer ou annuler des changements précédents", ["configurer", "annuler"], "configurer")
+        action = choice("Action : configurer, consulter seulement ou annuler des changements précédents",
+                        ["configurer", "consulter", "annuler"], "configurer")
+        if action == "consulter": return 0
         if action == "annuler": args.undo = Path(input("Chemin du journal undo.json : ").strip())
         else:
             args.navigation = choice("Navigation Shorts (off = désactivée)", ["up-down", "left-right", "off"], "up-down")

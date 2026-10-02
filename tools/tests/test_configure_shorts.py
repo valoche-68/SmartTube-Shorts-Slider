@@ -82,6 +82,8 @@ class ConfigureTest(unittest.TestCase):
             args = ['--backup', str(path), '--version', '32.56', '--navigation', 'up-down', '--dry-run', '--output', str(Path(folder) / 'result')]
             self.assertEqual(cfg.main(args), 0)
             self.assertFalse((Path(folder) / 'result').exists())
+            with patch('builtins.input', return_value='consulter'):
+                self.assertEqual(cfg.main(['--backup', str(path), '--version', '32.56']), 0)
             # Reproduce Windows output redirected by CI, including ASCII-only terminals.
             for encoding in ('cp1252', 'ascii'):
                 with io.TextIOWrapper(io.BytesIO(), encoding=encoding) as stream:
