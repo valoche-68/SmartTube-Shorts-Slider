@@ -34,7 +34,7 @@ Robolectric est fixé à 4.11.1 dans le module commun pour ces tests sous JDK 17
 
 Après une modification de l'application ou du sous-module, **incrémenter la révision de publication**, exécuter `python3 fork/update_patches.py`, puis relire les deux patchs. La génération utilise une liste explicite de fichiers publics pour le patch de l'application. Ne pas ajouter une modification générique au moteur vidéo sans validation spécifique.
 
-Les comportements couverts incluent : migration de l'ancien bouton, préférences natives cohérentes, masquage indépendant, demandes anticipées dédupliquées et annulables, cache consommable une fois, expiration et contexte d'historique isolé. La préparation réutilise le fournisseur de formats historique dans une instance distincte ; si elle échoue, la lecture normale garde ses propres replis.
+Les comportements couverts incluent : migration des préférences, préférences natives cohérentes, masquage indépendant, demandes anticipées dédupliquées et annulables, cache consommable une fois, expiration et contexte d'historique isolé. La préparation réutilise le fournisseur de formats dans une instance distincte ; si elle échoue, la lecture normale garde ses propres replis.
 
 ## Reproduire une release depuis le dépôt principal
 
@@ -51,7 +51,7 @@ Une version officielle de code `N`, révision `R` du fork, produit `N * 100 + R`
 
 Le workflow `release-shorts-slider.yml` s'exécute toutes les six heures ou manuellement. Il consulte les releases officielles, ignore annonces et alias, choisit chaque tag exact, initialise les sous-modules, applique les patchs, lance les tests et construit les APK. Les secrets de signature n'apparaissent ni dans les commandes interpolées ni dans les fichiers publiés.
 
-La publication passe par un brouillon dont les fichiers sont téléchargés et comparés avant exposition. Le tag référence le commit de source compilé. Les métadonnées OTA ne changent qu'après publication vérifiée. L'ancienne adresse stable reçoit un alias compatible.
+La publication passe par un brouillon dont les fichiers sont téléchargés et comparés avant exposition. Le tag référence le commit de source compilé. Les métadonnées OTA ne changent qu'après publication vérifiée. Le manifeste stable est aussi disponible sous l'alias `smarttube_stable2.json`.
 
 La branche `automation-state` conserve les résultats par canal, commit officiel et empreinte des modifications. Un échec identique est ignoré lors des passages suivants. Pour réessayer : lancement manuel avec `retry=true`. Si un brouillon existe après interruption, l'inspecter et retirer le brouillon ainsi que son tag personnalisé avant de réessayer (y compris un tag sans release après interruption) ; ne pas écraser un APK publié. Un défaut de publication des métadonnées peut être réparé par une relance qui vérifie les sources de la release existante.
 
@@ -63,6 +63,6 @@ Avant d'accepter une nouvelle version officielle, comparer ses préférences `Pl
 
 ## Validation sur appareil
 
-Les tests logiciels et l'inspection des APK ne remplacent pas un essai Fire TV. Celui de cette refonte est reporté à la demande du mainteneur. Vérifier ensuite une mise à jour sans désinstallation, les préférences conservées, le bouton masqué/affiché, les vidéos longues verticales, les fins de listes, ainsi que le parcours sauvegarde/modification/restauration du script.
+Les tests logiciels et l'inspection des APK ne remplacent pas un essai Fire TV, qui reste à réaliser. Vérifier sur l'appareil une mise à jour sans désinstallation, les préférences conservées, le bouton masqué/affiché, les vidéos longues verticales, les fins de listes, ainsi que le parcours sauvegarde/modification/restauration du script.
 
 Comparer les transitions avec et sans préparation sur le même appareil et le même réseau ; rapporter le protocole et les mesures avant toute affirmation chiffrée. Ne pas publier de logs contenant des adresses de flux signées, des comptes ou des jetons.
