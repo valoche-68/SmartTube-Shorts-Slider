@@ -1,32 +1,31 @@
 {
-    "package": {
-        "downloadUrlList": [
-            "https://github.com/valoche-68/SmartTube-Shorts-Slider/releases/download/v32.56-beta-shorts-slider/SmartTube_Shorts_Slider_beta_32.59_armeabi-v7a.apk"
-        ],
-        "downloadUrlList_arm64-v8a": [
-            "https://github.com/valoche-68/SmartTube-Shorts-Slider/releases/download/v32.56-beta-shorts-slider/SmartTube_Shorts_Slider_beta_32.59_arm64-v8a.apk"
-        ],
-        "downloadUrlList_x86": [
-            "https://github.com/valoche-68/SmartTube-Shorts-Slider/releases/download/v32.56-beta-shorts-slider/SmartTube_Shorts_Slider_beta_32.59_x86.apk"
-        ]
-    },
-    "32.59": {
-        "versionCode": 2449,
-        "changelog": [
-            "SmartTube Shorts Slider Beta (Pre-release) Edition",
-            "Based on official SmartTube v32.59 with addition of:",
-            "• Up/Down remote D-pad navigation for endless Shorts scrolling",
-            "• Automatic next-short preloading in background",
-            "• Persistent player control toggle for Shorts Auto-Scroll",
-            "• Continuous queue (10 to 20 Shorts ahead)"
-        ],
-        "changelog_fr": [
-            "Édition SmartTube Shorts Slider Bêta (Pre-release)",
-            "Sur la base de SmartTube officiel en version 32.59 avec ajout de :",
-            "• Navigation fluide Haut/Bas sur télécommande pour défilement infini des Shorts",
-            "• Préchargement automatique du Short suivant en arrière-plan",
-            "• Bouton Défilement Automatique (Auto-Scroll) dans le lecteur",
-            "• File d'attente continue (10 à 20 Shorts d'avance)"
-        ]
-    }
+  "package": {
+    "downloadUrlList": [
+      "https://github.com/valoche-68/SmartTube-Shorts-Slider/releases/download/v32.56-beta-slider.1/SmartTube_Shorts_Slider_beta_32.56-slider.1_armeabi-v7a.apk"
+    ],
+    "downloadUrlList_arm64-v8a": [
+      "https://github.com/valoche-68/SmartTube-Shorts-Slider/releases/download/v32.56-beta-slider.1/SmartTube_Shorts_Slider_beta_32.56-slider.1_arm64-v8a.apk"
+    ],
+    "downloadUrlList_x86": [
+      "https://github.com/valoche-68/SmartTube-Shorts-Slider/releases/download/v32.56-beta-slider.1/SmartTube_Shorts_Slider_beta_32.56-slider.1_x86.apk"
+    ],
+    "downloadUrlList_universal": [
+      "https://github.com/valoche-68/SmartTube-Shorts-Slider/releases/download/v32.56-beta-slider.1/SmartTube_Shorts_Slider_beta_32.56-slider.1_universal.apk"
+    ]
+  },
+  "32.56-slider.1": {
+    "versionCode": 244601,
+    "changelog": [
+      "Hideable Shorts auto-scroll button.",
+      "Native up/down navigation and auto-play enabled for new profiles.",
+      "Optional next-Short playback information preparation; speed benefit not measured.",
+      "Official buffering and pagination; no guaranteed queue of 10–20 videos."
+    ],
+    "changelog_fr": [
+      "Bouton Shorts automatique ON/OFF, masquable dans les réglages.",
+      "Navigation native haut/bas et lecture automatique activées sur les nouveaux profils.",
+      "Préparation facultative des informations du Short suivant ; gain de vitesse non mesuré.",
+      "Tampons et pagination officiels ; aucune réserve garantie de 10 à 20 vidéos."
+    ]
+  }
 }
