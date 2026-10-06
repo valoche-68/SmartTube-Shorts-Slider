@@ -54,13 +54,19 @@ jobs:
         run: >-
           bash gradlew :common:testStstableDebugUnitTest
           --tests '*ShortsPreferencesTest' --tests '*NextVideoPreloaderTest' --tests '*PlaybackNonceIsolationTest'
+          --tests '*VideoShortsClassificationTest' --tests '*ShortsNavigationTest'
+          :youtubeapi:testStstableDebugUnitTest --tests '*ShortsIdentityTest'
           :common:testStbetaDebugUnitTest
           --tests '*ShortsPreferencesTest' --tests '*NextVideoPreloaderTest' --tests '*PlaybackNonceIsolationTest'
+          --tests '*VideoShortsClassificationTest' --tests '*ShortsNavigationTest'
+          :youtubeapi:testStbetaDebugUnitTest --tests '*ShortsIdentityTest'
           :smarttubetv:assembleStstableDebug :smarttubetv:assembleStbetaDebug --console=plain
       - name: Keep test reports
         if: always()
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
         with:
           name: android-test-reports
-          path: common/build/reports/tests/
+          path: |
+            common/build/reports/tests/
+            MediaServiceCore/youtubeapi/build/reports/tests/
           retention-days: 30

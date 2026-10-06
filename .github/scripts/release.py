@@ -190,6 +190,11 @@ def make_assets(folder, provenance):
                 'Tampons et pagination officiels ; aucune réserve garantie de 10 à 20 vidéos.']
     notes_en = ['Hideable Shorts auto-scroll button.', 'Native up/down navigation and auto-play enabled for new profiles.',
                 'Optional next-Short playback information preparation; speed benefit not measured.', 'Official buffering and pagination; no guaranteed queue of 10–20 videos.']
+    if CONFIG['revision'] >= 2:
+        notes_fr[:0] = ['Reconnaissance des Shorts conservée lors des copies et de la reprise de lecture.',
+                       'Navigation et enchaînement parmi les Shorts disponibles, y compris sans playlist de section.']
+        notes_en[:0] = ['Shorts identity retained through copies and playback restoration.',
+                       'Navigation and autoplay select available Shorts even with the section playlist disabled.']
     metadata = {'package': downloads, provenance['version_name']: {'versionCode': provenance['version_code'],
                 'changelog': notes_en, 'changelog_fr': notes_fr}}
     payload = json.dumps(metadata, indent=2, ensure_ascii=False) + '\n'
@@ -218,7 +223,9 @@ The maintainer's Fire TV test and speed comparison remain pending.
 def build(folder, provenance):
     flavor = 'St' + provenance['channel']
     run('bash', 'gradlew', ':common:test' + flavor + 'DebugUnitTest', '--tests', '*ShortsPreferencesTest', '--tests', '*NextVideoPreloaderTest',
-        '--tests', '*PlaybackNonceIsolationTest', ':smarttubetv:assemble' + flavor + 'Release', '--console=plain', cwd=folder)
+        '--tests', '*PlaybackNonceIsolationTest', '--tests', '*VideoShortsClassificationTest', '--tests', '*ShortsNavigationTest',
+        ':youtubeapi:test' + flavor + 'DebugUnitTest', '--tests', '*ShortsIdentityTest',
+        ':smarttubetv:assemble' + flavor + 'Release', '--console=plain', cwd=folder)
     return make_assets(folder, provenance)
 
 

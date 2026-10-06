@@ -188,6 +188,7 @@ public final class Video {
         video.reloadPageKey = item.getReloadPageKey();
         video.isLive = item.isLive;
         video.isUpcoming = item.isUpcoming;
+        video.isShorts = item.isShorts();
         video.clickTrackingParams = item.clickTrackingParams;
         video.mediaItem = item.mediaItem;
         video.group = item.group;
@@ -329,6 +330,10 @@ public final class Video {
     }
 
     public void setGroup(VideoGroup group) {
+        if (isDedicatedShortsGroup(group)) {
+            // The group is weakly referenced; retain the source's explicit Shorts identity.
+            isShorts = true;
+        }
         this.group = new WeakReference<>(group);
     }
 
@@ -442,7 +447,7 @@ public final class Video {
             split = Helpers.appendArray(split, new String[]{null});
         }
 
-        if (split.length != 23) {
+        if (split.length != 23 && split.length != 24) {
             return null;
         }
 
@@ -471,6 +476,7 @@ public final class Video {
         result.isLive = Helpers.parseBoolean(split[20]);
         result.channelGroupId = Helpers.parseStr(split[21]);
         result.searchQuery = Helpers.parseStr(split[22]);
+        result.isShorts = split.length == 24 && Helpers.parseBoolean(split[23]);
 
         // Reset old type (int)
         if (Helpers.equals(result.channelGroupId, "-1")) {
@@ -485,7 +491,7 @@ public final class Video {
     public String toString() {
         return Helpers.mergeObj(id, category, title, videoId, null, playlistId, channelId, bgImageUrl, cardImageUrl,
                 null, playlistParams, sectionId, getReloadPageKey(), itemType, secondTitle, previewUrl, percentWatched,
-                metadataTitle, metadataSecondTitle, badge, isLive, channelGroupId, searchQuery);
+                metadataTitle, metadataSecondTitle, badge, isLive, channelGroupId, searchQuery, isShorts());
     }
 
     public boolean hasVideo() {
@@ -670,11 +676,16 @@ public final class Video {
     }
 
     public boolean isShorts() {
-        return isShorts || belongsToShorts() || (getGroup() != null && getGroup().isShorts());
+        return !isLive && (isShorts || (mediaItem != null && mediaItem.isShorts()) || isDedicatedShortsGroup(getGroup()));
+    }
+
+    private static boolean isDedicatedShortsGroup(VideoGroup group) {
+        return group != null && (group.getType() == MediaGroup.TYPE_SHORTS ||
+                (group.getSection() != null && group.getSection().getType() == BrowseSection.TYPE_SHORTS_GRID));
     }
 
     public boolean belongsToShortsGroup() {
-        return isShorts() && (belongsToShorts() || belongsToHome() || (getGroup() != null && getGroup().isShorts()));
+        return isShorts() && (isDedicatedShortsGroup(getGroup()) || belongsToHome());
     }
 
     public boolean belongsToSearch() {
@@ -836,6 +847,7 @@ public final class Video {
         video.bgImageUrl = bgImageUrl;
         video.isLive = isLive;
         video.isUpcoming = isUpcoming;
+        video.isShorts = isShorts();
         video.nextMediaItem = nextMediaItem;
         video.shuffleMediaItem = shuffleMediaItem;
         video.durationMs = durationMs;

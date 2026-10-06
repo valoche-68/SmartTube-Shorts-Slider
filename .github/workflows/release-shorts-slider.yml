@@ -68,6 +68,8 @@ jobs:
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
         with:
           name: release-test-reports
-          path: release-build/*/common/build/reports/tests/
+          path: |
+            release-build/*/common/build/reports/tests/
+            release-build/*/MediaServiceCore/youtubeapi/build/reports/tests/
           retention-days: 30
           if-no-files-found: ignore

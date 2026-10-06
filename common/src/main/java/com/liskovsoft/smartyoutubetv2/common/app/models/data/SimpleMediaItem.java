@@ -26,6 +26,7 @@ public final class SimpleMediaItem implements MediaItem {
     private int mPlaylistIndex;
     private boolean mIsLive;
     private boolean mIsUpcoming;
+    private boolean mIsShorts;
     private boolean mIsMovie;
     private String mClickTrackingParams;
     private String mFeedbackToken;
@@ -74,6 +75,7 @@ public final class SimpleMediaItem implements MediaItem {
         mediaItem.mReloadPageKey = video.reloadPageKey;
         mediaItem.mIsLive = video.isLive;
         mediaItem.mIsUpcoming = video.isUpcoming;
+        mediaItem.mIsShorts = video.isShorts();
         mediaItem.mIsMovie = video.isMovie;
         mediaItem.mClickTrackingParams = video.clickTrackingParams;
         if (video.mediaItem != null) {
@@ -102,7 +104,7 @@ public final class SimpleMediaItem implements MediaItem {
 
     @Override
     public boolean isShorts() {
-        return false;
+        return mIsShorts;
     }
 
     @Override

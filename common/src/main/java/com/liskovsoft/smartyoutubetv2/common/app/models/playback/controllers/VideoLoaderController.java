@@ -161,14 +161,31 @@ public class VideoLoaderController extends BasePlayerController {
     }
 
     public void loadNext() {
+        loadNext(false);
+    }
+
+    private void loadNext(boolean automatic) {
         if (getPlayer() == null || getVideo() == null) {
             return;
         }
 
         Video next = mSuggestionsController.getNext();
-        if (getVideo().isShorts() && getPlayerTweaksData().isShortsAutoScrollEnabled() &&
-                (next == null || !next.isShorts() || next.isLive)) {
-            stopPlayback();
+        if (getVideo().isShorts() && next == null) {
+            Video current = getVideo();
+            mSuggestionsController.requestNextShort(automatic, candidate -> {
+                if (getPlayer() == null || getVideo() != current ||
+                        (automatic && !getPlayerTweaksData().isShortsAutoScrollEnabled())) {
+                    return;
+                }
+                if (candidate != null) {
+                    openVideoInt(candidate);
+                    if (getPlayerTweaksData().isPlayerUiOnNextEnabled() && getPlayer() != null) {
+                        getPlayer().showOverlay(true);
+                    }
+                } else {
+                    stopPlayback();
+                }
+            });
             return;
         }
 
@@ -449,7 +466,7 @@ public class VideoLoaderController extends BasePlayerController {
                 }
             case PlayerConstants.PLAYBACK_MODE_ALL:
             case PlayerConstants.PLAYBACK_MODE_SHUFFLE:
-                loadNext();
+                loadNext(video.isShorts());
                 break;
             case PlayerConstants.PLAYBACK_MODE_ONE:
                 if (VERSION.SDK_INT <= 19) {

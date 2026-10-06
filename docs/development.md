@@ -27,14 +27,16 @@ git config core.hooksPath .githooks
 python3 .github/scripts/check_sensitive_files.py
 python3 -m unittest discover -s tools/tests -v
 bash gradlew :common:testStstableDebugUnitTest \
-  --tests '*ShortsPreferencesTest' --tests '*NextVideoPreloaderTest' --tests '*PlaybackNonceIsolationTest'
+  --tests '*ShortsPreferencesTest' --tests '*NextVideoPreloaderTest' --tests '*PlaybackNonceIsolationTest' \
+  --tests '*VideoShortsClassificationTest' --tests '*ShortsNavigationTest' \
+  :youtubeapi:testStstableDebugUnitTest --tests '*ShortsIdentityTest'
 ```
 
 Robolectric est fixé à 4.11.1 dans le module commun pour ces tests sous JDK 17 ; l'ancienne version 4.6.1 ne sait pas instrumenter les classes Java 17.
 
 Après une modification de l'application ou du sous-module, **incrémenter la révision de publication**, exécuter `python3 fork/update_patches.py`, puis relire les deux patchs. La génération utilise une liste explicite de fichiers publics pour le patch de l'application. Ne pas ajouter une modification générique au moteur vidéo sans validation spécifique.
 
-Les comportements couverts incluent : migration des préférences, préférences natives cohérentes, masquage indépendant, demandes anticipées dédupliquées et annulables, cache consommable une fois, expiration et contexte d'historique isolé. La préparation réutilise le fournisseur de formats dans une instance distincte ; si elle échoue, la lecture normale garde ses propres replis.
+Les comportements couverts incluent : migration des préférences, préférences natives cohérentes, masquage indépendant, demandes anticipées dédupliquées et annulables, cache consommable une fois, expiration et contexte d'historique isolé. Les tests de navigation vérifient aussi la conservation de l'identité des Shorts, les listes mixtes sans playlist de section, les fins de liste et l'annulation des réponses tardives. La préparation réutilise le fournisseur de formats dans une instance distincte ; si elle échoue, la lecture normale garde ses propres replis.
 
 ## Reproduire une release depuis le dépôt principal
 

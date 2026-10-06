@@ -84,6 +84,47 @@ index 00000000..538ff57b
 +    public void endIsolated() { isolated.remove(); }
 +    public synchronized void activate(String nonce) { active = nonce; }
 +}
+diff --git a/youtubeapi/src/main/java/com/liskovsoft/youtubeapi/common/models/gen/CommonHelper.kt b/youtubeapi/src/main/java/com/liskovsoft/youtubeapi/common/models/gen/CommonHelper.kt
+index 01d79fdd..9a6c8210 100644
+--- a/youtubeapi/src/main/java/com/liskovsoft/youtubeapi/common/models/gen/CommonHelper.kt
++++ b/youtubeapi/src/main/java/com/liskovsoft/youtubeapi/common/models/gen/CommonHelper.kt
+@@ -123,7 +123,7 @@ internal fun VideoItem.getPlaylistId() = navigationEndpoint?.getPlaylistId()
+ internal fun VideoItem.getPlaylistIndex() = navigationEndpoint?.getIndex()
+ internal fun VideoItem.isLive(): Boolean = STATUS_STYLE_LIVE == getStatusStyle() || BADGE_STYLE_LIVE == getBadgeStyle()
+ internal fun VideoItem.isUpcoming() = BADGE_STYLE_UPCOMING == getBadgeStyle()
+-internal fun VideoItem.isShorts() = BADGE_STYLE_SHORTS == getBadgeStyle()
++internal fun VideoItem.isShorts() = BADGE_STYLE_SHORTS == getBadgeStyle() || navigationEndpoint?.reelWatchEndpoint != null
+ internal fun VideoItem.isMovie() = STATUS_STYLE_MOVIE == getStatusStyle() && getVideoId() == null
+ internal fun VideoItem.getFeedbackTokens() = menu?.getFeedbackTokens()
+ private fun VideoItem.getStatusStyle() = badges?.firstNotNullOfOrNull { it?.metadataBadgeRenderer?.style }
+@@ -215,7 +215,8 @@ internal fun TileItem.getRichTextTileText() = header?.richTextTileHeaderRenderer
+ internal fun TileItem.getContinuationToken() = onSelectCommand?.getContinuations()?.getContinuationToken()
+ internal fun TileItem.isUpcoming() = BADGE_STYLE_UPCOMING == getBadgeStyle()
+ internal fun TileItem.isMovie() = STATUS_STYLE_MOVIE == getStatusStyle() && getVideoId() == null // a movie has browseId instead of videoId
+-internal fun TileItem.isShorts() = BADGE_STYLE_SHORTS == getBadgeStyle() || TILE_STYLE_SHORTS == getTileStyle()
++internal fun TileItem.isShorts() = BADGE_STYLE_SHORTS == getBadgeStyle() || TILE_STYLE_SHORTS == getTileStyle() ||
++    contentType == "TILE_CONTENT_TYPE_SHORTS" || onSelectCommand?.reelWatchEndpoint != null
+ internal fun TileItem.getQuery() = onSelectCommand?.getQuery()
+ private fun TileItem.Header.getBadgeStyle() = tileHeaderRenderer?.thumbnailOverlays?.firstNotNullOfOrNull { it?.thumbnailOverlayTimeStatusRenderer?.style }
+ private fun TileItem.Metadata.getStatusStyle() = tileMetadataRenderer?.lines?.firstNotNullOfOrNull { it?.lineRenderer?.items?.firstNotNullOfOrNull { it?.lineItemRenderer?.badge?.metadataBadgeRenderer?.style } }
+@@ -261,6 +262,7 @@ internal fun LockupItem.getPlaylistId() = rendererContext?.getPlaylistId()
+ internal fun LockupItem.getThumbnails() = getThumbnailView()?.image
+ internal fun LockupItem.getBadgeText() = getBadge()?.text
+ internal fun LockupItem.isLive() = Helpers.equalsAny(getBadge()?.badgeStyle, BADGE_STYLE_LIVE, LOCKUP_BADGE_STYLE_LIVE)
++internal fun LockupItem.isShorts() = rendererContext?.commandContext?.onTap?.innertubeCommand?.reelWatchEndpoint != null
+ internal fun LockupItem.getPercentWatched() = getOverlays()?.firstNotNullOfOrNull {
+     it?.thumbnailBottomOverlayViewModel?.progressBar?.thumbnailOverlayProgressBarViewModel?.startPercent }
+ // The video without a badge, probably Watch again
+@@ -336,7 +338,8 @@ internal fun ItemWrapper.getPlaylistIndex() = getVideoItem()?.getPlaylistIndex()
+ internal fun ItemWrapper.isLive() = getVideoItem()?.isLive() ?: getMusicItem()?.isLive() ?: getTileItem()?.isLive() ?: getLockupItem()?.isLive() ?: false
+ internal fun ItemWrapper.isUpcoming() = getVideoItem()?.isUpcoming() ?: getMusicItem()?.isUpcoming() ?: getTileItem()?.isUpcoming() ?: false
+ internal fun ItemWrapper.isMovie() = getVideoItem()?.isMovie() ?: getTileItem()?.isMovie() ?: false
+-internal fun ItemWrapper.isShorts() = reelItemRenderer != null || shortsLockupViewModel != null || getVideoItem()?.isShorts() ?: getTileItem()?.isShorts() ?: false
++internal fun ItemWrapper.isShorts() = reelItemRenderer != null || shortsLockupViewModel != null ||
++    getVideoItem()?.isShorts() == true || getTileItem()?.isShorts() == true || getLockupItem()?.isShorts() == true
+ internal fun ItemWrapper.getDescriptionText() = getTileItem()?.getRichTextTileText()
+ internal fun ItemWrapper.getContinuationToken() = getTileItem()?.getContinuationToken() ?: getContinuationItem()?.getContinuationToken()
+ internal fun ItemWrapper.getFeedbackToken() = getFeedbackTokens()?.getOrNull(0)
 diff --git a/youtubeapi/src/main/java/com/liskovsoft/youtubeapi/service/PreparedShort.java b/youtubeapi/src/main/java/com/liskovsoft/youtubeapi/service/PreparedShort.java
 new file mode 100644
 index 00000000..b54bf551
@@ -212,3 +253,97 @@ index c3b000e9..8562dd1d 100644
              return;
          }
  
+diff --git a/youtubeapi/src/test/java/com/liskovsoft/youtubeapi/common/models/gen/ShortsIdentityTest.kt b/youtubeapi/src/test/java/com/liskovsoft/youtubeapi/common/models/gen/ShortsIdentityTest.kt
+new file mode 100644
+index 00000000..5bfb8cf0
+--- /dev/null
++++ b/youtubeapi/src/test/java/com/liskovsoft/youtubeapi/common/models/gen/ShortsIdentityTest.kt
+@@ -0,0 +1,88 @@
++package com.liskovsoft.youtubeapi.common.models.gen
++
++import com.google.gson.Gson
++import com.liskovsoft.youtubeapi.common.models.impl.mediaitem.WrapperMediaItem
++import org.junit.Assert.assertEquals
++import org.junit.Assert.assertFalse
++import org.junit.Assert.assertTrue
++import org.junit.Test
++
++/** Synthetic API cards: explicit Shorts endpoints/types, without relying on badges or shape. */
++class ShortsIdentityTest {
++    private val gson = Gson()
++
++    @Test fun videoCardsWithReelEndpointAreShortsWithoutBadge() {
++        for (renderer in listOf("videoRenderer", "gridVideoRenderer", "pivotVideoRenderer", "compactVideoRenderer")) {
++            val item = mediaItem("""{"$renderer":{
++                "videoId":"short", "navigationEndpoint":{"reelWatchEndpoint":{"videoId":"short"}}
++            }}""")
++            assertTrue(renderer, item.isShorts())
++            assertEquals("short", item.getVideoId())
++        }
++    }
++
++    @Test fun tvTileWithReelEndpointIsShortsWithoutStyleOrBadge() {
++        val item = mediaItem("""{"tileRenderer":{
++            "contentType":"TILE_CONTENT_TYPE_VIDEO",
++            "onSelectCommand":{"reelWatchEndpoint":{"videoId":"short"}}
++        }}""")
++        assertTrue(item.isShorts())
++        assertEquals("short", item.getVideoId())
++    }
++
++    @Test fun tvTileWithExplicitShortsContentTypeIsShortsWithoutBadge() {
++        val item = mediaItem("""{"tileRenderer":{
++            "contentType":"TILE_CONTENT_TYPE_SHORTS",
++            "onSelectCommand":{"watchEndpoint":{"videoId":"short"}}
++        }}""")
++        assertTrue(item.isShorts())
++        assertEquals("short", item.getVideoId())
++    }
++
++    @Test fun homeLockupWithReelEndpointRetainsShortsIdentity() {
++        val item = mediaItem("""{"lockupViewModel":{
++            "rendererContext":{"commandContext":{"onTap":{"innertubeCommand":{
++                "reelWatchEndpoint":{"videoId":"short"}
++            }}}}
++        }}""")
++        assertTrue(item.isShorts())
++        assertEquals("short", item.getVideoId())
++    }
++
++    @Test fun supportedShortsRenderersAndBadgesStillWork() {
++        for (json in listOf(
++            """{"reelItemRenderer":{"videoId":"short"}}""",
++            """{"shortsLockupViewModel":{"onTap":{"innertubeCommand":{"reelWatchEndpoint":{"videoId":"short"}}}}}""",
++            """{"videoRenderer":{"videoId":"short","thumbnailOverlays":[{"thumbnailOverlayTimeStatusRenderer":{"style":"SHORTS"}}]}}""",
++            """{"tileRenderer":{"style":"TILE_STYLE_YTLR_SHORTS","onSelectCommand":{"watchEndpoint":{"videoId":"short"}}}}"""
++        )) {
++            assertTrue(mediaItem(json).isShorts())
++        }
++    }
++
++    @Test fun standardPortraitVideoAndShortDurationAreNotShortsProof() {
++        for (duration in listOf("0:30", "60:00")) {
++            val item = mediaItem("""{"videoRenderer":{
++                "videoId":"ordinary", "navigationEndpoint":{"watchEndpoint":{"videoId":"ordinary"}},
++                "thumbnail":{"thumbnails":[{"url":"https://example.invalid/portrait.jpg","width":"1080","height":"1920"}]},
++                "lengthText":{"simpleText":"$duration"},
++                "thumbnailOverlays":[{"thumbnailOverlayTimeStatusRenderer":{"style":"DEFAULT"}}]
++            }}""")
++            assertFalse(item.isShorts())
++            assertEquals("ordinary", item.getVideoId())
++        }
++    }
++
++    @Test fun ordinaryTvTileAndHomeLockupAreNotShorts() {
++        for (json in listOf(
++            """{"tileRenderer":{"contentType":"TILE_CONTENT_TYPE_VIDEO","onSelectCommand":{"watchEndpoint":{"videoId":"ordinary"}}}}""",
++            """{"lockupViewModel":{"rendererContext":{"commandContext":{"onTap":{"innertubeCommand":{"watchEndpoint":{"videoId":"ordinary"}}}}}}}"""
++        )) {
++            val item = mediaItem(json)
++            assertFalse(item.isShorts())
++            assertEquals("ordinary", item.getVideoId())
++        }
++    }
++
++    private fun mediaItem(json: String): WrapperMediaItem = WrapperMediaItem(gson.fromJson(json, ItemWrapper::class.java))
++}
