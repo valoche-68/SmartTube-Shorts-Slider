@@ -238,21 +238,65 @@ def commit_metadata(assets, channel):
         run('git', 'push', 'origin', 'HEAD:main')
 
 
+def verify_remote_assets(tag, assets, *, require_complete=True):
+    """Verify a draft's exact asset names and downloaded bytes; never trust a CLI upload result alone."""
+    expected = {path.name: path for path in assets.iterdir() if path.is_file()}
+    if not expected or len(expected) != len(list(assets.iterdir())):
+        raise RuntimeError('Release assets must contain only the expected files')
+    remote = api(f'repos/{REPO}/releases/tags/{tag}')
+    names = [asset['name'] for asset in remote['assets']]
+    if len(names) != len(set(names)) or not set(names).issubset(expected):
+        raise RuntimeError('Unexpected or duplicate remote release assets')
+    if require_complete and set(names) != set(expected):
+        raise RuntimeError('Uploaded release asset set is incomplete')
+    if any(asset['state'] != 'uploaded' for asset in remote['assets']):
+        raise RuntimeError('A remote release asset has not finished uploading')
+    if names:
+        with tempfile.TemporaryDirectory() as temp:
+            gh('release', 'download', tag, '--repo', REPO, '--dir', temp)
+            downloaded = {path.name for path in Path(temp).iterdir() if path.is_file()}
+            if downloaded != set(names):
+                raise RuntimeError('Downloaded release assets disagree with remote metadata')
+            for name in names:
+                if digest(Path(temp) / name) != digest(expected[name]):
+                    raise RuntimeError('Uploaded release asset mismatch: ' + name)
+    return set(names)
+
+
 def publish(folder, provenance, assets):
     tag = provenance['tag']
-    # Push the exact source commit, not the orchestration checkout.
+    # The immutable tag must point at exactly the source that produced the validated APKs.
     remote = f'https://github.com/{REPO}.git'
     run('git', 'push', remote, provenance['source_commit'] + ':refs/tags/' + tag, cwd=folder)
-    args = ['release', 'create', tag, '--repo', REPO, '--verify-tag', '--draft', '--title',
-            f'SmartTube Shorts Slider {provenance["upstream_tag"].removesuffix("s")} — {provenance["channel"]}',
-            '--notes-file', str(folder / 'release_notes.md')]
-    if provenance['channel'] == 'beta': args.append('--prerelease')
-    gh(*args, *map(str, assets.iterdir()))
-    # Verify remote draft downloads before making this version visible.
-    with tempfile.TemporaryDirectory() as temp:
-        gh('release', 'download', tag, '--repo', REPO, '--dir', temp)
-        for path in assets.iterdir():
-            if digest(Path(temp) / path.name) != digest(path): raise RuntimeError('Uploaded release asset mismatch')
+    existing = existing_release(tag)
+    if existing is None:
+        args = ['release', 'create', tag, '--repo', REPO, '--verify-tag', '--draft', '--title',
+                f'SmartTube Shorts Slider {provenance["upstream_tag"].removesuffix("s")} — {provenance["channel"]}',
+                '--notes-file', str(folder / 'release_notes.md')]
+        if provenance['channel'] == 'beta': args.append('--prerelease')
+        try:
+            gh(*args) # Creating the draft separately makes partial uploads recoverable.
+        except subprocess.CalledProcessError:
+            existing = existing_release(tag)
+            if existing is None:
+                raise
+    if existing is not None and not existing['isDraft']:
+        raise RuntimeError('Refusing to replace an already published release')
+    uploaded = verify_remote_assets(tag, assets, require_complete=False)
+    for path in sorted(assets.iterdir()):
+        if path.name in uploaded:
+            continue
+        try:
+            gh('release', 'upload', tag, '--repo', REPO, str(path))
+        except subprocess.CalledProcessError:
+            # A lost HTTP response or a 422 can follow a successful upload. Continue only
+            # if this asset and every file already present match the validated local bytes.
+            uploaded = verify_remote_assets(tag, assets, require_complete=False)
+            if path.name not in uploaded:
+                raise
+        else:
+            uploaded.add(path.name)
+    verify_remote_assets(tag, assets)
     gh('release', 'edit', tag, '--repo', REPO, '--draft=false', '--latest=' + ('true' if provenance['channel'] == 'stable' else 'false'))
     commit_metadata(assets, provenance['channel'])
     gh('workflow', 'run', 'virustotal_scan.yml', '--repo', REPO, '-f', 'release_tag=' + tag)
@@ -271,14 +315,34 @@ def state_write(state, sha):
     if sha is None:
         result = subprocess.run(['gh', 'api', f'repos/{REPO}/git/ref/heads/automation-state'], capture_output=True)
         if result.returncode:
+            if b'404' not in result.stderr:
+                raise RuntimeError('Cannot inspect automation state branch')
             head = api(f'repos/{REPO}/git/ref/heads/main')['object']['sha']
-            gh('api', f'repos/{REPO}/git/refs', '-f', 'ref=refs/heads/automation-state', '-f', 'sha=' + head)
-    data = {'message': 'Record release automation result', 'branch': 'automation-state',
-            'content': base64.b64encode(json.dumps(state, indent=2).encode()).decode()}
-    if sha: data['sha'] = sha
-    with tempfile.NamedTemporaryFile('w', suffix='.json') as f:
-        json.dump(data, f); f.flush()
-        gh('api', '--method', 'PUT', f'repos/{REPO}/contents/release-state.json', '--input', f.name)
+            try:
+                gh('api', f'repos/{REPO}/git/refs', '-f', 'ref=refs/heads/automation-state', '-f', 'sha=' + head)
+            except subprocess.CalledProcessError:
+                # The branch may have been created before the response was lost.
+                api(f'repos/{REPO}/git/ref/heads/automation-state')
+    content = base64.b64encode(json.dumps(state, indent=2).encode()).decode()
+    args = ['api', '--method', 'PUT', f'repos/{REPO}/contents/release-state.json',
+            '-f', 'message=Record release automation result', '-f', 'branch=automation-state', '-f', 'content=' + content]
+    if sha: args.extend(['-f', 'sha=' + sha])
+    last_error = None
+    for attempt in range(3):
+        try:
+            gh(*args)
+            return
+        except subprocess.CalledProcessError as error:
+            last_error = error
+            try:
+                remote, remote_sha = state_read()
+            except (subprocess.CalledProcessError, RuntimeError, OSError, ValueError, KeyError):
+                continue
+            if remote == state:
+                return # A successful write with an uncertain response is already complete.
+            if remote_sha != sha:
+                raise RuntimeError('Automation state changed concurrently; refusing to overwrite it') from error
+    raise RuntimeError('Cannot confirm automation state after three attempts') from last_error
 
 
 def existing_release(tag):
@@ -300,20 +364,35 @@ def automate(channels, retry=False):
             print(f'{channel}: source already processed; manual retry available.')
             continue
         folder = ROOT / 'release-build' / channel
-        if folder.exists(): shutil.rmtree(folder)
         try:
             target = f'v{tag.removesuffix("s")}-{channel}-slider.{CONFIG["revision"]}'
             existing = existing_release(target)
             if existing:
                 # Never silently replace an already published binary.
-                if existing['isDraft']: raise RuntimeError('A draft exists; inspect and remove both the draft and its custom tag before retrying')
-                with tempfile.TemporaryDirectory() as temp:
-                    gh('release', 'download', target, '--repo', REPO, '--dir', temp, '--pattern', '*.json')
-                    info = json.loads((Path(temp) / 'build-info.json').read_text())
-                    if info['patch_sha256'] != patch_digest() or info['upstream_commit'] != source:
-                        raise RuntimeError('Published tag has different sources; increment fork revision')
-                    commit_metadata(Path(temp), channel)
+                if existing['isDraft']:
+                    assets = folder / 'release_assets'
+                    info_path = assets / 'build-info.json'
+                    if not info_path.exists():
+                        raise RuntimeError('A draft exists; recovery requires its retained validated local build')
+                    info = json.loads(info_path.read_text())
+                    if info['patch_sha256'] != patch_digest() or info['upstream_commit'] != source or info['tag'] != target:
+                        raise RuntimeError('Retained draft build has different sources; refusing recovery')
+                    for record, arch in zip(info['apks'], ARCHES):
+                        verified = verify_apk(assets / record['file'], info, arch)
+                        if verified != record:
+                            raise RuntimeError('Retained draft APK differs from its validation record')
+                    if len(info['apks']) != len(ARCHES):
+                        raise RuntimeError('Retained draft build does not contain all four architectures')
+                    publish(folder, info, assets)
+                else:
+                    with tempfile.TemporaryDirectory() as temp:
+                        gh('release', 'download', target, '--repo', REPO, '--dir', temp, '--pattern', '*.json')
+                        info = json.loads((Path(temp) / 'build-info.json').read_text())
+                        if info['patch_sha256'] != patch_digest() or info['upstream_commit'] != source:
+                            raise RuntimeError('Published tag has different sources; increment fork revision')
+                        commit_metadata(Path(temp), channel)
             else:
+                if folder.exists(): shutil.rmtree(folder)
                 info = prepare(channel, tag, folder)
                 assets = build(folder, info)
                 publish(folder, info, assets)
