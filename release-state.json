@@ -13,5 +13,10 @@
     "status": "published",
     "tag": "32.56s",
     "run_id": "37522293055"
+  },
+  "beta:26c330dbf400bd9cf7ed800b8ab9a066d06ffb4f:b1c66e04a089f9f96f8066fe6b7d773b5f36a2fbf355a228f33cde6ba5c51fd9": {
+    "status": "failed",
+    "tag": "32.56",
+    "run_id": "37522293055"
   }
 }
