@@ -63,6 +63,14 @@ jobs:
         if: always()
         run: |
           find release-build -type f \( -name keystore.properties -o -name release-key.jks \) -delete 2>/dev/null || test ! -d release-build
+      - name: Keep validated APKs and publication files for recovery
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
+        with:
+          name: validated-release-assets
+          path: release-build/*/release_assets/
+          retention-days: 30
+          if-no-files-found: ignore
       - name: Keep test reports
         if: always()
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a

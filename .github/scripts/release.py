@@ -130,11 +130,66 @@ def prepare(channel, upstream_tag, folder):
     run('git', 'add', '-f', '--', 'fork', cwd=folder)
     run('git', 'commit', '--quiet', '-m', f'Build {target_tag} from {upstream_tag}', cwd=folder)
     provenance['source_commit'] = run('git', 'rev-parse', 'HEAD', cwd=folder, capture=True)
+    configure_build_environment(folder)
+    return provenance
+
+
+def existing_tag_commit(tag):
+    remote = f'https://github.com/{REPO}.git'
+    reference = 'refs/tags/' + tag
+    result = subprocess.run(['git', 'ls-remote', remote, reference, reference + '^{}'],
+                            capture_output=True, text=True, check=True)
+    references = dict(line.split()[::-1] for line in result.stdout.splitlines())
+    return references.get(reference + '^{}', references.get(reference))
+
+
+def validate_recovery_provenance(info, channel, upstream_tag, upstream_commit, target):
+    expected = {'channel': channel, 'upstream_tag': upstream_tag, 'upstream_commit': upstream_commit,
+                'tag': target, 'patch_sha256': patch_digest(),
+                'version_name': upstream_tag.removesuffix('s') + '-slider.' + str(CONFIG['revision'])}
+    if any(info.get(key) != value for key, value in expected.items()):
+        raise RuntimeError('Existing tag or retained build has different sources; refusing recovery')
+    code = info.get('version_code', 0)
+    if not isinstance(code, int) or code <= 2449 or code >= 2_100_000_000 or code % 100 != CONFIG['revision']:
+        raise RuntimeError('Existing tag has invalid recovery version metadata')
+
+
+def recover_from_tag(channel, upstream_tag, upstream_commit, target, folder):
+    """Rebuild the exact existing fork source commit, without creating or replacing any tag."""
+    commit = existing_tag_commit(target)
+    if commit is None:
+        raise RuntimeError('Draft recovery requires its existing immutable source tag')
+    if folder.exists():
+        raise RuntimeError('An incomplete local build exists; preserve it for inspection before tag recovery')
+    run('git', 'clone', '--quiet', '--shared', '--no-checkout', ROOT, folder)
+    run('git', 'fetch', '--quiet', f'https://github.com/{REPO}.git', 'refs/tags/' + target, cwd=folder)
+    run('git', 'checkout', '--quiet', '--detach', 'FETCH_HEAD', cwd=folder)
+    checked_out = run('git', 'rev-parse', 'HEAD', cwd=folder, capture=True)
+    if checked_out != commit:
+        raise RuntimeError('Source tag changed during recovery; refusing to rebuild it')
+    info = json.loads((folder / 'fork/build.json').read_text())
+    validate_recovery_provenance(info, channel, upstream_tag, upstream_commit, target)
+    parent = run('git', 'rev-parse', 'HEAD^', cwd=folder, capture=True)
+    if parent != upstream_commit:
+        raise RuntimeError('Existing source tag is not based directly on the expected upstream commit')
+    run('git', 'submodule', 'update', '--init', '--recursive', cwd=folder)
+    media = run('git', 'rev-parse', 'HEAD', cwd=folder / 'MediaServiceCore', capture=True)
+    if media != info['media_commit']:
+        raise RuntimeError('Existing source tag has an unexpected media submodule')
+    run('git', 'apply', '--check', ROOT / 'fork/mediaservice.patch', cwd=folder / 'MediaServiceCore')
+    run('git', 'apply', ROOT / 'fork/mediaservice.patch', cwd=folder / 'MediaServiceCore')
+    info['source_commit'] = checked_out
+    configure_build_environment(folder)
+    return info
+
+
+def configure_build_environment(folder):
     signing(folder)
     sdk = os.environ.get('ANDROID_HOME') or os.environ.get('ANDROID_SDK_ROOT')
-    if not sdk and (ROOT / 'local.properties').exists(): shutil.copy2(ROOT / 'local.properties', folder / 'local.properties')
-    elif sdk: (folder / 'local.properties').write_text('sdk.dir=' + property_value(sdk) + '\n')
-    return provenance
+    if not sdk and (ROOT / 'local.properties').exists():
+        shutil.copy2(ROOT / 'local.properties', folder / 'local.properties')
+    elif sdk:
+        (folder / 'local.properties').write_text('sdk.dir=' + property_value(sdk) + '\n')
 
 
 def sdk_tool(name):
@@ -243,7 +298,7 @@ def verify_remote_assets(tag, assets, *, require_complete=True):
     expected = {path.name: path for path in assets.iterdir() if path.is_file()}
     if not expected or len(expected) != len(list(assets.iterdir())):
         raise RuntimeError('Release assets must contain only the expected files')
-    remote = api(f'repos/{REPO}/releases/tags/{tag}')
+    remote = json.loads(gh('release', 'view', tag, '--repo', REPO, '--json', 'assets,isDraft'))
     names = [asset['name'] for asset in remote['assets']]
     if len(names) != len(set(names)) or not set(names).issubset(expected):
         raise RuntimeError('Unexpected or duplicate remote release assets')
@@ -372,17 +427,18 @@ def automate(channels, retry=False):
                 if existing['isDraft']:
                     assets = folder / 'release_assets'
                     info_path = assets / 'build-info.json'
-                    if not info_path.exists():
-                        raise RuntimeError('A draft exists; recovery requires its retained validated local build')
-                    info = json.loads(info_path.read_text())
-                    if info['patch_sha256'] != patch_digest() or info['upstream_commit'] != source or info['tag'] != target:
-                        raise RuntimeError('Retained draft build has different sources; refusing recovery')
-                    for record, arch in zip(info['apks'], ARCHES):
-                        verified = verify_apk(assets / record['file'], info, arch)
-                        if verified != record:
-                            raise RuntimeError('Retained draft APK differs from its validation record')
-                    if len(info['apks']) != len(ARCHES):
-                        raise RuntimeError('Retained draft build does not contain all four architectures')
+                    if info_path.exists():
+                        info = json.loads(info_path.read_text())
+                        validate_recovery_provenance(info, channel, tag, source, target)
+                        for record, arch in zip(info['apks'], ARCHES):
+                            verified = verify_apk(assets / record['file'], info, arch)
+                            if verified != record:
+                                raise RuntimeError('Retained draft APK differs from its validation record')
+                        if len(info['apks']) != len(ARCHES):
+                            raise RuntimeError('Retained draft build does not contain all four architectures')
+                    else:
+                        info = recover_from_tag(channel, tag, source, target, folder)
+                        assets = build(folder, info)
                     publish(folder, info, assets)
                 else:
                     with tempfile.TemporaryDirectory() as temp:
@@ -392,8 +448,11 @@ def automate(channels, retry=False):
                             raise RuntimeError('Published tag has different sources; increment fork revision')
                         commit_metadata(Path(temp), channel)
             else:
-                if folder.exists(): shutil.rmtree(folder)
-                info = prepare(channel, tag, folder)
+                if existing_tag_commit(target) is not None:
+                    info = recover_from_tag(channel, tag, source, target, folder)
+                else:
+                    if folder.exists(): shutil.rmtree(folder)
+                    info = prepare(channel, tag, folder)
                 assets = build(folder, info)
                 publish(folder, info, assets)
             status = 'published'
