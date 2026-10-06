@@ -47,7 +47,7 @@ python3 .github/scripts/release.py build --channel stable --folder /chemin/neuf/
 
 La préparation exige la configuration locale de signature ignorée par Git, ou les variables `SIGNING_KEY` (base64), `KEY_STORE_PASSWORD`, `ALIAS`, `KEY_PASSWORD`. La clé doit correspondre à l'empreinte publique configurée. Les APK sont contrôlés après construction : package, version interne, signature, bibliothèques natives et adresses de mise à jour compilées.
 
-Une version officielle de code `N`, révision `R` du fork, produit `N * 100 + R`, avec `1 ≤ R < 100`. Exemple : 2446 et révision 1 donnent 244601. Les tags sont `v32.56-stable-slider.1` et `v32.56-beta-slider.1`. Ne jamais remplacer les binaires d'un tag déjà publié ; incrémenter la révision.
+Une version officielle de code `N`, révision `R` du fork, produit `N * 100 + R`, avec `1 ≤ R < 100`. Exemple : 2446 et révision 2 donnent 244602. Les tags correspondants sont `v32.56-stable-slider.2` et `v32.56-beta-slider.2`. Les titres visibles restent « SmartTube Shorts Slider 32.56 — stable » et « SmartTube Shorts Slider 32.56 — beta ». Ne jamais remplacer les binaires d'un tag déjà publié ; incrémenter la révision.
 
 ## Automatisation GitHub
 
