@@ -33,6 +33,7 @@ import com.liskovsoft.smartyoutubetv2.common.utils.Utils;
 import com.liskovsoft.youtubeapi.service.YouTubeServiceManager;
 import io.reactivex.Observable;
 import io.reactivex.disposables.Disposable;
+import io.reactivex.disposables.SerialDisposable;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -46,6 +47,20 @@ public class SuggestionsController extends BasePlayerController {
     private Video mNextSectionVideo;
     private int mFocusCount;
     private int mNextRetryCount;
+    private Video mPendingShortsVideo;
+    private OnNextVideo mPendingShortsCallback;
+    private boolean mPendingShortsAutomatic;
+    private Disposable mShortsContinuationAction;
+    private boolean mShortsContinuationPending;
+    private int mShortsContinuationCount;
+    private int mShortsRequestGeneration;
+    private final Runnable mShortsNextTimeout = () -> finishShortsRequest(null);
+    private static final int MAX_SHORTS_CONTINUATIONS = 2;
+    private static final long SHORTS_NEXT_TIMEOUT_MS = 15_000;
+
+    public interface OnNextVideo {
+        void onNext(Video video);
+    }
     private List<ChapterItem> mChapters;
     private final Runnable mChapterHandler = this::startChapterNotificationServiceIfNeededInt;
     private static final int MAX_PLAYLIST_CONTINUATIONS = 20;
@@ -70,6 +85,7 @@ public class SuggestionsController extends BasePlayerController {
     public void onNewVideo(Video video) {
         // Remote control fix. Slow network fix. Suggestions may still be loading.
         // This could lead to changing current video info (title, id etc) to wrong one.
+        cancelShortsRequest();
         disposeActions();
         //mCurrentGroup = video.getGroup(); // disable garbage collected
         //appendNextSectionVideoIfNeeded(video); // ConcurrentModificationException error
@@ -91,11 +107,13 @@ public class SuggestionsController extends BasePlayerController {
 
     @Override
     public void onEngineReleased() {
+        cancelShortsRequest();
         disposeActions();
     }
 
     @Override
     public void onFinish() {
+        cancelShortsRequest();
         disposeActions();
     }
 
@@ -266,6 +284,9 @@ public class SuggestionsController extends BasePlayerController {
                                 MessageHelpers.showLongMessage(getContext(), "loadSuggestions error: %s", message);
                             }
                             error.printStackTrace();
+                            if (mPendingShortsVideo == video) {
+                                finishShortsRequest(null);
+                            }
                         }
                 );
 
@@ -275,6 +296,10 @@ public class SuggestionsController extends BasePlayerController {
     public Video getNext() {
         if (getPlayer() == null || getVideo() == null) {
             return null;
+        }
+
+        if (getVideo().isShorts()) {
+            return getNextShort();
         }
 
         Video result = null;
@@ -292,9 +317,223 @@ public class SuggestionsController extends BasePlayerController {
         return result;
     }
 
+    /** Resolve the next Short without changing the global section-playlist preference. */
+    public Video getNextShort() {
+        return getNextShort(false);
+    }
+
+    private Video getNextShort(boolean ignoreContinuation) {
+        Video current = getVideo();
+        if (getPlayer() == null || current == null) {
+            return null;
+        }
+
+        List<Video> queued = Playlist.instance().getAllAfterCurrent();
+        if (queued != null) {
+            for (Video candidate : queued) {
+                if (isPlayableShort(candidate, current)) {
+                    candidate.fromQueue = true;
+                    return candidate;
+                }
+            }
+        }
+
+        VideoGroup source = current.getGroup();
+        Video next = findShortAfter(source, current);
+        if (next != null) {
+            return next;
+        }
+        // A page that has not arrived is not the end of the source section.
+        if (!ignoreContinuation && canContinueShortsSource(source, current)) {
+            return null;
+        }
+
+        next = Video.from(current.nextMediaItem);
+        if (isUnseenPlayableShort(next, current)) {
+            return next;
+        }
+
+        for (int index = 0; index < 100; index++) {
+            VideoGroup group = getPlayer().getSuggestionsByIndex(index);
+            if (group == null) {
+                break;
+            }
+            // The playback view returns fresh wrappers, including a wrapper of the source row.
+            if (group == source || group.isEmpty() || (source != null && group.contains(current)) || group.isChapters()) {
+                continue;
+            }
+            for (Video candidate : group.getVideos()) {
+                if (isUnseenPlayableShort(candidate, current)) {
+                    return candidate;
+                }
+            }
+        }
+        return null;
+    }
+
+    private static boolean isPlayableShort(Video candidate, Video current) {
+        return candidate != null && candidate.hasVideo() && candidate.isShorts() &&
+                !candidate.isLive && !candidate.isUpcoming && !candidate.equals(current);
+    }
+
+    private static boolean isUnseenPlayableShort(Video candidate, Video current) {
+        return isPlayableShort(candidate, current) && !Playlist.instance().contains(candidate);
+    }
+
+    private static Video findShortAfter(VideoGroup group, Video current) {
+        if (group == null || group.isEmpty()) {
+            return null;
+        }
+        boolean found = false;
+        for (Video candidate : group.getVideos()) {
+            if (found && isPlayableShort(candidate, current)) {
+                return candidate;
+            }
+            if (candidate.equals(current)) {
+                found = true;
+            }
+        }
+        return null;
+    }
+
+    private static boolean canContinueShortsSource(VideoGroup group, Video current) {
+        return group != null && !group.isEmpty() && group.contains(current) && group.getMediaGroup() != null &&
+                !TextUtils.isEmpty(group.getNextPageKey());
+    }
+
+    /** Wait for native metadata or at most two native pages; never build a second queue. */
+    public void requestNextShort(OnNextVideo callback) {
+        requestNextShort(false, callback);
+    }
+
+    public void requestNextShort(boolean automatic, OnNextVideo callback) {
+        Video current = getVideo();
+        if (current == null || !current.isShorts() || getPlayer() == null) {
+            callback.onNext(null);
+            return;
+        }
+        if (mPendingShortsVideo == current) {
+            // One fetch and one completion; an explicit remote press takes priority over autoplay.
+            if (!automatic || mPendingShortsAutomatic) {
+                mPendingShortsCallback = callback;
+                mPendingShortsAutomatic = automatic;
+            }
+            return;
+        }
+        cancelShortsRequest();
+        mPendingShortsVideo = current;
+        mPendingShortsCallback = callback;
+        mPendingShortsAutomatic = automatic;
+        Utils.postDelayed(mShortsNextTimeout, SHORTS_NEXT_TIMEOUT_MS);
+        resolveShortsRequest();
+    }
+
+    @Override
+    public void onMetadata(MediaItemMetadata metadata) {
+        resolveShortsRequest();
+    }
+
+    private void resolveShortsRequest() {
+        Video current = mPendingShortsVideo;
+        if (current == null || mPendingShortsCallback == null) {
+            return;
+        }
+        if (getPlayer() == null || getVideo() != current) {
+            cancelShortsRequest();
+            return;
+        }
+        Video next = getNextShort();
+        if (next != null) {
+            finishShortsRequest(next);
+            return;
+        }
+        if (mShortsContinuationPending) {
+            return;
+        }
+        VideoGroup source = current.getGroup();
+        if (canContinueShortsSource(source, current)) {
+            if (mShortsContinuationCount >= MAX_SHORTS_CONTINUATIONS || mContentService == null) {
+                finishShortsRequest(null);
+                return;
+            }
+            continueShortsSource(source, current);
+        } else if (current.isSynced) {
+            finishShortsRequest(null);
+        }
+        // The existing metadata request calls onMetadata when its suggestions are ready.
+    }
+
+    private void continueShortsSource(VideoGroup source, Video current) {
+        RxHelper.disposeActions(mShortsContinuationAction);
+        mShortsContinuationAction = null;
+        final int generation = mShortsRequestGeneration;
+        final String continuationKey = source.getNextPageKey();
+        final boolean[] emitted = {false};
+        mShortsContinuationPending = true;
+        mShortsContinuationCount++;
+        SerialDisposable action = new SerialDisposable();
+        mShortsContinuationAction = action;
+        action.set(mContentService.continueGroupObserve(source.getMediaGroup())
+                .subscribe(page -> {
+                    emitted[0] = true;
+                    if (generation != mShortsRequestGeneration || getVideo() != current || getPlayer() == null) {
+                        return;
+                    }
+                    mShortsContinuationPending = false;
+                    VideoGroup continued = VideoGroup.from(source, page);
+                    getPlayer().updateSuggestions(continued);
+                    if (mBrowseProcessor != null) {
+                        mBrowseProcessor.process(continued);
+                    }
+                    if (findShortAfter(continued, current) == null &&
+                            Helpers.equals(continuationKey, continued.getNextPageKey())) {
+                        finishShortsRequest(null); // An unchanged token must not cause a retry loop.
+                    } else {
+                        resolveShortsRequest();
+                    }
+                }, error -> {
+                    if (generation == mShortsRequestGeneration) {
+                        Log.e(TAG, "Shorts continuation failed: %s", error.getMessage());
+                        finishShortsRequest(null);
+                    }
+                }, () -> {
+                    if (!emitted[0] && generation == mShortsRequestGeneration) {
+                        finishShortsRequest(null);
+                    }
+                }));
+    }
+
+    private void finishShortsRequest(Video next) {
+        OnNextVideo callback = mPendingShortsCallback;
+        boolean stillCurrent = mPendingShortsVideo != null && getVideo() == mPendingShortsVideo && getPlayer() != null;
+        if (next == null && stillCurrent) {
+            next = getNextShort(true); // An unavailable source page may still have a verified Short fallback.
+        }
+        cancelShortsRequest();
+        if (callback != null && stillCurrent) {
+            callback.onNext(next);
+        }
+    }
+
+    private void cancelShortsRequest() {
+        mShortsRequestGeneration++;
+        RxHelper.disposeActions(mShortsContinuationAction);
+        mShortsContinuationAction = null;
+        mShortsContinuationPending = false;
+        mShortsContinuationCount = 0;
+        mPendingShortsVideo = null;
+        mPendingShortsCallback = null;
+        mPendingShortsAutomatic = false;
+        Utils.removeCallbacks(mShortsNextTimeout);
+    }
+
     public Video getPrevious() {
         if (getPlayer() == null || getVideo() == null) {
             return null;
+        }
+
+        if (getVideo().isShorts()) {
+            return getPreviousShort();
         }
 
         Video result = getPreviousFromGroup(getVideo());
@@ -309,6 +548,38 @@ public class SuggestionsController extends BasePlayerController {
         }
 
         return result;
+    }
+
+    private Video getPreviousShort() {
+        Video current = getVideo();
+        VideoGroup source = current.getGroup();
+        if (source != null && !source.isEmpty()) {
+            Video previous = null;
+            for (Video candidate : source.getVideos()) {
+                if (candidate.equals(current)) {
+                    if (previous != null) {
+                        return previous;
+                    }
+                    break;
+                }
+                if (isPlayableShort(candidate, current)) {
+                    previous = candidate;
+                }
+            }
+        }
+        Video previous = null;
+        for (Video candidate : Playlist.instance().getAll()) {
+            if (candidate.equals(current)) {
+                if (previous != null) {
+                    previous.fromQueue = true;
+                }
+                return previous;
+            }
+            if (isPlayableShort(candidate, current)) {
+                previous = candidate;
+            }
+        }
+        return null;
     }
 
     private Video getPreviousFromGroup(Video current) {

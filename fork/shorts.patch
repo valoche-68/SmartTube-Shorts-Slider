@@ -1,0 +1,1943 @@
+diff --git a/common/build.gradle b/common/build.gradle
+index 35466e810..86fc6b3a3 100644
+--- a/common/build.gradle
++++ b/common/build.gradle
+@@ -56,7 +56,7 @@ dependencies {
+ 
+     implementation 'androidx.appcompat:appcompat:' + appCompatXVersion
+     testImplementation 'junit:junit:' + junitVersion
+-    testImplementation 'org.robolectric:robolectric:' + robolectricVersion
++    testImplementation 'org.robolectric:robolectric:4.11.1'
+ 
+     implementation project(':sharedutils')
+     implementation project(':fragment-1.1.0')
+diff --git a/common/src/main/java/com/liskovsoft/smartyoutubetv2/common/app/models/data/SimpleMediaItem.java b/common/src/main/java/com/liskovsoft/smartyoutubetv2/common/app/models/data/SimpleMediaItem.java
+index 69793aa8d..1566eee22 100644
+--- a/common/src/main/java/com/liskovsoft/smartyoutubetv2/common/app/models/data/SimpleMediaItem.java
++++ b/common/src/main/java/com/liskovsoft/smartyoutubetv2/common/app/models/data/SimpleMediaItem.java
+@@ -26,6 +26,7 @@ public final class SimpleMediaItem implements MediaItem {
+     private int mPlaylistIndex;
+     private boolean mIsLive;
+     private boolean mIsUpcoming;
++    private boolean mIsShorts;
+     private boolean mIsMovie;
+     private String mClickTrackingParams;
+     private String mFeedbackToken;
+@@ -74,6 +75,7 @@ public final class SimpleMediaItem implements MediaItem {
+         mediaItem.mReloadPageKey = video.reloadPageKey;
+         mediaItem.mIsLive = video.isLive;
+         mediaItem.mIsUpcoming = video.isUpcoming;
++        mediaItem.mIsShorts = video.isShorts();
+         mediaItem.mIsMovie = video.isMovie;
+         mediaItem.mClickTrackingParams = video.clickTrackingParams;
+         if (video.mediaItem != null) {
+@@ -102,7 +104,7 @@ public final class SimpleMediaItem implements MediaItem {
+ 
+     @Override
+     public boolean isShorts() {
+-        return false;
++        return mIsShorts;
+     }
+ 
+     @Override
+diff --git a/common/src/main/java/com/liskovsoft/smartyoutubetv2/common/app/models/data/Video.java b/common/src/main/java/com/liskovsoft/smartyoutubetv2/common/app/models/data/Video.java
+index 628a73ca9..227aa6417 100644
+--- a/common/src/main/java/com/liskovsoft/smartyoutubetv2/common/app/models/data/Video.java
++++ b/common/src/main/java/com/liskovsoft/smartyoutubetv2/common/app/models/data/Video.java
+@@ -188,6 +188,7 @@ public final class Video {
+         video.reloadPageKey = item.getReloadPageKey();
+         video.isLive = item.isLive;
+         video.isUpcoming = item.isUpcoming;
++        video.isShorts = item.isShorts();
+         video.clickTrackingParams = item.clickTrackingParams;
+         video.mediaItem = item.mediaItem;
+         video.group = item.group;
+@@ -329,6 +330,10 @@ public final class Video {
+     }
+ 
+     public void setGroup(VideoGroup group) {
++        if (isDedicatedShortsGroup(group)) {
++            // The group is weakly referenced; retain the source's explicit Shorts identity.
++            isShorts = true;
++        }
+         this.group = new WeakReference<>(group);
+     }
+ 
+@@ -442,7 +447,7 @@ public final class Video {
+             split = Helpers.appendArray(split, new String[]{null});
+         }
+ 
+-        if (split.length != 23) {
++        if (split.length != 23 && split.length != 24) {
+             return null;
+         }
+ 
+@@ -471,6 +476,7 @@ public final class Video {
+         result.isLive = Helpers.parseBoolean(split[20]);
+         result.channelGroupId = Helpers.parseStr(split[21]);
+         result.searchQuery = Helpers.parseStr(split[22]);
++        result.isShorts = split.length == 24 && Helpers.parseBoolean(split[23]);
+ 
+         // Reset old type (int)
+         if (Helpers.equals(result.channelGroupId, "-1")) {
+@@ -485,7 +491,7 @@ public final class Video {
+     public String toString() {
+         return Helpers.mergeObj(id, category, title, videoId, null, playlistId, channelId, bgImageUrl, cardImageUrl,
+                 null, playlistParams, sectionId, getReloadPageKey(), itemType, secondTitle, previewUrl, percentWatched,
+-                metadataTitle, metadataSecondTitle, badge, isLive, channelGroupId, searchQuery);
++                metadataTitle, metadataSecondTitle, badge, isLive, channelGroupId, searchQuery, isShorts());
+     }
+ 
+     public boolean hasVideo() {
+@@ -669,8 +675,17 @@ public final class Video {
+         return belongsToGroup(MediaGroup.TYPE_SHORTS);
+     }
+ 
++    public boolean isShorts() {
++        return !isLive && (isShorts || (mediaItem != null && mediaItem.isShorts()) || isDedicatedShortsGroup(getGroup()));
++    }
++
++    private static boolean isDedicatedShortsGroup(VideoGroup group) {
++        return group != null && (group.getType() == MediaGroup.TYPE_SHORTS ||
++                (group.getSection() != null && group.getSection().getType() == BrowseSection.TYPE_SHORTS_GRID));
++    }
++
+     public boolean belongsToShortsGroup() {
+-        return isShorts && (belongsToShorts() || belongsToHome());
++        return isShorts() && (isDedicatedShortsGroup(getGroup()) || belongsToHome());
+     }
+ 
+     public boolean belongsToSearch() {
+@@ -832,6 +847,7 @@ public final class Video {
+         video.bgImageUrl = bgImageUrl;
+         video.isLive = isLive;
+         video.isUpcoming = isUpcoming;
++        video.isShorts = isShorts();
+         video.nextMediaItem = nextMediaItem;
+         video.shuffleMediaItem = shuffleMediaItem;
+         video.durationMs = durationMs;
+diff --git a/common/src/main/java/com/liskovsoft/smartyoutubetv2/common/app/models/playback/controllers/PlayerUIController.java b/common/src/main/java/com/liskovsoft/smartyoutubetv2/common/app/models/playback/controllers/PlayerUIController.java
+index c227b5ec9..922618da2 100644
+--- a/common/src/main/java/com/liskovsoft/smartyoutubetv2/common/app/models/playback/controllers/PlayerUIController.java
++++ b/common/src/main/java/com/liskovsoft/smartyoutubetv2/common/app/models/playback/controllers/PlayerUIController.java
+@@ -121,6 +121,10 @@ public class PlayerUIController extends BasePlayerController {
+ 
+         if (shown) {
+             enableUiAutoHideTimeout();
++            if (getPlayer() != null) {
++                getPlayer().setButtonState(R.id.action_shorts_auto_scroll,
++                        getPlayerTweaksData().isShortsAutoScrollEnabled() ? PlayerUI.BUTTON_ON : PlayerUI.BUTTON_OFF);
++            }
+         }
+     }
+ 
+@@ -299,6 +303,10 @@ public class PlayerUIController extends BasePlayerController {
+ 
+         getPlayer().updateEndingTime();
+         applySoundOffButtonState();
++        if (item != null && (item.isShorts() || item.belongsToShortsGroup())) {
++            getPlayer().setButtonState(R.id.action_shorts_auto_scroll,
++                    getPlayerTweaksData().isShortsAutoScrollEnabled() ? PlayerUI.BUTTON_ON : PlayerUI.BUTTON_OFF);
++        }
+     }
+ 
+     @Override
+@@ -352,6 +360,8 @@ public class PlayerUIController extends BasePlayerController {
+         getPlayer().setButtonState(R.id.action_video_speed, PlayerUI.BUTTON_OFF);
+         getPlayer().setButtonState(R.id.action_chat, PlayerUI.BUTTON_OFF);
+         getPlayer().setButtonState(R.id.action_subscribe, PlayerUI.BUTTON_OFF);
++        getPlayer().setButtonState(R.id.action_shorts_auto_scroll,
++                getPlayerTweaksData().isShortsAutoScrollEnabled() ? PlayerUI.BUTTON_ON : PlayerUI.BUTTON_OFF);
+     }
+ 
+     @Override
+@@ -572,13 +582,24 @@ public class PlayerUIController extends BasePlayerController {
+         getPlayer().finish();
+     }
+ 
++    private void onShortsAutoScrollClicked(int buttonState) {
++        boolean enable = !getPlayerTweaksData().isShortsAutoScrollEnabled();
++        getPlayerTweaksData().setShortsAutoScrollEnabled(enable);
++        if (getPlayer() != null) {
++            getPlayer().setButtonState(R.id.action_shorts_auto_scroll, enable ? PlayerUI.BUTTON_ON : PlayerUI.BUTTON_OFF);
++        }
++        MessageHelpers.showMessage(getContext(), enable ? R.string.shorts_auto_scroll_on : R.string.shorts_auto_scroll_off);
++    }
++
+     @Override
+     public void onButtonClicked(int buttonId, int buttonState) {
+         if (getPlayer() == null) {
+             return;
+         }
+ 
+-        if (buttonId == R.id.action_rotate) {
++        if (buttonId == R.id.action_shorts_auto_scroll) {
++            onShortsAutoScrollClicked(buttonState);
++        } else if (buttonId == R.id.action_rotate) {
+             onRotate();
+         } else if (buttonId == R.id.action_flip) {
+             onFlip();
+@@ -788,12 +809,21 @@ public class PlayerUIController extends BasePlayerController {
+     }
+ 
+     private boolean handleLeftRightSkip(int keyCode) {
+-        if (getPlayer() == null || getPlayer().isOverlayShown() || getVideo() == null ||
+-                (getVideo().belongsToShortsGroup() && !getPlayerTweaksData().isQuickSkipShortsEnabled() ||
+-                (!getVideo().belongsToShortsGroup() && !getPlayerTweaksData().isQuickSkipVideosEnabled()))) {
++        if (getPlayer() == null || getPlayer().isOverlayShown() || getVideo() == null) {
+             return false;
+         }
+ 
++        boolean isShorts = getVideo().isShorts() || getVideo().belongsToShortsGroup();
++        if (isShorts) {
++            if (!getPlayerTweaksData().isQuickSkipShortsEnabled()) {
++                return false;
++            }
++        } else {
++            if (!getPlayerTweaksData().isQuickSkipVideosEnabled()) {
++                return false;
++            }
++        }
++
+         if (keyCode == KeyEvent.KEYCODE_DPAD_RIGHT) {
+             getMainController().onNextClicked();
+             return true; // hide ui
+@@ -808,12 +838,21 @@ public class PlayerUIController extends BasePlayerController {
+     }
+ 
+     private boolean handleUpDownSkip(int keyCode) {
+-        if (getPlayer() == null || getPlayer().isOverlayShown() || getVideo() == null ||
+-                (getVideo().belongsToShortsGroup() && !getPlayerTweaksData().isQuickSkipShortsAltEnabled() ||
+-                        (!getVideo().belongsToShortsGroup() && !getPlayerTweaksData().isQuickSkipVideosAltEnabled()))) {
++        if (getPlayer() == null || getPlayer().isOverlayShown() || getVideo() == null) {
+             return false;
+         }
+ 
++        boolean isShorts = getVideo().isShorts() || getVideo().belongsToShortsGroup();
++        if (isShorts) {
++            if (!getPlayerTweaksData().isQuickSkipShortsAltEnabled()) {
++                return false;
++            }
++        } else {
++            if (!getPlayerTweaksData().isQuickSkipVideosAltEnabled()) {
++                return false;
++            }
++        }
++
+         if (keyCode == KeyEvent.KEYCODE_DPAD_DOWN) {
+             getMainController().onNextClicked();
+             return true; // hide ui
+diff --git a/common/src/main/java/com/liskovsoft/smartyoutubetv2/common/app/models/playback/controllers/SuggestionsController.java b/common/src/main/java/com/liskovsoft/smartyoutubetv2/common/app/models/playback/controllers/SuggestionsController.java
+index 818924467..b3b434a07 100644
+--- a/common/src/main/java/com/liskovsoft/smartyoutubetv2/common/app/models/playback/controllers/SuggestionsController.java
++++ b/common/src/main/java/com/liskovsoft/smartyoutubetv2/common/app/models/playback/controllers/SuggestionsController.java
+@@ -33,6 +33,7 @@ import com.liskovsoft.smartyoutubetv2.common.utils.Utils;
+ import com.liskovsoft.youtubeapi.service.YouTubeServiceManager;
+ import io.reactivex.Observable;
+ import io.reactivex.disposables.Disposable;
++import io.reactivex.disposables.SerialDisposable;
+ 
+ import java.util.ArrayList;
+ import java.util.List;
+@@ -46,6 +47,20 @@ public class SuggestionsController extends BasePlayerController {
+     private Video mNextSectionVideo;
+     private int mFocusCount;
+     private int mNextRetryCount;
++    private Video mPendingShortsVideo;
++    private OnNextVideo mPendingShortsCallback;
++    private boolean mPendingShortsAutomatic;
++    private Disposable mShortsContinuationAction;
++    private boolean mShortsContinuationPending;
++    private int mShortsContinuationCount;
++    private int mShortsRequestGeneration;
++    private final Runnable mShortsNextTimeout = () -> finishShortsRequest(null);
++    private static final int MAX_SHORTS_CONTINUATIONS = 2;
++    private static final long SHORTS_NEXT_TIMEOUT_MS = 15_000;
++
++    public interface OnNextVideo {
++        void onNext(Video video);
++    }
+     private List<ChapterItem> mChapters;
+     private final Runnable mChapterHandler = this::startChapterNotificationServiceIfNeededInt;
+     private static final int MAX_PLAYLIST_CONTINUATIONS = 20;
+@@ -70,6 +85,7 @@ public class SuggestionsController extends BasePlayerController {
+     public void onNewVideo(Video video) {
+         // Remote control fix. Slow network fix. Suggestions may still be loading.
+         // This could lead to changing current video info (title, id etc) to wrong one.
++        cancelShortsRequest();
+         disposeActions();
+         //mCurrentGroup = video.getGroup(); // disable garbage collected
+         //appendNextSectionVideoIfNeeded(video); // ConcurrentModificationException error
+@@ -91,11 +107,13 @@ public class SuggestionsController extends BasePlayerController {
+ 
+     @Override
+     public void onEngineReleased() {
++        cancelShortsRequest();
+         disposeActions();
+     }
+ 
+     @Override
+     public void onFinish() {
++        cancelShortsRequest();
+         disposeActions();
+     }
+ 
+@@ -266,6 +284,9 @@ public class SuggestionsController extends BasePlayerController {
+                                 MessageHelpers.showLongMessage(getContext(), "loadSuggestions error: %s", message);
+                             }
+                             error.printStackTrace();
++                            if (mPendingShortsVideo == video) {
++                                finishShortsRequest(null);
++                            }
+                         }
+                 );
+ 
+@@ -277,6 +298,10 @@ public class SuggestionsController extends BasePlayerController {
+             return null;
+         }
+ 
++        if (getVideo().isShorts()) {
++            return getNextShort();
++        }
++
+         Video result = null;
+         Video next = Playlist.instance().getNext();
+ 
+@@ -292,11 +317,225 @@ public class SuggestionsController extends BasePlayerController {
+         return result;
+     }
+ 
++    /** Resolve the next Short without changing the global section-playlist preference. */
++    public Video getNextShort() {
++        return getNextShort(false);
++    }
++
++    private Video getNextShort(boolean ignoreContinuation) {
++        Video current = getVideo();
++        if (getPlayer() == null || current == null) {
++            return null;
++        }
++
++        List<Video> queued = Playlist.instance().getAllAfterCurrent();
++        if (queued != null) {
++            for (Video candidate : queued) {
++                if (isPlayableShort(candidate, current)) {
++                    candidate.fromQueue = true;
++                    return candidate;
++                }
++            }
++        }
++
++        VideoGroup source = current.getGroup();
++        Video next = findShortAfter(source, current);
++        if (next != null) {
++            return next;
++        }
++        // A page that has not arrived is not the end of the source section.
++        if (!ignoreContinuation && canContinueShortsSource(source, current)) {
++            return null;
++        }
++
++        next = Video.from(current.nextMediaItem);
++        if (isUnseenPlayableShort(next, current)) {
++            return next;
++        }
++
++        for (int index = 0; index < 100; index++) {
++            VideoGroup group = getPlayer().getSuggestionsByIndex(index);
++            if (group == null) {
++                break;
++            }
++            // The playback view returns fresh wrappers, including a wrapper of the source row.
++            if (group == source || group.isEmpty() || (source != null && group.contains(current)) || group.isChapters()) {
++                continue;
++            }
++            for (Video candidate : group.getVideos()) {
++                if (isUnseenPlayableShort(candidate, current)) {
++                    return candidate;
++                }
++            }
++        }
++        return null;
++    }
++
++    private static boolean isPlayableShort(Video candidate, Video current) {
++        return candidate != null && candidate.hasVideo() && candidate.isShorts() &&
++                !candidate.isLive && !candidate.isUpcoming && !candidate.equals(current);
++    }
++
++    private static boolean isUnseenPlayableShort(Video candidate, Video current) {
++        return isPlayableShort(candidate, current) && !Playlist.instance().contains(candidate);
++    }
++
++    private static Video findShortAfter(VideoGroup group, Video current) {
++        if (group == null || group.isEmpty()) {
++            return null;
++        }
++        boolean found = false;
++        for (Video candidate : group.getVideos()) {
++            if (found && isPlayableShort(candidate, current)) {
++                return candidate;
++            }
++            if (candidate.equals(current)) {
++                found = true;
++            }
++        }
++        return null;
++    }
++
++    private static boolean canContinueShortsSource(VideoGroup group, Video current) {
++        return group != null && !group.isEmpty() && group.contains(current) && group.getMediaGroup() != null &&
++                !TextUtils.isEmpty(group.getNextPageKey());
++    }
++
++    /** Wait for native metadata or at most two native pages; never build a second queue. */
++    public void requestNextShort(OnNextVideo callback) {
++        requestNextShort(false, callback);
++    }
++
++    public void requestNextShort(boolean automatic, OnNextVideo callback) {
++        Video current = getVideo();
++        if (current == null || !current.isShorts() || getPlayer() == null) {
++            callback.onNext(null);
++            return;
++        }
++        if (mPendingShortsVideo == current) {
++            // One fetch and one completion; an explicit remote press takes priority over autoplay.
++            if (!automatic || mPendingShortsAutomatic) {
++                mPendingShortsCallback = callback;
++                mPendingShortsAutomatic = automatic;
++            }
++            return;
++        }
++        cancelShortsRequest();
++        mPendingShortsVideo = current;
++        mPendingShortsCallback = callback;
++        mPendingShortsAutomatic = automatic;
++        Utils.postDelayed(mShortsNextTimeout, SHORTS_NEXT_TIMEOUT_MS);
++        resolveShortsRequest();
++    }
++
++    @Override
++    public void onMetadata(MediaItemMetadata metadata) {
++        resolveShortsRequest();
++    }
++
++    private void resolveShortsRequest() {
++        Video current = mPendingShortsVideo;
++        if (current == null || mPendingShortsCallback == null) {
++            return;
++        }
++        if (getPlayer() == null || getVideo() != current) {
++            cancelShortsRequest();
++            return;
++        }
++        Video next = getNextShort();
++        if (next != null) {
++            finishShortsRequest(next);
++            return;
++        }
++        if (mShortsContinuationPending) {
++            return;
++        }
++        VideoGroup source = current.getGroup();
++        if (canContinueShortsSource(source, current)) {
++            if (mShortsContinuationCount >= MAX_SHORTS_CONTINUATIONS || mContentService == null) {
++                finishShortsRequest(null);
++                return;
++            }
++            continueShortsSource(source, current);
++        } else if (current.isSynced) {
++            finishShortsRequest(null);
++        }
++        // The existing metadata request calls onMetadata when its suggestions are ready.
++    }
++
++    private void continueShortsSource(VideoGroup source, Video current) {
++        RxHelper.disposeActions(mShortsContinuationAction);
++        mShortsContinuationAction = null;
++        final int generation = mShortsRequestGeneration;
++        final String continuationKey = source.getNextPageKey();
++        final boolean[] emitted = {false};
++        mShortsContinuationPending = true;
++        mShortsContinuationCount++;
++        SerialDisposable action = new SerialDisposable();
++        mShortsContinuationAction = action;
++        action.set(mContentService.continueGroupObserve(source.getMediaGroup())
++                .subscribe(page -> {
++                    emitted[0] = true;
++                    if (generation != mShortsRequestGeneration || getVideo() != current || getPlayer() == null) {
++                        return;
++                    }
++                    mShortsContinuationPending = false;
++                    VideoGroup continued = VideoGroup.from(source, page);
++                    getPlayer().updateSuggestions(continued);
++                    if (mBrowseProcessor != null) {
++                        mBrowseProcessor.process(continued);
++                    }
++                    if (findShortAfter(continued, current) == null &&
++                            Helpers.equals(continuationKey, continued.getNextPageKey())) {
++                        finishShortsRequest(null); // An unchanged token must not cause a retry loop.
++                    } else {
++                        resolveShortsRequest();
++                    }
++                }, error -> {
++                    if (generation == mShortsRequestGeneration) {
++                        Log.e(TAG, "Shorts continuation failed: %s", error.getMessage());
++                        finishShortsRequest(null);
++                    }
++                }, () -> {
++                    if (!emitted[0] && generation == mShortsRequestGeneration) {
++                        finishShortsRequest(null);
++                    }
++                }));
++    }
++
++    private void finishShortsRequest(Video next) {
++        OnNextVideo callback = mPendingShortsCallback;
++        boolean stillCurrent = mPendingShortsVideo != null && getVideo() == mPendingShortsVideo && getPlayer() != null;
++        if (next == null && stillCurrent) {
++            next = getNextShort(true); // An unavailable source page may still have a verified Short fallback.
++        }
++        cancelShortsRequest();
++        if (callback != null && stillCurrent) {
++            callback.onNext(next);
++        }
++    }
++
++    private void cancelShortsRequest() {
++        mShortsRequestGeneration++;
++        RxHelper.disposeActions(mShortsContinuationAction);
++        mShortsContinuationAction = null;
++        mShortsContinuationPending = false;
++        mShortsContinuationCount = 0;
++        mPendingShortsVideo = null;
++        mPendingShortsCallback = null;
++        mPendingShortsAutomatic = false;
++        Utils.removeCallbacks(mShortsNextTimeout);
++    }
++
+     public Video getPrevious() {
+         if (getPlayer() == null || getVideo() == null) {
+             return null;
+         }
+ 
++        if (getVideo().isShorts()) {
++            return getPreviousShort();
++        }
++
+         Video result = getPreviousFromGroup(getVideo());
+ 
+         if (result == null) {
+@@ -311,6 +550,38 @@ public class SuggestionsController extends BasePlayerController {
+         return result;
+     }
+ 
++    private Video getPreviousShort() {
++        Video current = getVideo();
++        VideoGroup source = current.getGroup();
++        if (source != null && !source.isEmpty()) {
++            Video previous = null;
++            for (Video candidate : source.getVideos()) {
++                if (candidate.equals(current)) {
++                    if (previous != null) {
++                        return previous;
++                    }
++                    break;
++                }
++                if (isPlayableShort(candidate, current)) {
++                    previous = candidate;
++                }
++            }
++        }
++        Video previous = null;
++        for (Video candidate : Playlist.instance().getAll()) {
++            if (candidate.equals(current)) {
++                if (previous != null) {
++                    previous.fromQueue = true;
++                }
++                return previous;
++            }
++            if (isPlayableShort(candidate, current)) {
++                previous = candidate;
++            }
++        }
++        return null;
++    }
++
+     private Video getPreviousFromGroup(Video current) {
+         Video result = null;
+ 
+diff --git a/common/src/main/java/com/liskovsoft/smartyoutubetv2/common/app/models/playback/controllers/VideoLoaderController.java b/common/src/main/java/com/liskovsoft/smartyoutubetv2/common/app/models/playback/controllers/VideoLoaderController.java
+index 1c3f13f22..66c1033fa 100644
+--- a/common/src/main/java/com/liskovsoft/smartyoutubetv2/common/app/models/playback/controllers/VideoLoaderController.java
++++ b/common/src/main/java/com/liskovsoft/smartyoutubetv2/common/app/models/playback/controllers/VideoLoaderController.java
+@@ -1,6 +1,8 @@
+ package com.liskovsoft.smartyoutubetv2.common.app.models.playback.controllers;
+ 
+ import android.os.Build.VERSION;
++import android.os.SystemClock;
++import com.liskovsoft.youtubeapi.service.PreparedShort;
+ 
+ import com.liskovsoft.mediaserviceinterfaces.MediaItemService;
+ import com.liskovsoft.mediaserviceinterfaces.ServiceManager;
+@@ -22,6 +24,7 @@ import com.liskovsoft.smartyoutubetv2.common.app.presenters.AppDialogPresenter;
+ import com.liskovsoft.smartyoutubetv2.common.app.presenters.dialogs.VideoActionPresenter;
+ import com.liskovsoft.smartyoutubetv2.common.app.views.PlaybackView;
+ import com.liskovsoft.smartyoutubetv2.common.misc.MediaServiceManager;
++import com.liskovsoft.smartyoutubetv2.common.misc.NextVideoPreloader;
+ import com.liskovsoft.smartyoutubetv2.common.prefs.PlayerData;
+ import com.liskovsoft.smartyoutubetv2.common.utils.Utils;
+ import com.liskovsoft.youtubeapi.service.YouTubeServiceManager;
+@@ -36,6 +39,8 @@ public class VideoLoaderController extends BasePlayerController {
+     private SuggestionsController mSuggestionsController;
+     private ErrorFixerController mErrorFixerController;
+     private Disposable mFormatInfoAction;
++    private final NextVideoPreloader<PreparedShort> mNextVideoPreloader = new NextVideoPreloader<>(
++            PreparedShort::load, SystemClock::elapsedRealtime, PreparedShort::isValid);
+     private final Runnable mReloadVideo = () -> {
+         getMainController().onNewVideo(getVideo());
+     };
+@@ -106,6 +111,7 @@ public class VideoLoaderController extends BasePlayerController {
+ 
+     @Override
+     public void onEngineReleased() {
++        mNextVideoPreloader.reset();
+         disposeActions();
+     }
+ 
+@@ -116,8 +122,12 @@ public class VideoLoaderController extends BasePlayerController {
+         }
+         
+         getPlayer().setButtonState(R.id.action_repeat, video.finishOnEnded ? PlayerConstants.PLAYBACK_MODE_CLOSE : getPlayerData().getPlaybackMode());
+-        // Can't set title at this point
+-        //checkSleepTimer();
++        preloadNextVideoIfNeeded();
++    }
++
++    @Override
++    public void onTickle() {
++        preloadNextVideoIfNeeded();
+     }
+ 
+     @Override
+@@ -151,11 +161,33 @@ public class VideoLoaderController extends BasePlayerController {
+     }
+ 
+     public void loadNext() {
++        loadNext(false);
++    }
++
++    private void loadNext(boolean automatic) {
+         if (getPlayer() == null || getVideo() == null) {
+             return;
+         }
+ 
+         Video next = mSuggestionsController.getNext();
++        if (getVideo().isShorts() && next == null) {
++            Video current = getVideo();
++            mSuggestionsController.requestNextShort(automatic, candidate -> {
++                if (getPlayer() == null || getVideo() != current ||
++                        (automatic && !getPlayerTweaksData().isShortsAutoScrollEnabled())) {
++                    return;
++                }
++                if (candidate != null) {
++                    openVideoInt(candidate);
++                    if (getPlayerTweaksData().isPlayerUiOnNextEnabled() && getPlayer() != null) {
++                        getPlayer().showOverlay(true);
++                    }
++                } else {
++                    stopPlayback();
++                }
++            });
++            return;
++        }
+ 
+         if (next != null) {
+             openVideoInt(next);
+@@ -253,7 +285,15 @@ public class VideoLoaderController extends BasePlayerController {
+         // Fix no progress on next video (the engine may still buffering a bit)
+         //getPlayer().showProgressBar(true);
+         Utils.post(mShowProgressBar);
++        PreparedShort prepared = mNextVideoPreloader.take(video.videoId);
+         disposeActions();
++        if (prepared != null && getPlayerTweaksData().isShortsPreparationEnabled()) {
++            MediaItemFormatInfo format = prepared.activate();
++            if (format != null) {
++                processFormatInfo(format);
++                return;
++            }
++        }
+ 
+         ServiceManager service = YouTubeServiceManager.instance();
+         MediaItemService mediaItemManager = service.getMediaItemService();
+@@ -426,7 +466,7 @@ public class VideoLoaderController extends BasePlayerController {
+                 }
+             case PlayerConstants.PLAYBACK_MODE_ALL:
+             case PlayerConstants.PLAYBACK_MODE_SHUFFLE:
+-                loadNext();
++                loadNext(video.isShorts());
+                 break;
+             case PlayerConstants.PLAYBACK_MODE_ONE:
+                 if (VERSION.SDK_INT <= 19) {
+@@ -536,6 +576,7 @@ public class VideoLoaderController extends BasePlayerController {
+     @Override
+     public void onMetadata(MediaItemMetadata metadata) {
+         initRandomNext();
++        preloadNextVideoIfNeeded();
+     }
+ 
+     private void initRandomNext() {
+@@ -592,8 +633,12 @@ public class VideoLoaderController extends BasePlayerController {
+         Video video = getVideo();
+         if (video != null && video.finishOnEnded) {
+             playbackMode = PlayerConstants.PLAYBACK_MODE_CLOSE;
+-        } else if (video != null && video.belongsToShortsGroup() && getPlayerTweaksData().isLoopShortsEnabled()) {
+-            playbackMode = PlayerConstants.PLAYBACK_MODE_ONE;
++        } else if (video != null && (video.isShorts() || video.belongsToShortsGroup())) {
++            if (getPlayerTweaksData().isShortsAutoScrollEnabled()) {
++                playbackMode = PlayerConstants.PLAYBACK_MODE_ALL;
++            } else {
++                playbackMode = PlayerConstants.PLAYBACK_MODE_ONE;
++            }
+         }
+         return playbackMode;
+     }
+@@ -620,13 +665,27 @@ public class VideoLoaderController extends BasePlayerController {
+         }
+     }
+ 
++    @Override
++    public void onFinish() {
++        mNextVideoPreloader.reset();
++        disposeActions();
++    }
++
+     private void preloadNextVideoIfNeeded() {
+-        if (isEmbedPlayer() || getPlayer() == null || getVideo() == null || getVideo().isLive) {
++        if (!getPlayerTweaksData().isShortsPreparationEnabled()) {
++            mNextVideoPreloader.reset();
+             return;
+         }
+-
+-        if (getPlayer().getDurationMs() - getPlayer().getPositionMs() < 50_000) {
+-            MediaServiceManager.instance().loadFormatInfo(mSuggestionsController.getNext(), formatInfo -> {});
++        if (isEmbedPlayer() || getPlayer() == null || !getPlayer().isPlaying() || getPlayer().getDurationMs() <= 0 ||
++                getVideo() == null || getVideo().isLive || !getVideo().isShorts()) {
++            return;
++        }
++        // Keep one separate format/URL result. No media bytes or second decoder are loaded.
++        Video next = mSuggestionsController.getNext();
++        if (next != null && next.videoId != null && next.isShorts() && !next.isLive && !next.videoId.equals(getVideo().videoId)) {
++            mNextVideoPreloader.prefetch(next.videoId);
++        } else {
++            mNextVideoPreloader.reset();
+         }
+     }
+ }
+diff --git a/common/src/main/java/com/liskovsoft/smartyoutubetv2/common/app/presenters/settings/PlayerSettingsPresenter.java b/common/src/main/java/com/liskovsoft/smartyoutubetv2/common/app/presenters/settings/PlayerSettingsPresenter.java
+index 99b42b42d..042dae135 100644
+--- a/common/src/main/java/com/liskovsoft/smartyoutubetv2/common/app/presenters/settings/PlayerSettingsPresenter.java
++++ b/common/src/main/java/com/liskovsoft/smartyoutubetv2/common/app/presenters/settings/PlayerSettingsPresenter.java
+@@ -239,6 +239,9 @@ public class PlayerSettingsPresenter extends BasePresenter<Void> {
+             }, mPlayerTweaksData.isPlayerButtonEnabled(pair[1])));
+         }
+ 
++        options.add(UiOptionItem.from(getContext().getString(R.string.shorts_show_auto_scroll),
++                option -> mPlayerTweaksData.setShortsButtonVisible(option.isSelected()),
++                mPlayerTweaksData.isShortsButtonVisible()));
+         settingsPresenter.appendCheckedCategory(getContext().getString(R.string.player_buttons), options);
+     }
+ 
+@@ -349,6 +352,10 @@ public class PlayerSettingsPresenter extends BasePresenter<Void> {
+ 
+     private void appendMiscCategory(AppDialogPresenter settingsPresenter) {
+         List<OptionItem> options = new ArrayList<>();
++        options.add(UiOptionItem.from(getContext().getString(R.string.shorts_prepare_next),
++                getContext().getString(R.string.shorts_prepare_next_desc),
++                option -> mPlayerTweaksData.setShortsPreparationEnabled(option.isSelected()),
++                mPlayerTweaksData.isShortsPreparationEnabled()));
+ 
+         options.add(UiOptionItem.from(getContext().getString(R.string.suggestions_horizontally_scrolled),
+                 option -> mPlayerTweaksData.setSuggestionsHorizontallyScrolled(option.isSelected()),
+diff --git a/common/src/main/java/com/liskovsoft/smartyoutubetv2/common/misc/NextVideoPreloader.java b/common/src/main/java/com/liskovsoft/smartyoutubetv2/common/misc/NextVideoPreloader.java
+new file mode 100644
+index 000000000..e95316e6e
+--- /dev/null
++++ b/common/src/main/java/com/liskovsoft/smartyoutubetv2/common/misc/NextVideoPreloader.java
+@@ -0,0 +1,61 @@
++package com.liskovsoft.smartyoutubetv2.common.misc;
++
++import io.reactivex.Observable;
++import io.reactivex.disposables.SerialDisposable;
++
++/** One cancellable lookup, retained until consumed. Called on the UI thread. */
++public final class NextVideoPreloader<T> {
++    private static final long RETRY_DELAY_MS = 15_000;
++    public interface Loader<T> { Observable<T> load(String videoId); }
++    public interface Clock { long now(); }
++    public interface Validator<T> { boolean valid(T value); }
++    private final Loader<T> loader;
++    private final Clock clock;
++    private final Validator<T> validator;
++    private final SerialDisposable request = new SerialDisposable();
++    private String videoId;
++    private boolean running;
++    private T result;
++    private long retryAt;
++    private int generation;
++
++    public NextVideoPreloader(Loader<T> loader, Clock clock, Validator<T> validator) {
++        this.loader = loader;
++        this.clock = clock;
++        this.validator = validator;
++    }
++
++    public void prefetch(String id) {
++        if (id == null || id.isEmpty()) return;
++        if (id.equals(videoId) && (running || (result != null && validator.valid(result)) || clock.now() < retryAt)) return;
++        reset();
++        videoId = id;
++        running = true;
++        int token = generation;
++        request.set(Observable.defer(() -> loader.load(id)).take(1).subscribe(
++                value -> { if (token == generation && validator.valid(value)) result = value; },
++                error -> finish(token), () -> finish(token)));
++    }
++
++    public T take(String id) {
++        T value = id != null && id.equals(videoId) && result != null && validator.valid(result) ? result : null;
++        reset();
++        return value;
++    }
++
++    private void finish(int token) {
++        if (token == generation) {
++            running = false;
++            retryAt = clock.now() + RETRY_DELAY_MS;
++        }
++    }
++
++    public void reset() {
++        generation++;
++        request.set(null);
++        videoId = null;
++        running = false;
++        result = null;
++        retryAt = 0;
++    }
++}
+diff --git a/common/src/main/java/com/liskovsoft/smartyoutubetv2/common/prefs/PlayerTweaksData.java b/common/src/main/java/com/liskovsoft/smartyoutubetv2/common/prefs/PlayerTweaksData.java
+index a9333134f..4aea12a9a 100644
+--- a/common/src/main/java/com/liskovsoft/smartyoutubetv2/common/prefs/PlayerTweaksData.java
++++ b/common/src/main/java/com/liskovsoft/smartyoutubetv2/common/prefs/PlayerTweaksData.java
+@@ -598,6 +598,31 @@ public class PlayerTweaksData implements ProfileChangeListener {
+         persistData();
+     }
+ 
++    public boolean isShortsButtonVisible() {
++        return !"false".equals(mPrefs.getProfileData("shorts_slider_button_visible"));
++    }
++
++    public void setShortsButtonVisible(boolean visible) {
++        mPrefs.setProfileData("shorts_slider_button_visible", Boolean.toString(visible));
++    }
++
++    public boolean isShortsPreparationEnabled() {
++        return !"false".equals(mPrefs.getProfileData("shorts_slider_preparation_enabled"));
++    }
++
++    public void setShortsPreparationEnabled(boolean enabled) {
++        mPrefs.setProfileData("shorts_slider_preparation_enabled", Boolean.toString(enabled));
++    }
++
++    public boolean isShortsAutoScrollEnabled() {
++        return !mIsLoopShortsEnabled;
++    }
++
++    public void setShortsAutoScrollEnabled(boolean enable) {
++        mIsLoopShortsEnabled = !enable;
++        persistNow();
++    }
++
+     private void resetSkipShortsSettings() {
+         mIsQuickSkipShortsEnabled = false;
+         mIsQuickSkipShortsAltEnabled = false;
+@@ -745,8 +770,8 @@ public class PlayerTweaksData implements ProfileChangeListener {
+         mIsSyncRowButtonIndexEnabled = Helpers.parseBoolean(split, 41, true);
+         mIsUnsafeAudioFormatsEnabled = Helpers.parseBoolean(split, 42, true);
+         //mIsHighBitrateFormatsEnabled = Helpers.parseBoolean(split, 43, false);
+-        mIsLoopShortsEnabled = Helpers.parseBoolean(split, 44, true);
+-        mIsQuickSkipShortsEnabled = Helpers.parseBoolean(split, 45, true);
++        mIsLoopShortsEnabled = Helpers.parseBoolean(split, 44, false);
++        mIsQuickSkipShortsEnabled = Helpers.parseBoolean(split, 45, false);
+         mIsRememberPositionOfLiveVideosEnabled = Helpers.parseBoolean(split, 46, true);
+         mIsOculusQuestFixEnabled = Helpers.parseBoolean(split, 47, Utils.isOculusQuest());
+         // mPlayerDataSource was here
+@@ -760,10 +785,17 @@ public class PlayerTweaksData implements ProfileChangeListener {
+         mIsAudioFocusEnabled = Helpers.parseBoolean(split, 54, true);
+         mIsDontResizeVideoToFitDialogEnabled = Helpers.parseBoolean(split, 55, false);
+         mIsSuggestionsHorizontallyScrolled = Helpers.parseBoolean(split, 56, false);
+-        mIsQuickSkipShortsAltEnabled = Helpers.parseBoolean(split, 57, false);
++        mIsQuickSkipShortsAltEnabled = Helpers.parseBoolean(split, 57, true);
+         mIsQuickSkipVideosAltEnabled = Helpers.parseBoolean(split, 58, false);
+         mIsAudioTimeStretchingEnabled = Helpers.parseBoolean(split, 59, true);
+         mIsQueueRespectsPlaybackMode = Helpers.parseBoolean(split, 60, false);
++        // Migrate the first fork's separate toggle once; slot 61 is cleared on save.
++        if (!"true".equals(mPrefs.getProfileData("shorts_slider_migrated")) && split != null && split.length > 61 &&
++                ("true".equals(split[61]) || "false".equals(split[61]))) {
++            mIsLoopShortsEnabled = !Helpers.parseBoolean(split, 61, false);
++            mPrefs.setProfileData("shorts_slider_migrated", "true");
++            persistNow();
++        }
+ 
+         updateDefaultValues();
+     }
+@@ -791,7 +823,8 @@ public class PlayerTweaksData implements ProfileChangeListener {
+                 mIsUnsafeAudioFormatsEnabled, null, mIsLoopShortsEnabled, mIsQuickSkipShortsEnabled, mIsRememberPositionOfLiveVideosEnabled,
+                 mIsOculusQuestFixEnabled, null, mIsExtraLongSpeedListEnabled, mIsQuickSkipVideosEnabled, mIsNetworkErrorFixingDisabled, mIsCommentsPlacedLeft,
+                 null, mIsAudioFocusEnabled, mIsDontResizeVideoToFitDialogEnabled, mIsSuggestionsHorizontallyScrolled,
+-                mIsQuickSkipShortsAltEnabled, mIsQuickSkipVideosAltEnabled, mIsAudioTimeStretchingEnabled, mIsQueueRespectsPlaybackMode
++                mIsQuickSkipShortsAltEnabled, mIsQuickSkipVideosAltEnabled, mIsAudioTimeStretchingEnabled, mIsQueueRespectsPlaybackMode,
++                null // retired fork toggle; use the native loop setting
+                 ));
+     }
+ 
+diff --git a/common/src/main/res/drawable-nodpi/action_shorts_auto_scroll.png b/common/src/main/res/drawable-nodpi/action_shorts_auto_scroll.png
+new file mode 100644
+index 0000000000000000000000000000000000000000..1d3028a2cd09c1fe67ebbf8a0712a0451d4018e6
+GIT binary patch
+literal 2933
+zcmbW3c~sJA7sr2yfm4ZNmR5?IsWqBqDJbri8=701SVmEr+qmX}mI|a(mYIeNE{Qhc
+zMvImUS}IhQHtyguZpD~ONQ#=8qTuBG_5Ss~bKZN-^W1apy`S&B=RD_m&U44b$yR#%
+z{_Ow&NTcnn&iwGKttAEdv7Z?Yf&#z}6SS43d(6YxF+#b|Re0;dcf2oN1ls3|GcVuc
+zef({$$0EjZHEna*ndV}jo1K^03t<y9$UocFxY+q<I1sLqWZh|YOK*cqq_9cXEK}3%
+zFwxcek$68dQ8={~HCB*o{QYBYgm2fk*w-h%cNIi@ADuQSoHpskCn)La{Tr)}wjMF=
+z(L|flk%w#HnVZ&0!yj{zyYXDNG65*@jEvBbT<5y&a?eV$enk#2(c7Fr)M%26QK*tL
+zObgWidOd%Fxv)1(YV}Z<AtQwbTrZJ)#D}hDg0*;KtlOkCKmhIv3Ke9(0StF;D8=Zi
+z!C3rRdD-JZ5!3QdIiU2ucBl*6nnfY<iJU+g#S?iuD4NbtzA|L)PV#M#`tqwd<d+~|
+zk(99n;f8QMaJIq)G@WUB?50EZTXRX_z2VOkmcqgDFv_W(4~fSDysRE()<9Ryst$?#
+ziN>Pqkb98Z#jIf21&a_)G(K2tG$<Qbuz7}yVGX$-6xT(651QOr-X#SvtXkr+J1xs3
+zT=G}?j0qx(;rA2Eu7&q+73qQ6c3eciB7Jg+5+5i#y67~N*-N4_gb%N4%lH1ZC`YWW
+zb5>b(xB4nz=M~9;+De@0<f&p-$biZkzu4=;3_Ol}VSD_Z`V(rfe(j*gPqaa8ZiS)X
+zLT?d@V5($GY9*QLZa!Gi<OX*{Yv%a?U%}$`xU|7{taTEeCb)f?aLz8Ix|O6&l-s?r
+z>u$+`ibKDsV^w)cv<&jC{h@~g(wh^`uv5uh=eW%x|2GLiEfG6LnR*&n9p0niO@qBm
+zMKXOQi>An4(I%{1Skoig6mKSQGfq>56W8%+fmWhxR!YuH?@_svUJpi=9a#)w#K0(%
+z+E@wZYO@N<#ig-MsG6y(2MR&Wpoi}!C`l95Etlzjy_dlA=ZZ8cKC1;#Xc&%^dBBo+
+zZb+!pND?iWJ|JUlAKcS@uz}XD4lj5PuXG-%Zye1YT_w+XM%<-F_B7`zGn?+*zr@Ei
+zIg0ty=>}Dm#_U-Hz0|Uy^L_243;P)Rv*M7sV)1}0>>2M%RIJmw`;3c7(`ZwRTw^*m
+zSIDNWb<C4#jMCOurun74OMYcEjQ(0pf$bCL($@7%Q_EnB1`BpOzotSRn_uTO^lo0O
+zuz9h(I)g4Y5BV#bztKu8EPX(ibLJj7`HXMd;>PlJpGAfIRiMzMFy*Mg#HT#}1Ju^#
+z%=oM&yT&zzHJ)A;Mq`eY@=HkL4BmS9Y?kpxtebN6E)Nv2rux;M@fmiqSzxh$%wtUu
+zY@cwA-@7ELLFNyvXg}HkA79;>#_LF7?ALe5?_{qyJlz4xxhigW5z!~Vr}r6Fia1n?
+z0zCAgth-ZyXRi{Vod?EQM*vU!VZ=S1psL^hBe^kG4hiOt`8Qv8Jf%d0MDg?xuik(>
+zb<wi2<VeW;HttSM!kkkxfna6w_<r05_e2Dc7Xg`H-luW{h{=XEeoPob0iCj8Ni%Mb
+z%i<T$r@<OIfoBbY&f#qFQw1PxLppq4-~S%tzs~soC*$tWeo<c@5>DPdN&eH*>pKVW
+z+d6qFyg~gEK1KqHyPLeXV_^`Ew#<3=Jks&<B}~j~CE{^*`3Q7H!tV^W?^)|a%1Gz<
+z($cG(MdL*g!$IgJOwc>X2xOFj*44)Cntc~E6E69ofX~Zn<39VV1VQtgouK;5_nF`P
+zSj_m|*@Yi+YFE;YI!wtcfC}{DRsJl3zXC=YEDkaR;BH{hrey*3RKuthlyf>jb|aR1
+zf*WV!_Q;wadU?deQBlHx)+OjANKh;fwM9%O8*U%Xo4fd%Q>N|atApc3wBWgo3>4r-
+ztLUjqj*+ZSnYq`{k(CSTH#3tM&02}i{mzJjv4oHStw@9Uy=S3b?`08{`#fgv^=m<K
+z@Bl4ZvLWaKw2_=p6ExXkvfQAfMlGfLpa6at;QO=eDYPg#22x)@ADdcJAM%*2=obBW
+z^YVm8IAR?gD9)yKnI&SSRTzz)h<tINm^?j8&enP8&<Xl8r%`$J$h`j9^;%S?ix4kS
+zZ>DyU<hreWU>XQw?aH>nE{>`}af#XG`ZMHdB|{*e6CKc}(TxfRke7e5FFqREbq8F9
+z*4Zk2co2%)asF`X%L$Ypj5UBbyFcnf1W1Xf6IitcOBezXJr-N=ws2s|&$YyrVxrIn
+z%E{Qa1z%8w;_l14Y#~2R6_xM3RR}QzQl9s-%N?lF;eb32wuLB;14r8Aw>l%+K%P%h
+zx8R^0aFs>=R_7sIDDE|KOQw1o%mVEDPiz;o2$iu#)U|>9+mhJjVIQi`!YmTsXWFdS
+zPYh{6i(+H7mJr--_d$5QhN$Bp;cZ+z@s@RxJNB`^Do+!Ku`<cfvc9;A>;U;&YNgs(
+znSe|lG)GT|lE6LWNX;)Lm8Q!9cfdVr_>GlV*`R+eFII|mq&r8r>ye^?L;ll^>i(?&
+ze=o)p8Iq0kT0{6KNX%b(2{*Vhxqj4%p>2Kzp~|+d{gmHaSm#0r|D)UEjTTfDKXr;1
+zeI9t09%-bzw1+cTvh=d#ajB{1m|1QJrcUMQ*ZX=#QpbSSeJaF_yX_1BGcZ?uoXu55
+zheFJ9=9KaM!qI_l#0zgEm6l$EWnVhG?~D5(&TJ(IscjyL-HjgM%wh&>#?GHYSE7fr
+zlm(V0(hYhJFAu?U<m6zUX6Xi{tpb01H^up>4&FhC*?;<$-0-!-ydoOan2_S$MBjy`
+zIHSN5vcIbGuA(WW!FB80)UMxo{AvyO`7)hvsu8xsz9rq|+Dz3aQRBAd@*!)|n!id{
+zOl{g$e2f%Z1g|Sko=v_P_}UmqkNj!g6ep80QYEg~BLLkeerg(^51-@G5uAeXnc`s?
+zb!^{?nBmB7pigZa>+DI0U1I758y{8IzB<_rxTKErG~UaAFnY0)iM=<%Zn*ase*!bX
+zFkK;+el*R0dD_NIG7c~_7^8HPKkww!9g|RyXx*E28sp(7VbLGZ4HZi@9vAr!D-q7y
+z+3OVrK1Pcy-4owNbBB{x?-(sYs7{gqofCeY(vNUgF@5pT^0yh*l(TPgl=287*6LDa
+zYLT$z?kuZ0`OlH8E*ZEn*FIE>5~(+jrT;vU7?hu3ycsVW?m!pr^oXCyh|&Udk&;|q
+zm+yq0ccJUFpqCU&z)st|?^|P7x5Tr`NSiM3mW)+51>XnL>!$SRk-`2Sq9$OUTD{jA
+ztR~hZ&o*|>sC|^NyWs@VXKB|o0l2}L&WwKX?NqC=MeyZD_^M=;LiwN=de5F(5R&rK
+z;yBaHG){RH78YvN*i*7iU|3-OWes(6X&J`#X4zIy5oV9yVZAiLbiRU#)P}Aa^>#17
+zo}ub^PJ@9;W(Nafo<siVgwPq5{wmq!t*;h+POO;b+C&)_uwEyxw)17ac$WC(JyZF*
+znUQFLC|tf-uUYF@c+x1r!yTAmzd35YmZd<_s4!nJSR&$l|CP<Is_dQ6C}UZ8=>GUl
+O188d}t7j*1H~$9Yk(cWL
+
+literal 0
+HcmV?d00001
+
+diff --git a/common/src/main/res/values-fr/strings.xml b/common/src/main/res/values-fr/strings.xml
+index 9ebf98ea4..0f7c1fe9f 100644
+--- a/common/src/main/res/values-fr/strings.xml
++++ b/common/src/main/res/values-fr/strings.xml
+@@ -748,4 +748,10 @@
+   <string name="network_settings">Paramètres réseau</string>
+   <string name="comments_disabled">Les commentaires sont désactivés pour cette vidéo</string>
+   <string name="remove_video_to_watch_later">Supprimer de \"À regarder plus tard\"</string>
++  <string name="action_shorts_auto_scroll">Défilement auto des Shorts</string>
++  <string name="shorts_auto_scroll_on">Défilement auto : Activé</string>
++  <string name="shorts_auto_scroll_off">Défilement auto : Désactivé</string>
++    <string name="shorts_show_auto_scroll">Afficher le bouton de lecture automatique des Shorts</string>
++    <string name="shorts_prepare_next">Préparer le Short suivant</string>
++    <string name="shorts_prepare_next_desc">Récupérer ses informations de lecture à l\'avance. Le gain dépend de l\'appareil et du réseau.</string>
+ </resources>
+diff --git a/common/src/main/res/values/ids.xml b/common/src/main/res/values/ids.xml
+index 1ed9c45d6..5e40e9385 100644
+--- a/common/src/main/res/values/ids.xml
++++ b/common/src/main/res/values/ids.xml
+@@ -22,6 +22,7 @@
+     <item name="action_flip" type="id"/>
+     <item name="action_screen_dimming" type="id"/>
+     <item name="action_afr" type="id"/>
++    <item name="action_shorts_auto_scroll" type="id"/>
+     <item name="channel_new_content" type="id"/>
+     <item name="linkify_click_handler" type="id"/>
+ </resources>
+\ No newline at end of file
+diff --git a/common/src/main/res/values/strings.xml b/common/src/main/res/values/strings.xml
+index 20d1fdef4..e205bb9ec 100644
+--- a/common/src/main/res/values/strings.xml
++++ b/common/src/main/res/values/strings.xml
+@@ -756,4 +756,10 @@
+         <item quantity="one">%s second</item>
+         <item quantity="other">%s seconds</item>
+     </plurals>
++    <string name="action_shorts_auto_scroll">Auto-scroll Shorts</string>
++    <string name="shorts_auto_scroll_on">Auto-scroll: ON</string>
++    <string name="shorts_auto_scroll_off">Auto-scroll: OFF</string>
++    <string name="shorts_show_auto_scroll">Show Shorts auto-scroll button</string>
++    <string name="shorts_prepare_next">Prepare the next Short</string>
++    <string name="shorts_prepare_next_desc">Fetch playback information in advance. Speed depends on the device and network.</string>
+ </resources>
+diff --git a/common/src/test/java/com/liskovsoft/smartyoutubetv2/common/misc/NextVideoPreloaderTest.java b/common/src/test/java/com/liskovsoft/smartyoutubetv2/common/misc/NextVideoPreloaderTest.java
+new file mode 100644
+index 000000000..92685a25b
+--- /dev/null
++++ b/common/src/test/java/com/liskovsoft/smartyoutubetv2/common/misc/NextVideoPreloaderTest.java
+@@ -0,0 +1,91 @@
++package com.liskovsoft.smartyoutubetv2.common.misc;
++
++import org.junit.Test;
++import java.util.concurrent.atomic.AtomicInteger;
++import io.reactivex.Observable;
++import io.reactivex.subjects.PublishSubject;
++import static org.junit.Assert.*;
++
++public class NextVideoPreloaderTest {
++    @Test
++    public void cacheHitIsNotRequestedAgainUntilReset() {
++        AtomicInteger calls = new AtomicInteger();
++        NextVideoPreloader<String> preloader = new NextVideoPreloader<>(id -> {
++            calls.incrementAndGet();
++            return Observable.just(id);
++        }, () -> 0, value -> true);
++        preloader.prefetch("next");
++        preloader.prefetch("next");
++        assertEquals(1, calls.get());
++        preloader.reset();
++        preloader.prefetch("next");
++        assertEquals(2, calls.get());
++    }
++
++    @Test
++    public void pendingLookupIsDeduplicatedAndCancelledOnChangeOrExit() {
++        PublishSubject<String> first = PublishSubject.create();
++        PublishSubject<String> second = PublishSubject.create();
++        AtomicInteger calls = new AtomicInteger();
++        NextVideoPreloader<String> preloader = new NextVideoPreloader<>(id -> {
++            calls.incrementAndGet();
++            return "first".equals(id) ? first : second;
++        }, () -> 0, value -> true);
++        preloader.prefetch("first");
++        preloader.prefetch("first");
++        assertEquals(1, calls.get());
++        assertTrue(first.hasObservers());
++        preloader.prefetch("second");
++        assertFalse(first.hasObservers());
++        assertTrue(second.hasObservers());
++        preloader.reset();
++        assertFalse(second.hasObservers());
++    }
++
++    @Test
++    public void failedAndEmptyLookupsRetryAfterBackoff() {
++        for (boolean throwError : new boolean[]{false, true}) {
++            AtomicInteger calls = new AtomicInteger();
++            long[] clock = {0};
++            NextVideoPreloader<String> preloader = new NextVideoPreloader<>(id -> {
++                calls.incrementAndGet();
++                if (throwError) throw new IllegalStateException("test");
++                return Observable.empty();
++            }, () -> clock[0], value -> true);
++            preloader.prefetch("next");
++            clock[0] = 14_999;
++            preloader.prefetch("next");
++            assertEquals(1, calls.get());
++            clock[0] = 15_000;
++            preloader.prefetch("next");
++            assertEquals(2, calls.get());
++        }
++    }
++
++    @Test
++    public void invalidIdsAreIgnoredAndOnlyFirstResultIsNeeded() {
++        PublishSubject<String> source = PublishSubject.create();
++        NextVideoPreloader<String> preloader = new NextVideoPreloader<>(id -> source, () -> 0, value -> true);
++        preloader.prefetch(null);
++        preloader.prefetch("");
++        assertFalse(source.hasObservers());
++        preloader.prefetch("next");
++        source.onNext("format");
++        assertFalse(source.hasObservers());
++        preloader.prefetch("next");
++        assertFalse(source.hasObservers());
++    }
++    @Test
++    public void onlyMatchingValidResultCanBeConsumedOnce() {
++        boolean[] valid = {true};
++        NextVideoPreloader<String> preloader = new NextVideoPreloader<>(Observable::just, () -> 0, value -> valid[0]);
++        preloader.prefetch("next");
++        assertEquals("next", preloader.take("next"));
++        assertNull(preloader.take("next"));
++        preloader.prefetch("next");
++        assertNull(preloader.take("different"));
++        preloader.prefetch("next");
++        valid[0] = false;
++        assertNull(preloader.take("next"));
++    }
++}
+diff --git a/common/src/test/java/com/liskovsoft/smartyoutubetv2/common/misc/PlaybackNonceIsolationTest.java b/common/src/test/java/com/liskovsoft/smartyoutubetv2/common/misc/PlaybackNonceIsolationTest.java
+new file mode 100644
+index 000000000..1b6e1555d
+--- /dev/null
++++ b/common/src/test/java/com/liskovsoft/smartyoutubetv2/common/misc/PlaybackNonceIsolationTest.java
+@@ -0,0 +1,35 @@
++package com.liskovsoft.smartyoutubetv2.common.misc;
++
++import com.liskovsoft.youtubeapi.app.PlaybackNonceState;
++import org.junit.Test;
++import static org.junit.Assert.*;
++
++public class PlaybackNonceIsolationTest {
++    @Test public void concurrentPreparationDoesNotChangeCurrentHistoryUntilActivation() throws Exception {
++        PlaybackNonceState state = new PlaybackNonceState();
++        assertEquals("current", state.get(() -> "current"));
++        String[] prepared = new String[1];
++        Thread worker = new Thread(() -> {
++            state.beginIsolated();
++            try {
++                state.reset();
++                prepared[0] = state.get(() -> "next");
++            } finally { state.endIsolated(); }
++        });
++        worker.start();
++        worker.join();
++        assertEquals("current", state.get(() -> "unexpected"));
++        state.activate(prepared[0]);
++        assertEquals("next", state.get(() -> "unexpected"));
++    }
++
++    @Test public void failedPreparationCleansUpThreadContext() {
++        PlaybackNonceState state = new PlaybackNonceState();
++        state.activate("current");
++        state.beginIsolated();
++        try { state.get(() -> "discarded"); }
++        finally { state.endIsolated(); }
++        state.reset();
++        assertEquals("fresh", state.get(() -> "fresh"));
++    }
++}
+diff --git a/common/src/test/java/com/liskovsoft/smartyoutubetv2/common/misc/ShortsNavigationTest.java b/common/src/test/java/com/liskovsoft/smartyoutubetv2/common/misc/ShortsNavigationTest.java
+new file mode 100644
+index 000000000..3941f4222
+--- /dev/null
++++ b/common/src/test/java/com/liskovsoft/smartyoutubetv2/common/misc/ShortsNavigationTest.java
+@@ -0,0 +1,409 @@
++package com.liskovsoft.smartyoutubetv2.common.misc;
++
++import android.content.Context;
++import android.os.Looper;
++import com.liskovsoft.mediaserviceinterfaces.ContentService;
++import com.liskovsoft.mediaserviceinterfaces.data.MediaGroup;
++import com.liskovsoft.mediaserviceinterfaces.data.MediaItem;
++import com.liskovsoft.sharedutils.prefs.GlobalPreferences;
++import com.liskovsoft.smartyoutubetv2.common.app.models.data.Playlist;
++import com.liskovsoft.smartyoutubetv2.common.app.models.data.SimpleMediaItem;
++import com.liskovsoft.smartyoutubetv2.common.app.models.data.Video;
++import com.liskovsoft.smartyoutubetv2.common.app.models.data.VideoGroup;
++import com.liskovsoft.smartyoutubetv2.common.app.models.playback.controllers.SuggestionsController;
++import com.liskovsoft.smartyoutubetv2.common.app.models.playback.controllers.VideoLoaderController;
++import com.liskovsoft.smartyoutubetv2.common.app.models.playback.listener.PlayerEventListener;
++import com.liskovsoft.smartyoutubetv2.common.app.views.PlaybackView;
++import com.liskovsoft.smartyoutubetv2.common.prefs.PlayerTweaksData;
++import io.reactivex.subjects.PublishSubject;
++import io.reactivex.Observable;
++import org.junit.Before;
++import org.junit.Test;
++import org.junit.runner.RunWith;
++import org.robolectric.RobolectricTestRunner;
++import org.robolectric.RuntimeEnvironment;
++import org.robolectric.annotation.Config;
++
++import java.lang.reflect.Field;
++import java.lang.reflect.Method;
++import java.lang.reflect.Proxy;
++import java.time.Duration;
++import java.util.ArrayList;
++import java.util.Arrays;
++import java.util.List;
++import java.util.concurrent.atomic.AtomicInteger;
++
++import static org.junit.Assert.*;
++import static org.robolectric.Shadows.shadowOf;
++
++@RunWith(RobolectricTestRunner.class)
++@Config(sdk = 28)
++public class ShortsNavigationTest {
++    private Context context;
++    private TestSuggestions controller;
++    private Video current;
++    private List<VideoGroup> rows;
++    private List<Video> results;
++    private PublishSubject<MediaGroup> page;
++    private AtomicInteger requests;
++
++    @Before public void setup() throws Exception {
++        context = RuntimeEnvironment.getApplication();
++        GlobalPreferences.instance(context);
++        Playlist.instance().clear();
++        rows = new ArrayList<>();
++        results = new ArrayList<>();
++        current = video("current", true);
++        current.isSynced = true;
++        controller = new TestSuggestions();
++        Playlist.instance().setCurrent(current);
++        page = PublishSubject.create();
++        requests = new AtomicInteger();
++        ContentService service = proxy(ContentService.class, (method, arguments) -> {
++            if (method.equals("continueGroupObserve")) {
++                requests.incrementAndGet();
++                return page;
++            }
++            return null;
++        });
++        field(controller, "mContentService", service);
++        PlayerTweaksData.instance(context).setSectionPlaylistEnabled(false);
++    }
++
++    @Test public void sectionSettingDoesNotBlockHomeShortsAndMixedItemsAreSkipped() {
++        Video longVideo = video("long", false);
++        Video live = video("live", true);
++        live.isLive = true;
++        Video upcoming = video("upcoming", true);
++        upcoming.isUpcoming = true;
++        Video next = video("next", true);
++        group(current, longVideo, live, upcoming, next);
++        assertSame(next, controller.getNext());
++        assertFalse(PlayerTweaksData.instance(context).isSectionPlaylistEnabled());
++        PlayerTweaksData.instance(context).setShortsAutoScrollEnabled(false);
++        assertSame(next, controller.getNext()); // Manual next still works while the Short loops.
++    }
++
++    @Test public void previousSkipsLongLiveAndUpcomingItemsInTheSourceAndQueue() {
++        Video previous = video("previous", true);
++        Video live = video("live", true);
++        live.isLive = true;
++        group(previous, video("long", false), live, current);
++        assertSame(previous, controller.getPrevious());
++        current.setGroup(null);
++        Playlist.instance().clear();
++        Playlist.instance().addAll(Arrays.asList(previous, video("long", false), live, current));
++        Playlist.instance().setCurrent(current);
++        assertSame(previous, controller.getPrevious());
++        assertTrue(previous.fromQueue);
++    }
++
++    @Test public void queuedShortWinsOverQueuedLongVideo() {
++        Video longVideo = video("queued_long", false);
++        Video next = video("queued_short", true);
++        Playlist.instance().addAll(Arrays.asList(current, longVideo, next));
++        Playlist.instance().setCurrent(current);
++        assertSame(next, controller.getNext());
++        assertTrue(next.fromQueue);
++    }
++
++    @Test public void recommendationsFindActualShortInsteadOfFirstLongVideo() {
++        Video longVideo = video("long", false);
++        current.nextMediaItem = SimpleMediaItem.from(longVideo);
++        Video next = video("next", true);
++        rows.add(group(longVideo, next));
++        assertSame(next, controller.getNext());
++    }
++
++    @Test public void currentAndAlreadyPlayedRecommendationsAreNotReplayed() {
++        Video played = video("played", true);
++        Playlist.instance().clear();
++        Playlist.instance().addAll(Arrays.asList(played, current));
++        Playlist.instance().setCurrent(current);
++        rows.add(group(current, played, video("long", false)));
++        current.setGroup(null); // These are recommendations, not the source-section order.
++        assertNull(controller.getNext());
++    }
++
++    @Test public void sourceRowWrapperDoesNotRestartEarlierUnplayedShortsAtTheEnd() {
++        Video earlier = video("earlier", true);
++        VideoGroup source = group(earlier, current);
++        VideoGroup wrapper = VideoGroup.from(source.getVideos());
++        assertNotSame(source, wrapper);
++        rows.add(wrapper);
++        assertFalse(Playlist.instance().contains(earlier));
++        assertNull(controller.getNext());
++    }
++
++    @Test public void regularVideoKeepsItsNativeNextRecommendation() {
++        current = video("regular", false);
++        Video next = video("next_long", false);
++        current.nextMediaItem = SimpleMediaItem.from(next);
++        assertEquals(next.videoId, controller.getNext().videoId);
++    }
++
++    @Test public void missingMetadataWaitsAndResolvesOnceSuggestionsArrive() {
++        current.isSynced = false;
++        controller.requestNextShort(results::add);
++        assertTrue(results.isEmpty());
++        Video next = video("next", true);
++        rows.add(group(next));
++        current.isSynced = true;
++        controller.onMetadata(null);
++        assertEquals(Arrays.asList(next), results);
++        shadowOf(Looper.getMainLooper()).idleFor(Duration.ofSeconds(16));
++        assertEquals(1, results.size());
++    }
++
++    @Test public void endOfLoadedPageWaitsForNativeContinuation() throws Exception {
++        VideoGroup source = group(current);
++        field(source, "mMediaGroup", mediaGroup("page_one"));
++        assertNull(controller.getNext());
++        controller.requestNextShort(results::add);
++        controller.requestNextShort(results::add);
++        assertEquals(1, requests.get());
++        assertTrue(results.isEmpty());
++        Video next = video("next", true);
++        page.onNext(mediaGroup(null, next));
++        page.onComplete();
++        assertEquals(Arrays.asList(next), results);
++        assertEquals(next.videoId, controller.getNext().videoId);
++    }
++
++    @Test public void changingVideoCancelsContinuationWithoutOpeningOrMutatingOldPage() throws Exception {
++        VideoGroup source = group(current);
++        field(source, "mMediaGroup", mediaGroup("page_one"));
++        controller.requestNextShort(results::add);
++        assertTrue(page.hasObservers());
++        current = video("replacement", true);
++        controller.onNewVideo(current);
++        assertFalse(page.hasObservers());
++        page.onNext(mediaGroup(null, video("stale", true)));
++        assertTrue(results.isEmpty());
++        assertEquals(1, source.getSize());
++    }
++
++    @Test public void networkErrorReturnsConfirmedFailureOnlyOnce() throws Exception {
++        VideoGroup source = group(current);
++        field(source, "mMediaGroup", mediaGroup("page_one"));
++        controller.requestNextShort(results::add);
++        assertTrue(results.isEmpty());
++        page.onError(new IllegalStateException("offline"));
++        assertEquals(1, results.size());
++        assertNull(results.get(0));
++        shadowOf(Looper.getMainLooper()).idleFor(Duration.ofSeconds(16));
++        assertEquals(1, results.size());
++    }
++
++    @Test public void failedSourcePaginationUsesAVerifiedShortRecommendation() throws Exception {
++        VideoGroup source = group(current);
++        field(source, "mMediaGroup", mediaGroup("page_one"));
++        Video fallback = video("fallback", true);
++        rows.add(group(video("long", false), fallback));
++        assertNull(controller.getNext()); // Preserve source order while its page is available.
++        controller.requestNextShort(results::add);
++        page.onError(new IllegalStateException("offline"));
++        assertEquals(Arrays.asList(fallback), results);
++    }
++
++    @Test public void lightweightGroupCopyDoesNotBreakNextOrPrevious() {
++        current.setGroup(group(current).copy());
++        rows.add(group().copy());
++        assertNull(controller.getNext());
++        assertNull(controller.getPrevious());
++    }
++
++    @Test public void turningAutoOffWhilePaginationIsPendingPreventsAdvance() throws Exception {
++        VideoGroup source = group(current);
++        field(source, "mMediaGroup", mediaGroup("page_one"));
++        List<Video> opened = new ArrayList<>();
++        PlayerTweaksData.instance(context).setShortsAutoScrollEnabled(true);
++        VideoLoaderController loader = loader(opened);
++        automaticNext(loader);
++        assertTrue(opened.isEmpty());
++        PlayerTweaksData.instance(context).setShortsAutoScrollEnabled(false);
++        page.onNext(mediaGroup(null, video("next", true)));
++        assertTrue(opened.isEmpty());
++        loader.loadNext(); // The same setting must still permit an explicit remote press.
++        assertEquals(1, opened.size());
++        assertEquals("next", opened.get(0).videoId);
++    }
++
++    @Test public void manualDownOverridesPendingAutoplayAfterAutoIsTurnedOff() throws Exception {
++        VideoGroup source = group(current);
++        field(source, "mMediaGroup", mediaGroup("page_one"));
++        List<Video> opened = new ArrayList<>();
++        PlayerTweaksData.instance(context).setShortsAutoScrollEnabled(true);
++        VideoLoaderController loader = loader(opened);
++        automaticNext(loader);
++        assertEquals(1, requests.get());
++        PlayerTweaksData.instance(context).setShortsAutoScrollEnabled(false);
++        loader.loadNext();
++        automaticNext(loader); // A repeated end event cannot override the explicit remote press.
++        assertEquals(1, requests.get());
++        assertTrue(opened.isEmpty());
++        page.onNext(mediaGroup(null, video("next", true)));
++        page.onComplete();
++        assertEquals(1, opened.size());
++        assertEquals("next", opened.get(0).videoId);
++        shadowOf(Looper.getMainLooper()).idleFor(Duration.ofSeconds(16));
++        assertEquals(1, opened.size());
++    }
++
++    @Test public void repeatedContinuationTokenStopsWithoutAnInfiniteRetry() throws Exception {
++        VideoGroup source = group(current);
++        field(source, "mMediaGroup", mediaGroup("same_token"));
++        controller.requestNextShort(results::add);
++        page.onNext(mediaGroup("same_token", video("long", false)));
++        assertEquals(1, requests.get());
++        assertEquals(1, results.size());
++        assertNull(results.get(0));
++    }
++
++    @Test public void synchronousFirstPageDoesNotLoseCancellationOfPendingSecondPage() throws Exception {
++        VideoGroup source = group(current);
++        field(source, "mMediaGroup", mediaGroup("first"));
++        field(controller, "mContentService", proxy(ContentService.class, (method, arguments) -> {
++            if (method.equals("continueGroupObserve")) {
++                return requests.incrementAndGet() == 1 ?
++                        Observable.just(mediaGroup("second", video("long", false))) : page;
++            }
++            return null;
++        }));
++        controller.requestNextShort(results::add);
++        assertEquals(2, requests.get());
++        assertTrue(page.hasObservers());
++        current = video("replacement", true);
++        controller.onNewVideo(current);
++        assertFalse(page.hasObservers());
++        page.onNext(mediaGroup(null, video("stale", true)));
++        assertEquals(2, source.getSize());
++        assertTrue(results.isEmpty());
++    }
++
++    @Test public void paginationStopsAfterTwoPagesWithoutAShort() throws Exception {
++        VideoGroup source = group(current);
++        field(source, "mMediaGroup", mediaGroup("first"));
++        PublishSubject<MediaGroup> second = PublishSubject.create();
++        field(controller, "mContentService", proxy(ContentService.class, (method, arguments) -> {
++            if (method.equals("continueGroupObserve")) {
++                return requests.incrementAndGet() == 1 ? page : second;
++            }
++            return null;
++        }));
++        controller.requestNextShort(results::add);
++        page.onNext(mediaGroup("second", video("long_one", false)));
++        assertEquals(2, requests.get());
++        assertTrue(results.isEmpty());
++        assertFalse(page.hasObservers());
++        second.onNext(mediaGroup("third", video("long_two", false)));
++        assertEquals(2, requests.get());
++        assertEquals(1, results.size());
++        assertNull(results.get(0));
++        assertFalse(second.hasObservers());
++    }
++
++    @Test public void missingMetadataTimesOutAndFinishingCancelsTheTimeout() {
++        current.isSynced = false;
++        controller.requestNextShort(results::add);
++        shadowOf(Looper.getMainLooper()).idleFor(Duration.ofSeconds(16));
++        assertEquals(1, results.size());
++        assertNull(results.get(0));
++        results.clear();
++        controller.requestNextShort(results::add);
++        controller.onFinish();
++        shadowOf(Looper.getMainLooper()).idleFor(Duration.ofSeconds(16));
++        assertTrue(results.isEmpty());
++    }
++
++    private VideoLoaderController loader(List<Video> opened) throws Exception {
++        VideoLoaderController loader = new VideoLoaderController() {
++            @Override public PlaybackView getPlayer() { return controller.getPlayer(); }
++            @Override public Video getVideo() { return current; }
++            @Override public Context getContext() { return context; }
++            @Override protected PlayerEventListener getMainController() {
++                return proxy(PlayerEventListener.class, (method, arguments) -> {
++                    if (method.equals("onNewVideo")) opened.add((Video) arguments[0]);
++                    return null;
++                });
++            }
++        };
++        Field suggestions = VideoLoaderController.class.getDeclaredField("mSuggestionsController");
++        suggestions.setAccessible(true);
++        suggestions.set(loader, controller);
++
++        return loader;
++    }
++
++    private void automaticNext(VideoLoaderController loader) throws Exception {
++        Method loadNext = VideoLoaderController.class.getDeclaredMethod("loadNext", boolean.class);
++        loadNext.setAccessible(true);
++        loadNext.invoke(loader, true);
++    }
++
++    private Video video(String id, boolean shorts) {
++        Video video = new Video();
++        video.videoId = id;
++        video.title = id;
++        video.isShorts = shorts;
++        return video;
++    }
++
++    private VideoGroup group(Video... videos) {
++        return VideoGroup.from(new ArrayList<>(Arrays.asList(videos)));
++    }
++
++    private MediaGroup mediaGroup(String token, Video... videos) {
++        List<MediaItem> items = new ArrayList<>();
++        for (Video video : videos) {
++            items.add(SimpleMediaItem.from(video));
++        }
++        return proxy(MediaGroup.class, (method, arguments) -> {
++            switch (method) {
++                case "getNextPageKey": return token;
++                case "getMediaItems": return items;
++                case "getType": return MediaGroup.TYPE_HOME;
++                case "isEmpty": return items.isEmpty();
++                default: return null;
++            }
++        });
++    }
++
++    private void field(Object target, String name, Object value) throws Exception {
++        Field field = target instanceof SuggestionsController ? SuggestionsController.class.getDeclaredField(name) :
++                target.getClass().getDeclaredField(name);
++        field.setAccessible(true);
++        field.set(target, value);
++    }
++
++    private interface Calls { Object invoke(String method, Object[] arguments); }
++
++    @SuppressWarnings("unchecked")
++    private <T> T proxy(Class<T> type, Calls calls) {
++        return (T) Proxy.newProxyInstance(type.getClassLoader(), new Class<?>[]{type}, (object, method, arguments) -> {
++            Object result = calls.invoke(method.getName(), arguments);
++            if (result != null || !method.getReturnType().isPrimitive()) {
++                return result;
++            }
++            if (method.getReturnType() == boolean.class) return false;
++            if (method.getReturnType() == long.class) return 0L;
++            if (method.getReturnType() == float.class) return 0f;
++            if (method.getReturnType() == double.class) return 0d;
++            if (method.getReturnType() == void.class) return null;
++            return 0;
++        });
++    }
++
++    private class TestSuggestions extends SuggestionsController {
++        private final PlaybackView player = proxy(PlaybackView.class, (method, arguments) -> {
++            if (method.equals("getSuggestionsByIndex")) {
++                int index = (Integer) arguments[0];
++                return index < rows.size() ? rows.get(index) : null;
++            }
++            return null;
++        });
++        @Override public PlaybackView getPlayer() { return player; }
++        @Override public Video getVideo() { return current; }
++        @Override public Context getContext() { return context; }
++    }
++}
+diff --git a/common/src/test/java/com/liskovsoft/smartyoutubetv2/common/misc/ShortsPreferencesTest.java b/common/src/test/java/com/liskovsoft/smartyoutubetv2/common/misc/ShortsPreferencesTest.java
+new file mode 100644
+index 000000000..7185b5387
+--- /dev/null
++++ b/common/src/test/java/com/liskovsoft/smartyoutubetv2/common/misc/ShortsPreferencesTest.java
+@@ -0,0 +1,91 @@
++package com.liskovsoft.smartyoutubetv2.common.misc;
++
++import android.content.Context;
++import android.os.Looper;
++import com.liskovsoft.sharedutils.helpers.Helpers;
++import com.liskovsoft.smartyoutubetv2.common.prefs.AppPrefs;
++import com.liskovsoft.smartyoutubetv2.common.prefs.PlayerTweaksData;
++import org.junit.Before;
++import org.junit.Test;
++import org.junit.runner.RunWith;
++import org.robolectric.RobolectricTestRunner;
++import org.robolectric.RuntimeEnvironment;
++import org.robolectric.annotation.Config;
++import java.lang.reflect.Field;
++import java.util.Arrays;
++import static org.junit.Assert.*;
++import static org.robolectric.Shadows.shadowOf;
++
++@RunWith(RobolectricTestRunner.class)
++@Config(sdk = 28)
++public class ShortsPreferencesTest {
++    private Context context;
++    private AppPrefs prefs;
++    private PlayerTweaksData tweaks;
++
++    @Before public void setup() throws Exception {
++        context = RuntimeEnvironment.getApplication();
++        for (Class<?> type : new Class<?>[]{AppPrefs.class, PlayerTweaksData.class}) {
++            Field instance = type.getDeclaredField("sInstance");
++            instance.setAccessible(true);
++            instance.set(null, null);
++        }
++        prefs = AppPrefs.instance(context);
++        prefs.setProfileData("video_player_tweaks_data", null);
++        prefs.setProfileData("shorts_slider_button_visible", null);
++        prefs.setProfileData("shorts_slider_preparation_enabled", null);
++        prefs.setProfileData("shorts_slider_migrated", null);
++        tweaks = PlayerTweaksData.instance(context);
++    }
++
++    @Test public void newProfileDefaultsAndIndependentVisibilityPersist() {
++        assertTrue(tweaks.isQuickSkipShortsAltEnabled());
++        assertFalse(tweaks.isQuickSkipShortsEnabled());
++        assertTrue(tweaks.isShortsAutoScrollEnabled());
++        assertTrue(tweaks.isShortsPreparationEnabled());
++        tweaks.setShortsButtonVisible(false);
++        tweaks.setShortsPreparationEnabled(false);
++        tweaks.onProfileChanged();
++        assertFalse(tweaks.isShortsButtonVisible());
++        assertFalse(tweaks.isShortsPreparationEnabled());
++        assertTrue(tweaks.isShortsAutoScrollEnabled());
++    }
++
++    @Test public void legacyToggleMigratesOnceAndNativeLoopControlsButton() {
++        String[] data = new String[62];
++        Arrays.fill(data, "null");
++        data[44] = "false";
++        data[57] = "false";
++        data[61] = "false";
++        prefs.setProfileData("video_player_tweaks_data", Helpers.mergeData((Object[]) data));
++        tweaks.onProfileChanged();
++        shadowOf(Looper.getMainLooper()).idle();
++        assertTrue(tweaks.isLoopShortsEnabled());
++        assertFalse(tweaks.isShortsAutoScrollEnabled());
++        assertFalse(tweaks.isQuickSkipShortsAltEnabled());
++        tweaks.setShortsAutoScrollEnabled(true);
++        shadowOf(Looper.getMainLooper()).idle();
++        tweaks.onProfileChanged();
++        assertFalse(tweaks.isLoopShortsEnabled());
++        tweaks.setLoopShortsEnabled(true);
++        assertFalse(tweaks.isShortsAutoScrollEnabled());
++    }
++    @Test public void optionsAreScopedToTheSelectedProfile() {
++        prefs.enableMultiProfiles(true);
++        context.getSharedPreferences(context.getPackageName() + "_preferences", 0).edit()
++                .putString("last_profile_name", "profile_a").commit();
++        tweaks.onProfileChanged();
++        tweaks.setShortsButtonVisible(false);
++        tweaks.setShortsPreparationEnabled(false);
++        context.getSharedPreferences(context.getPackageName() + "_preferences", 0).edit()
++                .putString("last_profile_name", "profile_b").commit();
++        tweaks.onProfileChanged();
++        assertTrue(tweaks.isShortsButtonVisible());
++        assertTrue(tweaks.isShortsPreparationEnabled());
++        context.getSharedPreferences(context.getPackageName() + "_preferences", 0).edit()
++                .putString("last_profile_name", "profile_a").commit();
++        tweaks.onProfileChanged();
++        assertFalse(tweaks.isShortsButtonVisible());
++        assertFalse(tweaks.isShortsPreparationEnabled());
++    }
++}
+diff --git a/common/src/test/java/com/liskovsoft/smartyoutubetv2/common/misc/VideoShortsClassificationTest.java b/common/src/test/java/com/liskovsoft/smartyoutubetv2/common/misc/VideoShortsClassificationTest.java
+new file mode 100644
+index 000000000..b420653a1
+--- /dev/null
++++ b/common/src/test/java/com/liskovsoft/smartyoutubetv2/common/misc/VideoShortsClassificationTest.java
+@@ -0,0 +1,152 @@
++package com.liskovsoft.smartyoutubetv2.common.misc;
++
++import com.liskovsoft.mediaserviceinterfaces.data.MediaFormat;
++import com.liskovsoft.mediaserviceinterfaces.data.MediaGroup;
++import com.liskovsoft.mediaserviceinterfaces.data.MediaItem;
++import com.liskovsoft.mediaserviceinterfaces.data.MediaItemFormatInfo;
++import com.liskovsoft.sharedutils.helpers.Helpers;
++import com.liskovsoft.smartyoutubetv2.common.app.models.data.BrowseSection;
++import com.liskovsoft.smartyoutubetv2.common.app.models.data.SimpleMediaItem;
++import com.liskovsoft.smartyoutubetv2.common.app.models.data.Video;
++import com.liskovsoft.smartyoutubetv2.common.app.models.data.VideoGroup;
++import org.junit.Test;
++import org.junit.runner.RunWith;
++import org.robolectric.RobolectricTestRunner;
++import org.robolectric.annotation.Config;
++import java.lang.reflect.Proxy;
++import java.util.ArrayList;
++import java.util.Arrays;
++import java.util.Collections;
++import java.util.List;
++import static org.junit.Assert.*;
++
++@RunWith(RobolectricTestRunner.class)
++@Config(sdk = 28)
++public class VideoShortsClassificationTest {
++    @Test public void explicitShortsIdentitySurvivesBothVideoCopies() {
++        Video original = video("short", true);
++        assertTrue(Video.from(original).isShorts());
++        assertTrue(original.copy().isShorts());
++        Video ordinary = video("ordinary", false);
++        assertFalse(Video.from(ordinary).isShorts());
++        assertFalse(ordinary.copy().isShorts());
++    }
++
++    @Test public void mediaItemRoundTripRetainsIdentityEvenAfterGroupIsDetached() {
++        Video original = video("short", true);
++        MediaItem item = SimpleMediaItem.from(original);
++        assertTrue(item.isShorts());
++        Video restored = Video.from(item);
++        restored.setGroup(null);
++        assertTrue(restored.isShorts());
++        assertFalse(SimpleMediaItem.from(video("ordinary", false)).isShorts());
++    }
++
++    @Test public void nativeMediaItemProofIsRetainedByVideoCopies() {
++        Video original = video("short", false);
++        original.mediaItem = SimpleMediaItem.from(video("short", true));
++        assertTrue(original.isShorts());
++        assertTrue(Video.from(original).isShorts());
++        assertTrue(original.copy().isShorts());
++        assertTrue(Video.fromString(original.toString()).isShorts());
++    }
++
++    @Test public void dedicatedSectionProofSurvivesGroupLossAndCopies() {
++        BrowseSection section = new BrowseSection(MediaGroup.TYPE_SHORTS, "Shorts", BrowseSection.TYPE_SHORTS_GRID, 0);
++        VideoGroup group = VideoGroup.from(section);
++        // The media row's type may differ from the dedicated browse section's type.
++        group.setType(MediaGroup.TYPE_HOME);
++        Video original = video("section-short", false);
++        original.setGroup(group);
++        assertTrue(original.isShorts());
++        assertTrue(Video.from(original).isShorts());
++        assertTrue(original.copy().isShorts());
++        original.setGroup(null);
++        assertTrue(original.isShorts());
++        assertTrue(Video.from(SimpleMediaItem.from(original)).isShorts());
++    }
++
++    @Test public void dedicatedMediaGroupIsProofWithoutItemFlag() {
++        VideoGroup group = VideoGroup.from(new ArrayList<Video>());
++        group.setType(MediaGroup.TYPE_SHORTS);
++        Video original = video("section-short", false);
++        original.setGroup(group);
++        assertTrue(original.isShorts());
++        original.setGroup(null);
++        assertTrue(original.copy().isShorts());
++    }
++
++    @Test public void ninthOrdinaryVideoIsNotMarkedByFirstEightShorts() {
++        List<Video> videos = new ArrayList<>();
++        for (int i = 0; i < 8; i++) videos.add(video("short-" + i, true));
++        Video ordinary = video("ordinary", false);
++        videos.add(ordinary);
++        VideoGroup group = VideoGroup.from(videos);
++        assertTrue(group.isShorts()); // The grid's presentation samples the first eight items.
++        assertFalse(ordinary.isShorts());
++        assertFalse(Video.from(ordinary).isShorts());
++        assertFalse(ordinary.copy().isShorts());
++        assertFalse(Video.from(SimpleMediaItem.from(ordinary)).isShorts());
++    }
++
++    @Test public void serializationRetainsShortsAndReadsOldTwentyThreeFieldFormat() {
++        Video original = video("short", true);
++        original.title = "Title with separators | #";
++        Video restored = Video.fromString(original.toString());
++        assertNotNull(restored);
++        assertEquals(original.videoId, restored.videoId);
++        assertEquals(original.title, restored.title);
++        assertTrue(restored.isShorts());
++        String[] legacy = Arrays.copyOf(Helpers.splitObj(original.toString()), 23);
++        Video old = Video.fromString(Helpers.mergeObj((Object[]) legacy));
++        assertNotNull(old);
++        assertEquals(original.videoId, old.videoId);
++        assertFalse(old.isShorts()); // Missing source metadata must not be guessed.
++        assertFalse(Video.fromString(video("ordinary", false).toString()).isShorts());
++    }
++
++    @Test public void portraitVideoFormatsAloneDoNotIdentifyShorts() {
++        MediaFormat portrait = (MediaFormat) Proxy.newProxyInstance(MediaFormat.class.getClassLoader(),
++                new Class<?>[]{MediaFormat.class}, (proxy, method, args) -> {
++                    if ("getWidth".equals(method.getName())) return 1080;
++                    if ("getHeight".equals(method.getName())) return 1920;
++                    return defaultValue(method.getReturnType());
++                });
++        MediaItemFormatInfo format = (MediaItemFormatInfo) Proxy.newProxyInstance(MediaItemFormatInfo.class.getClassLoader(),
++                new Class<?>[]{MediaItemFormatInfo.class}, (proxy, method, args) -> {
++                    if ("getAdaptiveFormats".equals(method.getName())) return Collections.singletonList(portrait);
++                    if ("getLengthSeconds".equals(method.getName())) return "3600";
++                    return defaultValue(method.getReturnType());
++                });
++        Video ordinary = video("vertical-long-video", false);
++        ordinary.sync(format);
++        assertFalse(ordinary.isShorts());
++        assertFalse(ordinary.copy().isShorts());
++    }
++
++    @Test public void liveVideoDoesNotReceiveShortsBehaviorFromItsSection() {
++        VideoGroup group = VideoGroup.from(new ArrayList<Video>());
++        group.setType(MediaGroup.TYPE_SHORTS);
++        Video live = video("live", false);
++        live.isLive = true;
++        live.setGroup(group);
++        assertFalse(live.isShorts());
++        assertFalse(SimpleMediaItem.from(live).isShorts());
++        assertFalse(Video.fromString(live.toString()).isShorts());
++    }
++
++    private static Video video(String id, boolean shorts) {
++        Video video = new Video();
++        video.videoId = id;
++        video.isShorts = shorts;
++        return video;
++    }
++
++    private static Object defaultValue(Class<?> type) {
++        if (type == boolean.class) return false;
++        if (type == int.class) return 0;
++        if (type == long.class) return 0L;
++        if (type == float.class) return 0f;
++        return null;
++    }
++}
+diff --git a/smarttubetv/src/main/java/com/liskovsoft/smartyoutubetv2/tv/ui/mod/leanback/playerglue/tweaks/MaxControlsVideoPlayerGlue.java b/smarttubetv/src/main/java/com/liskovsoft/smartyoutubetv2/tv/ui/mod/leanback/playerglue/tweaks/MaxControlsVideoPlayerGlue.java
+index 2c993ded3..bc4e0d9b6 100644
+--- a/smarttubetv/src/main/java/com/liskovsoft/smartyoutubetv2/tv/ui/mod/leanback/playerglue/tweaks/MaxControlsVideoPlayerGlue.java
++++ b/smarttubetv/src/main/java/com/liskovsoft/smartyoutubetv2/tv/ui/mod/leanback/playerglue/tweaks/MaxControlsVideoPlayerGlue.java
+@@ -134,6 +134,10 @@ public abstract class MaxControlsVideoPlayerGlue<T extends PlayerAdapter>
+         mVideo = video;
+     }
+ 
++    public Video getVideo() {
++        return mVideo;
++    }
++
+     @Override
+     public void play() {
+         super.play();
+diff --git a/smarttubetv/src/main/java/com/liskovsoft/smartyoutubetv2/tv/ui/playback/actions/ShortsAutoScrollAction.java b/smarttubetv/src/main/java/com/liskovsoft/smartyoutubetv2/tv/ui/playback/actions/ShortsAutoScrollAction.java
+new file mode 100644
+index 000000000..700657cdd
+--- /dev/null
++++ b/smarttubetv/src/main/java/com/liskovsoft/smartyoutubetv2/tv/ui/playback/actions/ShortsAutoScrollAction.java
+@@ -0,0 +1,15 @@
++package com.liskovsoft.smartyoutubetv2.tv.ui.playback.actions;
++
++import android.content.Context;
++import com.liskovsoft.smartyoutubetv2.tv.R;
++
++public class ShortsAutoScrollAction extends TwoStateAction {
++    public ShortsAutoScrollAction(Context context) {
++        super(context, R.id.action_shorts_auto_scroll, R.drawable.action_shorts_auto_scroll, false);
++
++        String[] labels = new String[2];
++        labels[INDEX_OFF] = context.getString(R.string.action_shorts_auto_scroll);
++        labels[INDEX_ON] = context.getString(R.string.action_shorts_auto_scroll);
++        setLabels(labels);
++    }
++}
+diff --git a/smarttubetv/src/main/java/com/liskovsoft/smartyoutubetv2/tv/ui/playback/other/VideoPlayerGlue.java b/smarttubetv/src/main/java/com/liskovsoft/smartyoutubetv2/tv/ui/playback/other/VideoPlayerGlue.java
+index 995a4f334..66a216ad5 100644
+--- a/smarttubetv/src/main/java/com/liskovsoft/smartyoutubetv2/tv/ui/playback/other/VideoPlayerGlue.java
++++ b/smarttubetv/src/main/java/com/liskovsoft/smartyoutubetv2/tv/ui/playback/other/VideoPlayerGlue.java
+@@ -27,6 +27,9 @@ import com.liskovsoft.smartyoutubetv2.tv.R;
+ import com.liskovsoft.smartyoutubetv2.tv.ui.mod.leanback.playerglue.tweaks.MaxControlsVideoPlayerGlue;
+ import com.liskovsoft.smartyoutubetv2.tv.ui.mod.leanback.playerglue.tweaks.PlaybackTransportRowPresenter;
+ import com.liskovsoft.smartyoutubetv2.tv.ui.mod.leanback.widget.OnActionLongClickedListener;
++import com.liskovsoft.smartyoutubetv2.common.app.models.data.Video;
++import com.liskovsoft.smartyoutubetv2.common.app.models.playback.manager.PlayerUI;
++import com.liskovsoft.smartyoutubetv2.tv.ui.playback.actions.ShortsAutoScrollAction;
+ import com.liskovsoft.smartyoutubetv2.tv.ui.playback.actions.AFRAction;
+ import com.liskovsoft.smartyoutubetv2.tv.ui.playback.actions.ActionHelpers;
+ import com.liskovsoft.smartyoutubetv2.tv.ui.playback.actions.ChannelAction;
+@@ -134,6 +137,7 @@ public class VideoPlayerGlue extends MaxControlsVideoPlayerGlue<PlayerAdapter> i
+         putAction(new RotateAction(context));
+         putAction(new FlipAction(context));
+         putAction(new SoundOffAction(context));
++        putAction(new ShortsAutoScrollAction(context));
+     }
+ 
+     @Override
+@@ -204,6 +208,16 @@ public class VideoPlayerGlue extends MaxControlsVideoPlayerGlue<PlayerAdapter> i
+         // Origin: {@link androidx.leanback.widget.ControlBarPresenter#MAX_CONTROLS}
+         // Custom mod: {@link com.liskovsoft.smartyoutubetv2.tv.ui.mod.leanback.playerglue.ControlBarPresenter#MAX_CONTROLS}
+ 
++        if (mActions.get(R.id.action_shorts_auto_scroll) != null) {
++            Video video = getVideo();
++            boolean isShorts = video != null && (video.isShorts() || video.belongsToShortsGroup());
++            if (isShorts && mPlayerTweaksData.isShortsButtonVisible()) {
++                adapter.add(mActions.get(R.id.action_shorts_auto_scroll));
++                setButtonState(R.id.action_shorts_auto_scroll,
++                        mPlayerTweaksData.isShortsAutoScrollEnabled() ? PlayerUI.BUTTON_ON : PlayerUI.BUTTON_OFF);
++            }
++        }
++
+         if (mPlayerTweaksData.isPlayerButtonEnabled(PlayerTweaksData.PLAYER_BUTTON_HIGH_QUALITY)) {
+             adapter.add(mActions.get(R.id.lb_control_high_quality));
+         }
+@@ -239,6 +253,40 @@ public class VideoPlayerGlue extends MaxControlsVideoPlayerGlue<PlayerAdapter> i
+         }
+     }
+ 
++    @Override
++    public void setVideo(Video video) {
++        super.setVideo(video);
++
++        updateShortsAutoScrollButton(video);
++    }
++
++    public void updateShortsAutoScrollButton(Video video) {
++        if (getControlsRow() == null || getControlsRow().getSecondaryActionsAdapter() == null) {
++            return;
++        }
++
++        ArrayObjectAdapter adapter = (ArrayObjectAdapter) getControlsRow().getSecondaryActionsAdapter();
++        Action action = mActions.get(R.id.action_shorts_auto_scroll);
++        if (action == null) {
++            return;
++        }
++
++        boolean isShorts = video != null && (video.isShorts() || video.belongsToShortsGroup());
++        int index = adapter.indexOf(action);
++
++        if (isShorts && mPlayerTweaksData.isShortsButtonVisible()) {
++            if (index < 0) {
++                adapter.add(0, action);
++            }
++            setActionIndex(action,
++                    mPlayerTweaksData.isShortsAutoScrollEnabled() ? PlayerUI.BUTTON_ON : PlayerUI.BUTTON_OFF);
++        } else {
++            if (index >= 0) {
++                adapter.remove(action);
++            }
++        }
++    }
++
+     @Override
+     protected PlaybackRowPresenter onCreateRowPresenter() {
+         PlaybackRowPresenter rowPresenter = super.onCreateRowPresenter();
+@@ -311,6 +359,7 @@ public class VideoPlayerGlue extends MaxControlsVideoPlayerGlue<PlayerAdapter> i
+ 
+     public void setButtonState(int buttonId, int buttonState) {
+         setActionIndex(mActions.get(buttonId), buttonState);
++        if (buttonId == R.id.action_shorts_auto_scroll) updateShortsAutoScrollButton(getVideo());
+     }
+ 
+     public void setChannelIcon(String iconUrl) {

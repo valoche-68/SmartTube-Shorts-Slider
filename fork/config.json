@@ -1,0 +1,8 @@
+{
+  "upstream": "yuliskov/SmartTube",
+  "repository": "valoche-68/SmartTube-Shorts-Slider",
+  "base_commit": "9336539b3db340c7bcf55f95afad44d1d1abb7e4",
+  "media_base_commit": "da8102d4e052447edaf48d88d86a00a5c21187fb",
+  "revision": 2,
+  "certificate_sha256": "80a1a2db29be237b85486957804c21ddfa1a6c0371b93f2bd293e134aa138838"
+}

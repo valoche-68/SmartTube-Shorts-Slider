@@ -1,0 +1,349 @@
+diff --git a/youtubeapi/src/main/java/com/liskovsoft/youtubeapi/app/AppService.java b/youtubeapi/src/main/java/com/liskovsoft/youtubeapi/app/AppService.java
+index fd0fac31..688fdd3e 100644
+--- a/youtubeapi/src/main/java/com/liskovsoft/youtubeapi/app/AppService.java
++++ b/youtubeapi/src/main/java/com/liskovsoft/youtubeapi/app/AppService.java
+@@ -17,7 +17,7 @@ import kotlin.Pair;
+ public class AppService {
+     private static AppService sInstance;
+     private final AppServiceInt mAppServiceInt;
+-    private String mClientPlaybackNonce;
++    private final PlaybackNonceState mPlaybackNonce = new PlaybackNonceState();
+ 
+     private AppService() {
+         mAppServiceInt = new AppServiceIntCached();
+@@ -101,7 +101,7 @@ public class AppService {
+     }
+ 
+     public void resetClientPlaybackNonce() {
+-        mClientPlaybackNonce = null;
++        mPlaybackNonce.reset();
+     }
+ 
+     /**
+@@ -109,19 +109,14 @@ public class AppService {
+      * A nonce is a unique value chosen by an entity in a protocol, and it is used to protect that entity against attacks which fall under the very large umbrella of "replay".
+      */
+     public synchronized String getClientPlaybackNonce() {
+-        if (mClientPlaybackNonce != null) {
+-            return mClientPlaybackNonce;
+-        }
+-
+-        if (mAppServiceInt.getPlayerDataExtractor() == null) {
+-            return null;
+-        }
+-
+-        mClientPlaybackNonce = mAppServiceInt.getPlayerDataExtractor().createClientPlaybackNonce();
+-
+-        return mClientPlaybackNonce;
++        return mPlaybackNonce.get(() -> mAppServiceInt.getPlayerDataExtractor() == null ? null :
++                mAppServiceInt.getPlayerDataExtractor().createClientPlaybackNonce());
+     }
+ 
++    public void beginShortsPreparation() { mPlaybackNonce.beginIsolated(); }
++    public void endShortsPreparation() { mPlaybackNonce.endIsolated(); }
++    public void activatePreparedNonce(String nonce) { mPlaybackNonce.activate(nonce); }
++
+     /**
+      * Constant used in {@link AuthApi}
+      */
+diff --git a/youtubeapi/src/main/java/com/liskovsoft/youtubeapi/app/PlaybackNonceState.java b/youtubeapi/src/main/java/com/liskovsoft/youtubeapi/app/PlaybackNonceState.java
+new file mode 100644
+index 00000000..538ff57b
+--- /dev/null
++++ b/youtubeapi/src/main/java/com/liskovsoft/youtubeapi/app/PlaybackNonceState.java
+@@ -0,0 +1,32 @@
++package com.liskovsoft.youtubeapi.app;
++
++/** Keeps speculative lookups from replacing the current video's history identifier. */
++public final class PlaybackNonceState {
++    public interface Factory { String create(); }
++    private String active;
++    private final ThreadLocal<String[]> isolated = new ThreadLocal<>();
++
++    public synchronized String get(Factory factory) {
++        String[] local = isolated.get();
++        if (local != null) {
++            if (local[0] == null) local[0] = factory.create();
++            return local[0];
++        }
++        if (active == null) active = factory.create();
++        return active;
++    }
++
++    public synchronized void reset() {
++        String[] local = isolated.get();
++        if (local != null) local[0] = null;
++        else active = null;
++    }
++
++    public void beginIsolated() {
++        if (isolated.get() != null) throw new IllegalStateException("Nested playback preparation");
++        isolated.set(new String[1]);
++    }
++
++    public void endIsolated() { isolated.remove(); }
++    public synchronized void activate(String nonce) { active = nonce; }
++}
+diff --git a/youtubeapi/src/main/java/com/liskovsoft/youtubeapi/common/models/gen/CommonHelper.kt b/youtubeapi/src/main/java/com/liskovsoft/youtubeapi/common/models/gen/CommonHelper.kt
+index 01d79fdd..9a6c8210 100644
+--- a/youtubeapi/src/main/java/com/liskovsoft/youtubeapi/common/models/gen/CommonHelper.kt
++++ b/youtubeapi/src/main/java/com/liskovsoft/youtubeapi/common/models/gen/CommonHelper.kt
+@@ -123,7 +123,7 @@ internal fun VideoItem.getPlaylistId() = navigationEndpoint?.getPlaylistId()
+ internal fun VideoItem.getPlaylistIndex() = navigationEndpoint?.getIndex()
+ internal fun VideoItem.isLive(): Boolean = STATUS_STYLE_LIVE == getStatusStyle() || BADGE_STYLE_LIVE == getBadgeStyle()
+ internal fun VideoItem.isUpcoming() = BADGE_STYLE_UPCOMING == getBadgeStyle()
+-internal fun VideoItem.isShorts() = BADGE_STYLE_SHORTS == getBadgeStyle()
++internal fun VideoItem.isShorts() = BADGE_STYLE_SHORTS == getBadgeStyle() || navigationEndpoint?.reelWatchEndpoint != null
+ internal fun VideoItem.isMovie() = STATUS_STYLE_MOVIE == getStatusStyle() && getVideoId() == null
+ internal fun VideoItem.getFeedbackTokens() = menu?.getFeedbackTokens()
+ private fun VideoItem.getStatusStyle() = badges?.firstNotNullOfOrNull { it?.metadataBadgeRenderer?.style }
+@@ -215,7 +215,8 @@ internal fun TileItem.getRichTextTileText() = header?.richTextTileHeaderRenderer
+ internal fun TileItem.getContinuationToken() = onSelectCommand?.getContinuations()?.getContinuationToken()
+ internal fun TileItem.isUpcoming() = BADGE_STYLE_UPCOMING == getBadgeStyle()
+ internal fun TileItem.isMovie() = STATUS_STYLE_MOVIE == getStatusStyle() && getVideoId() == null // a movie has browseId instead of videoId
+-internal fun TileItem.isShorts() = BADGE_STYLE_SHORTS == getBadgeStyle() || TILE_STYLE_SHORTS == getTileStyle()
++internal fun TileItem.isShorts() = BADGE_STYLE_SHORTS == getBadgeStyle() || TILE_STYLE_SHORTS == getTileStyle() ||
++    contentType == "TILE_CONTENT_TYPE_SHORTS" || onSelectCommand?.reelWatchEndpoint != null
+ internal fun TileItem.getQuery() = onSelectCommand?.getQuery()
+ private fun TileItem.Header.getBadgeStyle() = tileHeaderRenderer?.thumbnailOverlays?.firstNotNullOfOrNull { it?.thumbnailOverlayTimeStatusRenderer?.style }
+ private fun TileItem.Metadata.getStatusStyle() = tileMetadataRenderer?.lines?.firstNotNullOfOrNull { it?.lineRenderer?.items?.firstNotNullOfOrNull { it?.lineItemRenderer?.badge?.metadataBadgeRenderer?.style } }
+@@ -261,6 +262,7 @@ internal fun LockupItem.getPlaylistId() = rendererContext?.getPlaylistId()
+ internal fun LockupItem.getThumbnails() = getThumbnailView()?.image
+ internal fun LockupItem.getBadgeText() = getBadge()?.text
+ internal fun LockupItem.isLive() = Helpers.equalsAny(getBadge()?.badgeStyle, BADGE_STYLE_LIVE, LOCKUP_BADGE_STYLE_LIVE)
++internal fun LockupItem.isShorts() = rendererContext?.commandContext?.onTap?.innertubeCommand?.reelWatchEndpoint != null
+ internal fun LockupItem.getPercentWatched() = getOverlays()?.firstNotNullOfOrNull {
+     it?.thumbnailBottomOverlayViewModel?.progressBar?.thumbnailOverlayProgressBarViewModel?.startPercent }
+ // The video without a badge, probably Watch again
+@@ -336,7 +338,8 @@ internal fun ItemWrapper.getPlaylistIndex() = getVideoItem()?.getPlaylistIndex()
+ internal fun ItemWrapper.isLive() = getVideoItem()?.isLive() ?: getMusicItem()?.isLive() ?: getTileItem()?.isLive() ?: getLockupItem()?.isLive() ?: false
+ internal fun ItemWrapper.isUpcoming() = getVideoItem()?.isUpcoming() ?: getMusicItem()?.isUpcoming() ?: getTileItem()?.isUpcoming() ?: false
+ internal fun ItemWrapper.isMovie() = getVideoItem()?.isMovie() ?: getTileItem()?.isMovie() ?: false
+-internal fun ItemWrapper.isShorts() = reelItemRenderer != null || shortsLockupViewModel != null || getVideoItem()?.isShorts() ?: getTileItem()?.isShorts() ?: false
++internal fun ItemWrapper.isShorts() = reelItemRenderer != null || shortsLockupViewModel != null ||
++    getVideoItem()?.isShorts() == true || getTileItem()?.isShorts() == true || getLockupItem()?.isShorts() == true
+ internal fun ItemWrapper.getDescriptionText() = getTileItem()?.getRichTextTileText()
+ internal fun ItemWrapper.getContinuationToken() = getTileItem()?.getContinuationToken() ?: getContinuationItem()?.getContinuationToken()
+ internal fun ItemWrapper.getFeedbackToken() = getFeedbackTokens()?.getOrNull(0)
+diff --git a/youtubeapi/src/main/java/com/liskovsoft/youtubeapi/service/PreparedShort.java b/youtubeapi/src/main/java/com/liskovsoft/youtubeapi/service/PreparedShort.java
+new file mode 100644
+index 00000000..b54bf551
+--- /dev/null
++++ b/youtubeapi/src/main/java/com/liskovsoft/youtubeapi/service/PreparedShort.java
+@@ -0,0 +1,60 @@
++package com.liskovsoft.youtubeapi.service;
++
++import com.liskovsoft.mediaserviceinterfaces.data.MediaItemFormatInfo;
++import com.liskovsoft.mediaserviceinterfaces.oauth.Account;
++import com.liskovsoft.sharedutils.rx.RxHelper;
++import com.liskovsoft.youtubeapi.app.AppService;
++import com.liskovsoft.youtubeapi.service.data.YouTubeMediaItemFormatInfo;
++import com.liskovsoft.youtubeapi.videoinfo.V2.VideoInfoService;
++import io.reactivex.Observable;
++
++/** A speculative result; playback cache and history change only on activation. */
++public final class PreparedShort {
++    private final MediaItemFormatInfo format;
++    private final VideoInfoService service;
++    private final String nonce;
++    private final Account account;
++    private final long created = System.nanoTime();
++
++    private PreparedShort(MediaItemFormatInfo format, VideoInfoService service, String nonce, Account account) {
++        this.format = format;
++        this.service = service;
++        this.nonce = nonce;
++        this.account = account;
++    }
++
++    public static Observable<PreparedShort> load(String videoId) {
++        return RxHelper.fromCallable(() -> {
++            Account account = YouTubeSignInService.instance().getSelectedAccount();
++            AppService app = AppService.instance();
++            app.beginShortsPreparation();
++            try {
++                if (Thread.currentThread().isInterrupted()) throw new InterruptedException();
++                VideoInfoService service = VideoInfoService.createForPreparation();
++                MediaItemFormatInfo format = YouTubeMediaItemFormatInfo.from(service.getVideoInfo(videoId, null));
++                if (Thread.currentThread().isInterrupted()) throw new InterruptedException();
++                PreparedShort result = new PreparedShort(format, service, app.getClientPlaybackNonce(), account);
++                if (!result.isValid() || !videoId.equals(format.getVideoId())) {
++                    throw new IllegalStateException("No usable prepared format");
++                }
++                return result;
++            } finally {
++                app.endShortsPreparation();
++            }
++        });
++    }
++
++    public boolean isValid() {
++        return format != null && !format.isUnplayable() && !format.isLive() && format.isCacheActual() &&
++                System.nanoTime() - created < 60_000_000_000L &&
++                account == YouTubeSignInService.instance().getSelectedAccount();
++    }
++
++    public MediaItemFormatInfo activate() {
++        if (!isValid()) return null;
++        AppService.instance().activatePreparedNonce(nonce);
++        VideoInfoService.instance().activatePreparedState(service);
++        YouTubeMediaItemService.instance().activatePreparedFormat(format);
++        return format;
++    }
++}
+diff --git a/youtubeapi/src/main/java/com/liskovsoft/youtubeapi/service/YouTubeMediaItemService.java b/youtubeapi/src/main/java/com/liskovsoft/youtubeapi/service/YouTubeMediaItemService.java
+index 09beae09..0246dd5c 100644
+--- a/youtubeapi/src/main/java/com/liskovsoft/youtubeapi/service/YouTubeMediaItemService.java
++++ b/youtubeapi/src/main/java/com/liskovsoft/youtubeapi/service/YouTubeMediaItemService.java
+@@ -559,6 +559,10 @@ public class YouTubeMediaItemService implements MediaItemService {
+         mCachedFormatInfo = null;
+     }
+ 
++    public void activatePreparedFormat(MediaItemFormatInfo formatInfo) {
++        mCachedFormatInfo = formatInfo;
++    }
++
+     private MediaItemFormatInfo getCachedFormatInfo(String videoId) {
+         return  mCachedFormatInfo != null &&
+                 mCachedFormatInfo.getVideoId() != null &&
+diff --git a/youtubeapi/src/main/java/com/liskovsoft/youtubeapi/videoinfo/V2/VideoInfoService.java b/youtubeapi/src/main/java/com/liskovsoft/youtubeapi/videoinfo/V2/VideoInfoService.java
+index c3b000e9..8562dd1d 100644
+--- a/youtubeapi/src/main/java/com/liskovsoft/youtubeapi/videoinfo/V2/VideoInfoService.java
++++ b/youtubeapi/src/main/java/com/liskovsoft/youtubeapi/videoinfo/V2/VideoInfoService.java
+@@ -55,11 +55,25 @@ public class VideoInfoService extends VideoInfoServiceBase {
+     private boolean mUseAuth;
+     private List<TranslationLanguage> mCachedTranslationLanguages;
+     private boolean mIsUnplayable;
++    private boolean mIsIsolated;
+ 
+     private VideoInfoService() {
+         mVideoInfoApi = RetrofitHelper.create(VideoInfoApi.class);
+     }
+ 
++    public static VideoInfoService createForPreparation() {
++        VideoInfoService service = new VideoInfoService();
++        service.mIsIsolated = true;
++        return service;
++    }
++
++    public void activatePreparedState(VideoInfoService prepared) {
++        mActualInfoType = prepared.mActualInfoType;
++        mNextInfoType = prepared.mNextInfoType;
++        mIsUnplayable = prepared.mIsUnplayable;
++        persistVideoInfoType();
++    }
++
+     public static VideoInfoService instance() {
+         if (sInstance == null) {
+             sInstance = new VideoInfoService();
+@@ -139,6 +153,7 @@ public class VideoInfoService extends VideoInfoServiceBase {
+         AppClient nextType = beginType;
+ 
+         do {
++            if (mIsIsolated && Thread.currentThread().isInterrupted()) return null;
+             VideoInfo result = getVideoInfoWithRentFix(nextType, videoId, clickTrackingParams);
+ 
+             if (result != null && infoTester.test(result)) {
+@@ -336,7 +351,7 @@ public class VideoInfoService extends VideoInfoServiceBase {
+     }
+ 
+     private void persistVideoInfoType() {
+-        if (!GlobalPreferences.isInitialized()) {
++        if (mIsIsolated || !GlobalPreferences.isInitialized()) {
+             return;
+         }
+ 
+diff --git a/youtubeapi/src/test/java/com/liskovsoft/youtubeapi/common/models/gen/ShortsIdentityTest.kt b/youtubeapi/src/test/java/com/liskovsoft/youtubeapi/common/models/gen/ShortsIdentityTest.kt
+new file mode 100644
+index 00000000..5bfb8cf0
+--- /dev/null
++++ b/youtubeapi/src/test/java/com/liskovsoft/youtubeapi/common/models/gen/ShortsIdentityTest.kt
+@@ -0,0 +1,88 @@
++package com.liskovsoft.youtubeapi.common.models.gen
++
++import com.google.gson.Gson
++import com.liskovsoft.youtubeapi.common.models.impl.mediaitem.WrapperMediaItem
++import org.junit.Assert.assertEquals
++import org.junit.Assert.assertFalse
++import org.junit.Assert.assertTrue
++import org.junit.Test
++
++/** Synthetic API cards: explicit Shorts endpoints/types, without relying on badges or shape. */
++class ShortsIdentityTest {
++    private val gson = Gson()
++
++    @Test fun videoCardsWithReelEndpointAreShortsWithoutBadge() {
++        for (renderer in listOf("videoRenderer", "gridVideoRenderer", "pivotVideoRenderer", "compactVideoRenderer")) {
++            val item = mediaItem("""{"$renderer":{
++                "videoId":"short", "navigationEndpoint":{"reelWatchEndpoint":{"videoId":"short"}}
++            }}""")
++            assertTrue(renderer, item.isShorts())
++            assertEquals("short", item.getVideoId())
++        }
++    }
++
++    @Test fun tvTileWithReelEndpointIsShortsWithoutStyleOrBadge() {
++        val item = mediaItem("""{"tileRenderer":{
++            "contentType":"TILE_CONTENT_TYPE_VIDEO",
++            "onSelectCommand":{"reelWatchEndpoint":{"videoId":"short"}}
++        }}""")
++        assertTrue(item.isShorts())
++        assertEquals("short", item.getVideoId())
++    }
++
++    @Test fun tvTileWithExplicitShortsContentTypeIsShortsWithoutBadge() {
++        val item = mediaItem("""{"tileRenderer":{
++            "contentType":"TILE_CONTENT_TYPE_SHORTS",
++            "onSelectCommand":{"watchEndpoint":{"videoId":"short"}}
++        }}""")
++        assertTrue(item.isShorts())
++        assertEquals("short", item.getVideoId())
++    }
++
++    @Test fun homeLockupWithReelEndpointRetainsShortsIdentity() {
++        val item = mediaItem("""{"lockupViewModel":{
++            "rendererContext":{"commandContext":{"onTap":{"innertubeCommand":{
++                "reelWatchEndpoint":{"videoId":"short"}
++            }}}}
++        }}""")
++        assertTrue(item.isShorts())
++        assertEquals("short", item.getVideoId())
++    }
++
++    @Test fun supportedShortsRenderersAndBadgesStillWork() {
++        for (json in listOf(
++            """{"reelItemRenderer":{"videoId":"short"}}""",
++            """{"shortsLockupViewModel":{"onTap":{"innertubeCommand":{"reelWatchEndpoint":{"videoId":"short"}}}}}""",
++            """{"videoRenderer":{"videoId":"short","thumbnailOverlays":[{"thumbnailOverlayTimeStatusRenderer":{"style":"SHORTS"}}]}}""",
++            """{"tileRenderer":{"style":"TILE_STYLE_YTLR_SHORTS","onSelectCommand":{"watchEndpoint":{"videoId":"short"}}}}"""
++        )) {
++            assertTrue(mediaItem(json).isShorts())
++        }
++    }
++
++    @Test fun standardPortraitVideoAndShortDurationAreNotShortsProof() {
++        for (duration in listOf("0:30", "60:00")) {
++            val item = mediaItem("""{"videoRenderer":{
++                "videoId":"ordinary", "navigationEndpoint":{"watchEndpoint":{"videoId":"ordinary"}},
++                "thumbnail":{"thumbnails":[{"url":"https://example.invalid/portrait.jpg","width":"1080","height":"1920"}]},
++                "lengthText":{"simpleText":"$duration"},
++                "thumbnailOverlays":[{"thumbnailOverlayTimeStatusRenderer":{"style":"DEFAULT"}}]
++            }}""")
++            assertFalse(item.isShorts())
++            assertEquals("ordinary", item.getVideoId())
++        }
++    }
++
++    @Test fun ordinaryTvTileAndHomeLockupAreNotShorts() {
++        for (json in listOf(
++            """{"tileRenderer":{"contentType":"TILE_CONTENT_TYPE_VIDEO","onSelectCommand":{"watchEndpoint":{"videoId":"ordinary"}}}}""",
++            """{"lockupViewModel":{"rendererContext":{"commandContext":{"onTap":{"innertubeCommand":{"watchEndpoint":{"videoId":"ordinary"}}}}}}}"""
++        )) {
++            val item = mediaItem(json)
++            assertFalse(item.isShorts())
++            assertEquals("ordinary", item.getVideoId())
++        }
++    }
++
++    private fun mediaItem(json: String): WrapperMediaItem = WrapperMediaItem(gson.fromJson(json, ItemWrapper::class.java))
++}
