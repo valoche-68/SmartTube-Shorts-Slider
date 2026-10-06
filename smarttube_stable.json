@@ -1,27 +1,31 @@
 {
   "package": {
     "downloadUrlList": [
-      "https://github.com/valoche-68/SmartTube-Shorts-Slider/releases/download/v32.56-stable-slider.1/SmartTube_Shorts_Slider_stable_32.56-slider.1_armeabi-v7a.apk"
+      "https://github.com/valoche-68/SmartTube-Shorts-Slider/releases/download/v32.56-stable-slider.2/SmartTube_Shorts_Slider_stable_32.56-slider.2_armeabi-v7a.apk"
     ],
     "downloadUrlList_arm64-v8a": [
-      "https://github.com/valoche-68/SmartTube-Shorts-Slider/releases/download/v32.56-stable-slider.1/SmartTube_Shorts_Slider_stable_32.56-slider.1_arm64-v8a.apk"
+      "https://github.com/valoche-68/SmartTube-Shorts-Slider/releases/download/v32.56-stable-slider.2/SmartTube_Shorts_Slider_stable_32.56-slider.2_arm64-v8a.apk"
     ],
     "downloadUrlList_x86": [
-      "https://github.com/valoche-68/SmartTube-Shorts-Slider/releases/download/v32.56-stable-slider.1/SmartTube_Shorts_Slider_stable_32.56-slider.1_x86.apk"
+      "https://github.com/valoche-68/SmartTube-Shorts-Slider/releases/download/v32.56-stable-slider.2/SmartTube_Shorts_Slider_stable_32.56-slider.2_x86.apk"
     ],
     "downloadUrlList_universal": [
-      "https://github.com/valoche-68/SmartTube-Shorts-Slider/releases/download/v32.56-stable-slider.1/SmartTube_Shorts_Slider_stable_32.56-slider.1_universal.apk"
+      "https://github.com/valoche-68/SmartTube-Shorts-Slider/releases/download/v32.56-stable-slider.2/SmartTube_Shorts_Slider_stable_32.56-slider.2_universal.apk"
     ]
   },
-  "32.56-slider.1": {
-    "versionCode": 244601,
+  "32.56-slider.2": {
+    "versionCode": 244602,
     "changelog": [
+      "Shorts identity retained through copies and playback restoration.",
+      "Navigation and autoplay select available Shorts even with the section playlist disabled.",
       "Hideable Shorts auto-scroll button.",
       "Native up/down navigation and auto-play enabled for new profiles.",
       "Optional next-Short playback information preparation; speed benefit not measured.",
       "Official buffering and pagination; no guaranteed queue of 10–20 videos."
     ],
     "changelog_fr": [
+      "Reconnaissance des Shorts conservée lors des copies et de la reprise de lecture.",
+      "Navigation et enchaînement parmi les Shorts disponibles, y compris sans playlist de section.",
       "Bouton Shorts automatique ON/OFF, masquable dans les réglages.",
       "Navigation native haut/bas et lecture automatique activées sur les nouveaux profils.",
       "Préparation facultative des informations du Short suivant ; gain de vitesse non mesuré.",
