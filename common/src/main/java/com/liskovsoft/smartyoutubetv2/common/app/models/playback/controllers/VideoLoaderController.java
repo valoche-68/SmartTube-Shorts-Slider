@@ -1,6 +1,8 @@
 package com.liskovsoft.smartyoutubetv2.common.app.models.playback.controllers;
 
 import android.os.Build.VERSION;
+import android.os.SystemClock;
+import com.liskovsoft.youtubeapi.service.PreparedShort;
 
 import com.liskovsoft.mediaserviceinterfaces.MediaItemService;
 import com.liskovsoft.mediaserviceinterfaces.ServiceManager;
@@ -22,6 +24,7 @@ import com.liskovsoft.smartyoutubetv2.common.app.presenters.AppDialogPresenter;
 import com.liskovsoft.smartyoutubetv2.common.app.presenters.dialogs.VideoActionPresenter;
 import com.liskovsoft.smartyoutubetv2.common.app.views.PlaybackView;
 import com.liskovsoft.smartyoutubetv2.common.misc.MediaServiceManager;
+import com.liskovsoft.smartyoutubetv2.common.misc.NextVideoPreloader;
 import com.liskovsoft.smartyoutubetv2.common.prefs.PlayerData;
 import com.liskovsoft.smartyoutubetv2.common.utils.Utils;
 import com.liskovsoft.youtubeapi.service.YouTubeServiceManager;
@@ -36,6 +39,8 @@ public class VideoLoaderController extends BasePlayerController {
     private SuggestionsController mSuggestionsController;
     private ErrorFixerController mErrorFixerController;
     private Disposable mFormatInfoAction;
+    private final NextVideoPreloader<PreparedShort> mNextVideoPreloader = new NextVideoPreloader<>(
+            PreparedShort::load, SystemClock::elapsedRealtime, PreparedShort::isValid);
     private final Runnable mReloadVideo = () -> {
         getMainController().onNewVideo(getVideo());
     };
@@ -106,6 +111,7 @@ public class VideoLoaderController extends BasePlayerController {
 
     @Override
     public void onEngineReleased() {
+        mNextVideoPreloader.reset();
         disposeActions();
     }
 
@@ -116,8 +122,12 @@ public class VideoLoaderController extends BasePlayerController {
         }
         
         getPlayer().setButtonState(R.id.action_repeat, video.finishOnEnded ? PlayerConstants.PLAYBACK_MODE_CLOSE : getPlayerData().getPlaybackMode());
-        // Can't set title at this point
-        //checkSleepTimer();
+        preloadNextVideoIfNeeded();
+    }
+
+    @Override
+    public void onTickle() {
+        preloadNextVideoIfNeeded();
     }
 
     @Override
@@ -151,11 +161,33 @@ public class VideoLoaderController extends BasePlayerController {
     }
 
     public void loadNext() {
+        loadNext(false);
+    }
+
+    private void loadNext(boolean automatic) {
         if (getPlayer() == null || getVideo() == null) {
             return;
         }
 
         Video next = mSuggestionsController.getNext();
+        if (getVideo().isShorts() && next == null) {
+            Video current = getVideo();
+            mSuggestionsController.requestNextShort(automatic, candidate -> {
+                if (getPlayer() == null || getVideo() != current ||
+                        (automatic && !getPlayerTweaksData().isShortsAutoScrollEnabled())) {
+                    return;
+                }
+                if (candidate != null) {
+                    openVideoInt(candidate);
+                    if (getPlayerTweaksData().isPlayerUiOnNextEnabled() && getPlayer() != null) {
+                        getPlayer().showOverlay(true);
+                    }
+                } else {
+                    stopPlayback();
+                }
+            });
+            return;
+        }
 
         if (next != null) {
             openVideoInt(next);
@@ -253,7 +285,15 @@ public class VideoLoaderController extends BasePlayerController {
         // Fix no progress on next video (the engine may still buffering a bit)
         //getPlayer().showProgressBar(true);
         Utils.post(mShowProgressBar);
+        PreparedShort prepared = mNextVideoPreloader.take(video.videoId);
         disposeActions();
+        if (prepared != null && getPlayerTweaksData().isShortsPreparationEnabled()) {
+            MediaItemFormatInfo format = prepared.activate();
+            if (format != null) {
+                processFormatInfo(format);
+                return;
+            }
+        }
 
         ServiceManager service = YouTubeServiceManager.instance();
         MediaItemService mediaItemManager = service.getMediaItemService();
@@ -426,7 +466,7 @@ public class VideoLoaderController extends BasePlayerController {
                 }
             case PlayerConstants.PLAYBACK_MODE_ALL:
             case PlayerConstants.PLAYBACK_MODE_SHUFFLE:
-                loadNext();
+                loadNext(video.isShorts());
                 break;
             case PlayerConstants.PLAYBACK_MODE_ONE:
                 if (VERSION.SDK_INT <= 19) {
@@ -536,6 +576,7 @@ public class VideoLoaderController extends BasePlayerController {
     @Override
     public void onMetadata(MediaItemMetadata metadata) {
         initRandomNext();
+        preloadNextVideoIfNeeded();
     }
 
     private void initRandomNext() {
@@ -592,8 +633,12 @@ public class VideoLoaderController extends BasePlayerController {
         Video video = getVideo();
         if (video != null && video.finishOnEnded) {
             playbackMode = PlayerConstants.PLAYBACK_MODE_CLOSE;
-        } else if (video != null && video.belongsToShortsGroup() && getPlayerTweaksData().isLoopShortsEnabled()) {
-            playbackMode = PlayerConstants.PLAYBACK_MODE_ONE;
+        } else if (video != null && (video.isShorts() || video.belongsToShortsGroup())) {
+            if (getPlayerTweaksData().isShortsAutoScrollEnabled()) {
+                playbackMode = PlayerConstants.PLAYBACK_MODE_ALL;
+            } else {
+                playbackMode = PlayerConstants.PLAYBACK_MODE_ONE;
+            }
         }
         return playbackMode;
     }
@@ -620,13 +665,27 @@ public class VideoLoaderController extends BasePlayerController {
         }
     }
 
+    @Override
+    public void onFinish() {
+        mNextVideoPreloader.reset();
+        disposeActions();
+    }
+
     private void preloadNextVideoIfNeeded() {
-        if (isEmbedPlayer() || getPlayer() == null || getVideo() == null || getVideo().isLive) {
+        if (!getPlayerTweaksData().isShortsPreparationEnabled()) {
+            mNextVideoPreloader.reset();
             return;
         }
-
-        if (getPlayer().getDurationMs() - getPlayer().getPositionMs() < 50_000) {
-            MediaServiceManager.instance().loadFormatInfo(mSuggestionsController.getNext(), formatInfo -> {});
+        if (isEmbedPlayer() || getPlayer() == null || !getPlayer().isPlaying() || getPlayer().getDurationMs() <= 0 ||
+                getVideo() == null || getVideo().isLive || !getVideo().isShorts()) {
+            return;
+        }
+        // Keep one separate format/URL result. No media bytes or second decoder are loaded.
+        Video next = mSuggestionsController.getNext();
+        if (next != null && next.videoId != null && next.isShorts() && !next.isLive && !next.videoId.equals(getVideo().videoId)) {
+            mNextVideoPreloader.prefetch(next.videoId);
+        } else {
+            mNextVideoPreloader.reset();
         }
     }
 }
