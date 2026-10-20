@@ -1,6 +1,6 @@
 # Diagnostic des transitions entre Shorts
 
-État du 20 octobre 2026 : corrections locales testées, sans publication ni installation sur la Fire TV.
+État du 20 octobre 2026 : stable corrigée construite et installée sur la Fire TV à la demande de l’utilisateur, sans lancement de l’application. Les releases publiques restent inchangées.
 
 ## Ce que les journaux permettent de dire
 
@@ -26,8 +26,10 @@ Les tampons vidéo officiels restent inchangés. Aucun gain chiffré n’est ann
 
 Les trois sources Java modifiées compilent sous JDK 17. Les 21 tests ciblés passent : neuf tests du préchargeur, sept tests du cycle du lecteur et cinq tests du choix de client isolé. Ils ont été exécutés avec JUnit et Robolectric 4.11.1, Android SDK simulé 28, en réutilisant les classes déjà compilées des autres modules. Les 60 contrôles Python passent également (neuf cas Windows sont ignorés sur Linux).
 
-La commande Gradle standard n’a pas pu résoudre toutes ses dépendances Android : le dépôt Google ne répondait pas et le cache était incomplet. Cette validation ciblée ne remplace donc pas une construction Android complète ni l’essai sur appareil. Aucun nouvel APK n’a été publié ou installé.
+Le dépôt Google ne répondait pas depuis le PC et le cache local était incomplet. La [construction complète GitHub](https://github.com/valoche-68/SmartTube-Shorts-Slider/actions/runs/39502417942) a ensuite réussi sur la branche `codex/shorts-preparation-validation` : 54 tests du module commun et 7 tests média, aucun échec. Les quatre APK signés ont été contrôlés (signature, identifiant, version, architectures et adresses de mise à jour). L’archive des sources et les APK sont disponibles dans les artefacts de validation, sans création de release.
 
-## Prochain essai, quand la TV sera disponible
+La stable ARMv7, de code interne 244603, a remplacé la version installée par `adb install -r`. L’APK relu sur l’appareil correspond au fichier vérifié ; l’UID et la date de première installation sont conservés. Aucune désinstallation, suppression de données ou ouverture de l’application n’a été effectuée. Le gain de vitesse reste à confirmer par l’utilisateur.
 
-Installer la version de test seulement à la demande de l’utilisateur. Comparer plusieurs transitions depuis l’accueil, puis une autre section, avec la préparation activée et désactivée. Lire les nouvelles traces pour séparer le temps d’obtention des formats du temps de démarrage du lecteur. Vérifier aussi Bas rapide, retour Haut, sortie du lecteur et réseau défaillant.
+## Prochain essai
+
+La version corrigée est installée et attend son premier lancement par l’utilisateur. Comparer plusieurs transitions depuis l’accueil, puis une autre section, avec la préparation activée et désactivée. Lire les nouvelles traces pour séparer le temps d’obtention des formats du temps de démarrage du lecteur. Vérifier aussi Bas rapide, retour Haut, sortie du lecteur et réseau défaillant.
