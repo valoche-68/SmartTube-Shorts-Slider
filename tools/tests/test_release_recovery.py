@@ -26,7 +26,7 @@ class PublicationRecoveryTest(unittest.TestCase):
         self.remote = {}
         self.calls = []
         self.fail_upload = None
-        self.info = dict(tag='v32.56-stable-slider.2', source_commit='exact-source', upstream_tag='32.56s', channel='stable')
+        self.info = dict(tag='v32.56-stable-slider', source_commit='exact-source', upstream_tag='32.56s', channel='stable')
 
     def api(self, path):
         return {'isDraft': True, 'assets': [{'name': name, 'state': 'uploaded'} for name in self.remote]}
@@ -129,7 +129,7 @@ class AutomationDraftRecoveryTest(unittest.TestCase):
             folder = root / 'release-build' / 'stable'
             assets = folder / 'release_assets'
             assets.mkdir(parents=True)
-            tag = 'v32.56-stable-slider.' + str(release.CONFIG['revision'])
+            tag = 'v32.56-stable-slider'
             records = [dict(file=arch + '.apk', sha256='validated', architectures=[arch]) for arch in release.ARCHES]
             info = dict(patch_sha256='patch', upstream_commit='source', upstream_tag='32.56s', channel='stable',
                         version_name='32.56-slider.' + str(release.CONFIG['revision']),
@@ -156,7 +156,7 @@ class AutomationDraftRecoveryTest(unittest.TestCase):
             root = Path(temp)
             folder = root / 'release-build' / 'stable'
             assets = folder / 'release_assets'
-            target = 'v32.56-stable-slider.' + str(release.CONFIG['revision'])
+            target = 'v32.56-stable-slider'
             info = {'tag': target, 'source_commit': 'existing-immutable-commit'}
             with patch.object(release, 'ROOT', root), patch.object(release, 'latest', return_value='32.56s'), \
                  patch.object(release, 'gh', return_value='upstream-source'), patch.object(release, 'patch_digest', return_value='patch'), \
@@ -185,7 +185,7 @@ class ExactTagRebuildTest(unittest.TestCase):
         self.addCleanup(self.temp.cleanup)
         self.root = Path(self.temp.name)
         self.folder = self.root / 'recovered'
-        self.tag = 'v32.56-beta-slider.' + str(release.CONFIG['revision'])
+        self.tag = 'v32.56-beta-slider'
         self.info = dict(channel='beta', upstream_tag='32.56', upstream_commit='upstream-source',
                          tag=self.tag, patch_sha256='patch', media_commit='pinned-media',
                          version_name='32.56-slider.' + str(release.CONFIG['revision']),
@@ -226,6 +226,13 @@ class ExactTagRebuildTest(unittest.TestCase):
         with self.assertRaisesRegex(RuntimeError, 'different sources'):
             self.recover()
         self.assertFalse(any(command[:2] == ('git', 'apply') for command in self.commands))
+
+    def test_renamed_public_tag_recovers_the_same_source_manifest(self):
+        self.info['tag'] = self.tag + '.' + str(release.CONFIG['revision'])
+        info, environment = self.recover()
+        self.assertEqual(info['tag'], self.tag)
+        self.assertEqual(info['source_commit'], 'existing-immutable-commit')
+        environment.assert_called_once_with(self.folder)
 
     def test_tag_changed_during_fetch_is_rejected(self):
         self.head = 'changed-tag'

@@ -20,6 +20,14 @@ UPSTREAM = CONFIG['upstream']
 ARCHES = ['armeabi-v7a', 'arm64-v8a', 'x86', 'universal']
 
 
+def public_version(upstream_tag):
+    return upstream_tag.removesuffix('s') + '-slider'
+
+
+def public_tag(upstream_tag, channel):
+    return f'v{upstream_tag.removesuffix("s")}-{channel}-slider'
+
+
 def run(*args, cwd=ROOT, capture=False):
     result = subprocess.run(list(map(str, args)), cwd=cwd, text=True, stdout=subprocess.PIPE if capture else None, check=True)
     return result.stdout.strip() if capture else ''
@@ -90,7 +98,7 @@ def prepare(channel, upstream_tag, folder):
     version_code = int(match_code[1]) * 100 + revision
     if version_code <= 2449 or version_code >= 2_100_000_000: raise RuntimeError('Invalid upgrade version code')
     version_name = version + '-slider.' + str(revision)
-    target_tag = f'v{version}-{channel}-slider.{revision}'
+    target_tag = public_tag(upstream_tag, channel)
     run('git', 'submodule', 'update', '--init', '--recursive', cwd=folder)
     # Check application cleanly; a source change needs review, never a forced merge.
     run('git', 'apply', '--check', ROOT / 'fork/shorts.patch', cwd=folder)
@@ -168,6 +176,9 @@ def recover_from_tag(channel, upstream_tag, upstream_commit, target, folder):
     if checked_out != commit:
         raise RuntimeError('Source tag changed during recovery; refusing to rebuild it')
     info = json.loads((folder / 'fork/build.json').read_text())
+    # Public tags may be renamed while retaining the exact already-built source commit.
+    if info.get('tag') == target + '.' + str(CONFIG['revision']):
+        info['tag'] = target
     validate_recovery_provenance(info, channel, upstream_tag, upstream_commit, target)
     parent = run('git', 'rev-parse', 'HEAD^', cwd=folder, capture=True)
     if parent != upstream_commit:
@@ -226,9 +237,12 @@ def make_assets(folder, provenance):
     assets.mkdir(exist_ok=True)
     records = []
     for arch in ARCHES:
-        name = f'SmartTube_Shorts_Slider_{provenance["channel"]}_{provenance["version_name"]}_{arch}.apk'
-        source = folder / f'smarttubetv/build/outputs/apk/st{provenance["channel"]}/release' / name
-        records.append(verify_apk(source, provenance, arch))
+        build_name = f'SmartTube_Shorts_Slider_{provenance["channel"]}_{provenance["version_name"]}_{arch}.apk'
+        name = f'SmartTube_Shorts_Slider_{provenance["channel"]}_{public_version(provenance["upstream_tag"])}_{arch}.apk'
+        source = folder / f'smarttubetv/build/outputs/apk/st{provenance["channel"]}/release' / build_name
+        record = verify_apk(source, provenance, arch)
+        record['file'] = name
+        records.append(record)
         shutil.copy2(source, assets / name)
     provenance['apks'] = records
     provenance['certificate_sha256'] = CONFIG['certificate_sha256']
@@ -257,7 +271,7 @@ def make_assets(folder, provenance):
     if provenance['channel'] == 'stable': (assets / 'smarttube_stable2.json').write_text(payload)
     notes = f'''## Français
 Base officielle : [{provenance['upstream_tag']}](https://github.com/{UPSTREAM}/tree/{provenance['upstream_commit']}).
-Version APK : **{provenance['version_name']}**, code Android **{provenance['version_code']}**.
+Version : **{public_version(provenance['upstream_tag'])}**.
 
 ''' + '\n'.join('- ' + item for item in notes_fr) + '''
 
@@ -420,7 +434,7 @@ def automate(channels, retry=False):
             continue
         folder = ROOT / 'release-build' / channel
         try:
-            target = f'v{tag.removesuffix("s")}-{channel}-slider.{CONFIG["revision"]}'
+            target = public_tag(tag, channel)
             existing = existing_release(target)
             if existing:
                 # Never silently replace an already published binary.

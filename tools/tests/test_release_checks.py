@@ -13,6 +13,33 @@ SPEC.loader.exec_module(release)
 
 
 class ReleaseChecksTest(unittest.TestCase):
+    def test_public_names_hide_revision_without_changing_apk_or_update_identity(self):
+        with tempfile.TemporaryDirectory() as temp:
+            folder = Path(temp)
+            output = folder / 'smarttubetv/build/outputs/apk/ststable/release'
+            output.mkdir(parents=True)
+            info = dict(channel='stable', upstream_tag='32.56s', upstream_commit='official',
+                        source_commit='exact-source', version_name='32.56-slider.2', version_code=244602,
+                        tag=release.public_tag('32.56s', 'stable'))
+            originals = {}
+            for arch in release.ARCHES:
+                name = 'SmartTube_Shorts_Slider_stable_32.56-slider.2_' + arch + '.apk'
+                originals[arch] = ('original signed bytes ' + arch).encode()
+                (output / name).write_bytes(originals[arch])
+            def checked(path, provenance, arch):
+                self.assertEqual(provenance['version_name'], '32.56-slider.2')
+                return dict(file=path.name, sha256=release.digest(path), architectures=[arch])
+            with patch.object(release, 'verify_apk', side_effect=checked):
+                assets = release.make_assets(folder, info)
+            self.assertEqual(info['tag'], 'v32.56-stable-slider')
+            for record, arch in zip(info['apks'], release.ARCHES):
+                self.assertNotIn('slider.2', record['file'])
+                self.assertEqual((assets / record['file']).read_bytes(), originals[arch])
+            metadata = json.loads((assets / 'smarttube_stable.json').read_text())
+            self.assertEqual(metadata['32.56-slider.2']['versionCode'], 244602)
+            self.assertNotIn('slider.2', json.dumps(metadata['package']))
+            self.assertNotIn('slider.2', (folder / 'release_notes.md').read_text())
+
     def test_release_selection_ignores_aliases_announcements_and_wrong_channel(self):
         candidates = [dict(draft=False, prerelease=False, tag_name='notification2'),
                       dict(draft=False, prerelease=True, tag_name='99.00'),
