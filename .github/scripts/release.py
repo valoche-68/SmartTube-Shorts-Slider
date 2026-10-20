@@ -293,6 +293,7 @@ def build(folder, provenance):
     flavor = 'St' + provenance['channel']
     run('bash', 'gradlew', ':common:test' + flavor + 'DebugUnitTest', '--tests', '*ShortsPreferencesTest', '--tests', '*NextVideoPreloaderTest',
         '--tests', '*PlaybackNonceIsolationTest', '--tests', '*VideoShortsClassificationTest', '--tests', '*ShortsNavigationTest',
+        '--tests', '*PreparationStrategyTest', '--tests', '*ShortsPreparationLifecycleTest',
         ':youtubeapi:test' + flavor + 'DebugUnitTest', '--tests', '*ShortsIdentityTest',
         ':smarttubetv:assemble' + flavor + 'Release', '--console=plain', cwd=folder)
     return make_assets(folder, provenance)

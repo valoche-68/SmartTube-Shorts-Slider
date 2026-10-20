@@ -29,6 +29,7 @@ python3 -m unittest discover -s tools/tests -v
 bash gradlew :common:testStstableDebugUnitTest \
   --tests '*ShortsPreferencesTest' --tests '*NextVideoPreloaderTest' --tests '*PlaybackNonceIsolationTest' \
   --tests '*VideoShortsClassificationTest' --tests '*ShortsNavigationTest' \
+  --tests '*PreparationStrategyTest' --tests '*ShortsPreparationLifecycleTest' \
   :youtubeapi:testStstableDebugUnitTest --tests '*ShortsIdentityTest'
 ```
 
@@ -70,3 +71,5 @@ Avant d'accepter une nouvelle version officielle, comparer ses préférences `Pl
 Les tests logiciels et l'inspection des APK ne remplacent pas un essai Fire TV, qui reste à réaliser. Vérifier sur l'appareil une mise à jour sans désinstallation, les préférences conservées, le bouton masqué/affiché, les vidéos longues verticales, les fins de listes, ainsi que le parcours sauvegarde/modification/restauration du script.
 
 Comparer les transitions avec et sans préparation sur le même appareil et le même réseau ; rapporter le protocole et les mesures avant toute affirmation chiffrée. Ne pas publier de logs contenant des adresses de flux signées, des comptes ou des jetons.
+
+Le [diagnostic des transitions Shorts](shorts-performance-diagnostic.fr.md) documente les limites des journaux existants et les corrections locales du cycle de préparation.

@@ -207,14 +207,20 @@ index 09beae09..0246dd5c 100644
          return  mCachedFormatInfo != null &&
                  mCachedFormatInfo.getVideoId() != null &&
 diff --git a/youtubeapi/src/main/java/com/liskovsoft/youtubeapi/videoinfo/V2/VideoInfoService.java b/youtubeapi/src/main/java/com/liskovsoft/youtubeapi/videoinfo/V2/VideoInfoService.java
-index c3b000e9..8562dd1d 100644
+index c3b000e9..61a28782 100644
 --- a/youtubeapi/src/main/java/com/liskovsoft/youtubeapi/videoinfo/V2/VideoInfoService.java
 +++ b/youtubeapi/src/main/java/com/liskovsoft/youtubeapi/videoinfo/V2/VideoInfoService.java
-@@ -55,11 +55,25 @@ public class VideoInfoService extends VideoInfoServiceBase {
+@@ -51,15 +51,36 @@ public class VideoInfoService extends VideoInfoServiceBase {
+     @Nullable
+     private AppClient mActualInfoType = null;
+     @Nullable
+-    private AppClient mNextInfoType = null;
++    private volatile AppClient mNextInfoType = null;
      private boolean mUseAuth;
      private List<TranslationLanguage> mCachedTranslationLanguages;
      private boolean mIsUnplayable;
 +    private boolean mIsIsolated;
++    private AppClient mPreparationStartType;
  
      private VideoInfoService() {
          mVideoInfoApi = RetrofitHelper.create(VideoInfoApi.class);
@@ -223,12 +229,18 @@ index c3b000e9..8562dd1d 100644
 +    public static VideoInfoService createForPreparation() {
 +        VideoInfoService service = new VideoInfoService();
 +        service.mIsIsolated = true;
++        // Reuse the active recovery strategy without sharing playback state or caches.
++        service.mPreparationStartType = instance().mNextInfoType;
++        service.mNextInfoType = service.mPreparationStartType;
 +        return service;
 +    }
 +
 +    public void activatePreparedState(VideoInfoService prepared) {
 +        mActualInfoType = prepared.mActualInfoType;
-+        mNextInfoType = prepared.mNextInfoType;
++        // A newer user/error-recovery choice takes precedence over this older lookup.
++        if (mNextInfoType == prepared.mPreparationStartType) {
++            mNextInfoType = prepared.mNextInfoType;
++        }
 +        mIsUnplayable = prepared.mIsUnplayable;
 +        persistVideoInfoType();
 +    }
@@ -236,7 +248,13 @@ index c3b000e9..8562dd1d 100644
      public static VideoInfoService instance() {
          if (sInstance == null) {
              sInstance = new VideoInfoService();
-@@ -139,6 +153,7 @@ public class VideoInfoService extends VideoInfoServiceBase {
+@@ -135,10 +156,12 @@ public class VideoInfoService extends VideoInfoServiceBase {
+ 
+     private VideoInfo firstInfoWith(String videoId, String clickTrackingParams, InfoTester infoTester) {
+         //final AppClient beginType = getDefaultClient();
+-        final AppClient beginType = mNextInfoType != null ? mNextInfoType : VIDEO_INFO_TYPE_LIST[0];
++        final AppClient requestedType = mNextInfoType;
++        final AppClient beginType = requestedType != null ? requestedType : VIDEO_INFO_TYPE_LIST[0];
          AppClient nextType = beginType;
  
          do {
@@ -244,7 +262,7 @@ index c3b000e9..8562dd1d 100644
              VideoInfo result = getVideoInfoWithRentFix(nextType, videoId, clickTrackingParams);
  
              if (result != null && infoTester.test(result)) {
-@@ -336,7 +351,7 @@ public class VideoInfoService extends VideoInfoServiceBase {
+@@ -336,7 +359,7 @@ public class VideoInfoService extends VideoInfoServiceBase {
      }
  
      private void persistVideoInfoType() {

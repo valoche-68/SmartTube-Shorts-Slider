@@ -22,6 +22,8 @@ paths = [
  'common/src/test/java/com/liskovsoft/smartyoutubetv2/common/misc/VideoShortsClassificationTest.java',
  'common/src/test/java/com/liskovsoft/smartyoutubetv2/common/misc/ShortsNavigationTest.java',
  'common/src/test/java/com/liskovsoft/smartyoutubetv2/common/misc/PlaybackNonceIsolationTest.java',
+ 'common/src/test/java/com/liskovsoft/smartyoutubetv2/common/misc/PreparationStrategyTest.java',
+ 'common/src/test/java/com/liskovsoft/smartyoutubetv2/common/misc/ShortsPreparationLifecycleTest.java',
  'smarttubetv/src/main/java/com/liskovsoft/smartyoutubetv2/tv/ui/playback/actions/ShortsAutoScrollAction.java',
  'smarttubetv/src/main/java/com/liskovsoft/smartyoutubetv2/tv/ui/playback/other/VideoPlayerGlue.java',
  'smarttubetv/src/main/java/com/liskovsoft/smartyoutubetv2/tv/ui/mod/leanback/playerglue/tweaks/MaxControlsVideoPlayerGlue.java'

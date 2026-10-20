@@ -569,7 +569,7 @@ index 818924467..b3b434a07 100644
          Video result = null;
  
 diff --git a/common/src/main/java/com/liskovsoft/smartyoutubetv2/common/app/models/playback/controllers/VideoLoaderController.java b/common/src/main/java/com/liskovsoft/smartyoutubetv2/common/app/models/playback/controllers/VideoLoaderController.java
-index 1c3f13f22..66c1033fa 100644
+index 1c3f13f22..c5899ecc8 100644
 --- a/common/src/main/java/com/liskovsoft/smartyoutubetv2/common/app/models/playback/controllers/VideoLoaderController.java
 +++ b/common/src/main/java/com/liskovsoft/smartyoutubetv2/common/app/models/playback/controllers/VideoLoaderController.java
 @@ -1,6 +1,8 @@
@@ -581,7 +581,7 @@ index 1c3f13f22..66c1033fa 100644
  
  import com.liskovsoft.mediaserviceinterfaces.MediaItemService;
  import com.liskovsoft.mediaserviceinterfaces.ServiceManager;
-@@ -22,6 +24,7 @@ import com.liskovsoft.smartyoutubetv2.common.app.presenters.AppDialogPresenter;
+@@ -22,20 +24,29 @@ import com.liskovsoft.smartyoutubetv2.common.app.presenters.AppDialogPresenter;
  import com.liskovsoft.smartyoutubetv2.common.app.presenters.dialogs.VideoActionPresenter;
  import com.liskovsoft.smartyoutubetv2.common.app.views.PlaybackView;
  import com.liskovsoft.smartyoutubetv2.common.misc.MediaServiceManager;
@@ -589,16 +589,29 @@ index 1c3f13f22..66c1033fa 100644
  import com.liskovsoft.smartyoutubetv2.common.prefs.PlayerData;
  import com.liskovsoft.smartyoutubetv2.common.utils.Utils;
  import com.liskovsoft.youtubeapi.service.YouTubeServiceManager;
-@@ -36,6 +39,8 @@ public class VideoLoaderController extends BasePlayerController {
+ 
++import io.reactivex.Observable;
+ import io.reactivex.disposables.Disposable;
++import io.reactivex.disposables.SerialDisposable;
+ 
+ public class VideoLoaderController extends BasePlayerController {
+     private static final String TAG = VideoLoaderController.class.getSimpleName();
+     private static final int MIN_SHUFFLE_SIZE = 30;
++    private static final String PREPARATION_TAG = "ShortsPreparation";
++    private long mShortsLoadStarted = -1;
++    private boolean mShortsPlayLogged;
+     private final Playlist mPlaylist;
+     private Video mPendingVideo;
      private SuggestionsController mSuggestionsController;
      private ErrorFixerController mErrorFixerController;
      private Disposable mFormatInfoAction;
 +    private final NextVideoPreloader<PreparedShort> mNextVideoPreloader = new NextVideoPreloader<>(
-+            PreparedShort::load, SystemClock::elapsedRealtime, PreparedShort::isValid);
++            PreparedShort::load, SystemClock::elapsedRealtime, PreparedShort::isValid,
++            (event, elapsedMs) -> Log.i(PREPARATION_TAG, "%s elapsed_ms=%s", event, elapsedMs));
      private final Runnable mReloadVideo = () -> {
          getMainController().onNewVideo(getVideo());
      };
-@@ -106,6 +111,7 @@ public class VideoLoaderController extends BasePlayerController {
+@@ -106,6 +117,7 @@ public class VideoLoaderController extends BasePlayerController {
  
      @Override
      public void onEngineReleased() {
@@ -606,7 +619,7 @@ index 1c3f13f22..66c1033fa 100644
          disposeActions();
      }
  
-@@ -116,8 +122,12 @@ public class VideoLoaderController extends BasePlayerController {
+@@ -116,8 +128,22 @@ public class VideoLoaderController extends BasePlayerController {
          }
          
          getPlayer().setButtonState(R.id.action_repeat, video.finishOnEnded ? PlayerConstants.PLAYBACK_MODE_CLOSE : getPlayerData().getPlaybackMode());
@@ -616,12 +629,22 @@ index 1c3f13f22..66c1033fa 100644
 +    }
 +
 +    @Override
++    public void onPlay() {
++        if (mShortsLoadStarted >= 0 && !mShortsPlayLogged) {
++            mShortsPlayLogged = true;
++            Log.i(PREPARATION_TAG, "play_ready elapsed_ms=%s", SystemClock.elapsedRealtime() - mShortsLoadStarted);
++        }
++        // Source/metadata callbacks can precede READY; do not wait for the minute tickle.
++        preloadNextVideoIfNeeded();
++    }
++
++    @Override
 +    public void onTickle() {
 +        preloadNextVideoIfNeeded();
      }
  
      @Override
-@@ -151,11 +161,33 @@ public class VideoLoaderController extends BasePlayerController {
+@@ -151,11 +177,33 @@ public class VideoLoaderController extends BasePlayerController {
      }
  
      public void loadNext() {
@@ -655,23 +678,77 @@ index 1c3f13f22..66c1033fa 100644
  
          if (next != null) {
              openVideoInt(next);
-@@ -253,7 +285,15 @@ public class VideoLoaderController extends BasePlayerController {
+@@ -203,6 +251,8 @@ public class VideoLoaderController extends BasePlayerController {
+      */
+     private void loadVideo(Video item) {
+         if (getPlayer() != null && item != null) {
++            mShortsLoadStarted = item.isShorts() ? SystemClock.elapsedRealtime() : -1;
++            mShortsPlayLogged = false;
+             mPlaylist.setCurrent(item);
+             getPlayer().setVideo(item);
+             getPlayer().resetPlayerState();
+@@ -253,16 +303,44 @@ public class VideoLoaderController extends BasePlayerController {
          // Fix no progress on next video (the engine may still buffering a bit)
          //getPlayer().showProgressBar(true);
          Utils.post(mShowProgressBar);
-+        PreparedShort prepared = mNextVideoPreloader.take(video.videoId);
-         disposeActions();
-+        if (prepared != null && getPlayerTweaksData().isShortsPreparationEnabled()) {
-+            MediaItemFormatInfo format = prepared.activate();
-+            if (format != null) {
-+                processFormatInfo(format);
-+                return;
-+            }
++        Observable<PreparedShort> prepared = getPlayerTweaksData().isShortsPreparationEnabled() ?
++                mNextVideoPreloader.consume(video.videoId) : null;
++        if (prepared == null) {
++            mNextVideoPreloader.reset();
 +        }
+         disposeActions();
+-
+-        ServiceManager service = YouTubeServiceManager.instance();
+-        MediaItemService mediaItemManager = service.getMediaItemService();
+-        mFormatInfoAction = mediaItemManager.getFormatInfoObserve(video.videoId)
+-                .subscribe(this::processFormatInfo,
++        Observable<MediaItemFormatInfo> normal = Observable.defer(() -> {
++            if (getPlayer() == null || getVideo() != video) return Observable.empty();
++            if (video.isShorts()) Log.i(PREPARATION_TAG, "foreground_lookup");
++            return loadRegularFormatInfo(video.videoId);
++        });
++        Observable<MediaItemFormatInfo> format;
++        if (prepared != null) {
++            format = prepared.flatMap(value -> {
++                if (getPlayer() == null || getVideo() != video) return Observable.<MediaItemFormatInfo>empty();
++                MediaItemFormatInfo activated = value.activate(); // Revalidates expiry and the selected account.
++                return activated != null ? Observable.just(activated) : Observable.empty();
++            }).onErrorResumeNext(Observable.empty()).switchIfEmpty(Observable.defer(() -> {
++                Log.i(PREPARATION_TAG, "prepared_fallback");
++                return normal;
++            }));
++        } else {
++            format = normal;
++        }
++        SerialDisposable action = new SerialDisposable();
++        mFormatInfoAction = action;
++        action.set(format.subscribe(info -> {
++                               if (getPlayer() != null && getVideo() == video) processFormatInfo(info);
++                           },
+                            error -> {
++                               if (getPlayer() == null || getVideo() != video) return;
+                                getPlayer().showProgressBar(false);
+                                mErrorFixerController.runFormatErrorAction(error);
+-                           });
++                           }));
++    }
++
++    protected Observable<MediaItemFormatInfo> loadRegularFormatInfo(String videoId) {
++        return YouTubeServiceManager.instance().getMediaItemService().getFormatInfoObserve(videoId);
+     }
  
-         ServiceManager service = YouTubeServiceManager.instance();
-         MediaItemService mediaItemManager = service.getMediaItemService();
-@@ -426,7 +466,7 @@ public class VideoLoaderController extends BasePlayerController {
+     private void processFormatInfo(MediaItemFormatInfo formatInfo) {
+@@ -272,6 +350,9 @@ public class VideoLoaderController extends BasePlayerController {
+             return;
+         }
+ 
++        if (mShortsLoadStarted >= 0) {
++            Log.i(PREPARATION_TAG, "formats_ready elapsed_ms=%s", SystemClock.elapsedRealtime() - mShortsLoadStarted);
++        }
+         String bgImageUrl = null;
+ 
+         getVideo().sync(formatInfo);
+@@ -426,7 +507,7 @@ public class VideoLoaderController extends BasePlayerController {
                  }
              case PlayerConstants.PLAYBACK_MODE_ALL:
              case PlayerConstants.PLAYBACK_MODE_SHUFFLE:
@@ -680,7 +757,7 @@ index 1c3f13f22..66c1033fa 100644
                  break;
              case PlayerConstants.PLAYBACK_MODE_ONE:
                  if (VERSION.SDK_INT <= 19) {
-@@ -536,6 +576,7 @@ public class VideoLoaderController extends BasePlayerController {
+@@ -536,6 +617,7 @@ public class VideoLoaderController extends BasePlayerController {
      @Override
      public void onMetadata(MediaItemMetadata metadata) {
          initRandomNext();
@@ -688,7 +765,7 @@ index 1c3f13f22..66c1033fa 100644
      }
  
      private void initRandomNext() {
-@@ -592,8 +633,12 @@ public class VideoLoaderController extends BasePlayerController {
+@@ -592,8 +674,12 @@ public class VideoLoaderController extends BasePlayerController {
          Video video = getVideo();
          if (video != null && video.finishOnEnded) {
              playbackMode = PlayerConstants.PLAYBACK_MODE_CLOSE;
@@ -703,7 +780,7 @@ index 1c3f13f22..66c1033fa 100644
          }
          return playbackMode;
      }
-@@ -620,13 +665,27 @@ public class VideoLoaderController extends BasePlayerController {
+@@ -620,13 +706,27 @@ public class VideoLoaderController extends BasePlayerController {
          }
      }
  
@@ -762,14 +839,16 @@ index 99b42b42d..042dae135 100644
                  option -> mPlayerTweaksData.setSuggestionsHorizontallyScrolled(option.isSelected()),
 diff --git a/common/src/main/java/com/liskovsoft/smartyoutubetv2/common/misc/NextVideoPreloader.java b/common/src/main/java/com/liskovsoft/smartyoutubetv2/common/misc/NextVideoPreloader.java
 new file mode 100644
-index 000000000..e95316e6e
+index 000000000..529a38526
 --- /dev/null
 +++ b/common/src/main/java/com/liskovsoft/smartyoutubetv2/common/misc/NextVideoPreloader.java
-@@ -0,0 +1,61 @@
+@@ -0,0 +1,130 @@
 +package com.liskovsoft.smartyoutubetv2.common.misc;
 +
 +import io.reactivex.Observable;
 +import io.reactivex.disposables.SerialDisposable;
++import io.reactivex.subjects.ReplaySubject;
++import java.util.concurrent.atomic.AtomicBoolean;
 +
 +/** One cancellable lookup, retained until consumed. Called on the UI thread. */
 +public final class NextVideoPreloader<T> {
@@ -777,54 +856,121 @@ index 000000000..e95316e6e
 +    public interface Loader<T> { Observable<T> load(String videoId); }
 +    public interface Clock { long now(); }
 +    public interface Validator<T> { boolean valid(T value); }
++    public interface Observer { void event(String event, long elapsedMs); }
 +    private final Loader<T> loader;
 +    private final Clock clock;
 +    private final Validator<T> validator;
-+    private final SerialDisposable request = new SerialDisposable();
-+    private String videoId;
-+    private boolean running;
-+    private T result;
-+    private long retryAt;
-+    private int generation;
++    private final Observer observer;
++    private Lookup<T> lookup;
++
++    private static final class Lookup<T> {
++        final String videoId;
++        final SerialDisposable request = new SerialDisposable();
++        final ReplaySubject<T> completion = ReplaySubject.createWithSize(1);
++        boolean running = true;
++        T result;
++        long retryAt;
++        long started;
++        Lookup(String videoId) { this.videoId = videoId; }
++    }
 +
 +    public NextVideoPreloader(Loader<T> loader, Clock clock, Validator<T> validator) {
++        this(loader, clock, validator, (event, elapsedMs) -> {});
++    }
++
++    public NextVideoPreloader(Loader<T> loader, Clock clock, Validator<T> validator, Observer observer) {
 +        this.loader = loader;
 +        this.clock = clock;
 +        this.validator = validator;
++        this.observer = observer;
 +    }
 +
 +    public void prefetch(String id) {
 +        if (id == null || id.isEmpty()) return;
-+        if (id.equals(videoId) && (running || (result != null && validator.valid(result)) || clock.now() < retryAt)) return;
++        if (lookup != null && id.equals(lookup.videoId) &&
++                (lookup.running || (lookup.result != null && validator.valid(lookup.result)) || clock.now() < lookup.retryAt)) return;
 +        reset();
-+        videoId = id;
-+        running = true;
-+        int token = generation;
-+        request.set(Observable.defer(() -> loader.load(id)).take(1).subscribe(
-+                value -> { if (token == generation && validator.valid(value)) result = value; },
-+                error -> finish(token), () -> finish(token)));
++        Lookup<T> pending = new Lookup<>(id);
++        lookup = pending;
++        pending.started = clock.now();
++        event("prepare_start", pending);
++        pending.request.set(Observable.defer(() -> loader.load(id)).take(1).subscribe(
++                value -> {
++                    if (!pending.request.isDisposed() && validator.valid(value)) {
++                        pending.result = value;
++                        finish(pending);
++                        event("prepare_ready", pending);
++                        pending.completion.onNext(value);
++                    }
++                }, error -> {
++                    finish(pending);
++                    if (!pending.request.isDisposed()) {
++                        event("prepare_error", pending);
++                        pending.completion.onError(error);
++                    }
++                }, () -> {
++                    finish(pending);
++                    if (!pending.request.isDisposed()) {
++                        if (pending.result == null) event("prepare_empty", pending);
++                        pending.completion.onComplete();
++                    }
++                }));
++    }
++
++    /** Consume a completed result, or transfer a matching pending request to its single foreground subscriber. */
++    public Observable<T> consume(String id) {
++        Lookup<T> pending = lookup;
++        if (id == null || pending == null || !id.equals(pending.videoId)) {
++            reset();
++            observer.event("consume_miss", 0);
++            return null;
++        }
++        if (pending.result != null && validator.valid(pending.result)) {
++            T value = pending.result;
++            event("consume_hit", pending);
++            reset();
++            return once(Observable.just(value).filter(validator::valid));
++        }
++        if (!pending.running) {
++            reset();
++            observer.event("consume_miss", 0);
++            return null;
++        }
++        event("consume_pending", pending);
++        lookup = null; // The foreground subscription now owns cancellation of this lookup.
++        return once(pending.completion.take(1).filter(validator::valid).doFinally(() -> {
++            if (pending.running) event("foreground_cancel", pending);
++            pending.request.dispose();
++        }));
++    }
++
++    private Observable<T> once(Observable<T> source) {
++        AtomicBoolean subscribed = new AtomicBoolean();
++        return Observable.defer(() -> subscribed.compareAndSet(false, true) ? source : Observable.empty());
 +    }
 +
 +    public T take(String id) {
-+        T value = id != null && id.equals(videoId) && result != null && validator.valid(result) ? result : null;
++        T value = lookup != null && id != null && id.equals(lookup.videoId) && lookup.result != null &&
++                validator.valid(lookup.result) ? lookup.result : null;
 +        reset();
 +        return value;
 +    }
 +
-+    private void finish(int token) {
-+        if (token == generation) {
-+            running = false;
-+            retryAt = clock.now() + RETRY_DELAY_MS;
-+        }
++    private void finish(Lookup<T> pending) {
++        pending.running = false;
++        pending.retryAt = clock.now() + RETRY_DELAY_MS;
++    }
++
++    private void event(String name, Lookup<T> pending) {
++        observer.event(name, Math.max(0, clock.now() - pending.started));
 +    }
 +
 +    public void reset() {
-+        generation++;
-+        request.set(null);
-+        videoId = null;
-+        running = false;
-+        result = null;
-+        retryAt = 0;
++        if (lookup != null) {
++            if (lookup.running) event("prepare_cancel", lookup);
++            lookup.request.dispose();
++        }
++        lookup = null;
 +    }
 +}
 diff --git a/common/src/main/java/com/liskovsoft/smartyoutubetv2/common/prefs/PlayerTweaksData.java b/common/src/main/java/com/liskovsoft/smartyoutubetv2/common/prefs/PlayerTweaksData.java
@@ -1011,16 +1157,17 @@ index 20d1fdef4..e205bb9ec 100644
  </resources>
 diff --git a/common/src/test/java/com/liskovsoft/smartyoutubetv2/common/misc/NextVideoPreloaderTest.java b/common/src/test/java/com/liskovsoft/smartyoutubetv2/common/misc/NextVideoPreloaderTest.java
 new file mode 100644
-index 000000000..92685a25b
+index 000000000..ad72fcaee
 --- /dev/null
 +++ b/common/src/test/java/com/liskovsoft/smartyoutubetv2/common/misc/NextVideoPreloaderTest.java
-@@ -0,0 +1,91 @@
+@@ -0,0 +1,178 @@
 +package com.liskovsoft.smartyoutubetv2.common.misc;
 +
 +import org.junit.Test;
 +import java.util.concurrent.atomic.AtomicInteger;
 +import io.reactivex.Observable;
 +import io.reactivex.subjects.PublishSubject;
++import io.reactivex.observers.TestObserver;
 +import static org.junit.Assert.*;
 +
 +public class NextVideoPreloaderTest {
@@ -1105,6 +1252,92 @@ index 000000000..92685a25b
 +        valid[0] = false;
 +        assertNull(preloader.take("next"));
 +    }
++    @Test
++    public void pendingLookupTransfersToForegroundWithoutRestartingNetwork() {
++        PublishSubject<String> pending = PublishSubject.create();
++        AtomicInteger calls = new AtomicInteger();
++        NextVideoPreloader<String> preloader = new NextVideoPreloader<>(id -> {
++            calls.incrementAndGet();
++            return pending;
++        }, () -> 0, value -> true);
++        preloader.prefetch("next");
++        Observable<String> claimed = preloader.consume("next");
++        assertNotNull(claimed);
++        TestObserver<String> foreground = claimed.test();
++        assertEquals(1, calls.get());
++        assertTrue(pending.hasObservers());
++        pending.onNext("format");
++        foreground.assertValue("format").assertComplete();
++        assertFalse(pending.hasObservers());
++        claimed.test().assertNoValues().assertComplete();
++        assertNull(preloader.consume("next"));
++    }
++
++    @Test
++    public void claimedLookupCancellationAndRapidVideoChangeCancelOnlyTheirOwner() {
++        PublishSubject<String> first = PublishSubject.create();
++        PublishSubject<String> second = PublishSubject.create();
++        NextVideoPreloader<String> preloader = new NextVideoPreloader<>(
++                id -> "first".equals(id) ? first : second, () -> 0, value -> true);
++        preloader.prefetch("first");
++        TestObserver<String> foreground = preloader.consume("first").test();
++        preloader.prefetch("second");
++        assertTrue(first.hasObservers());
++        assertTrue(second.hasObservers());
++        foreground.dispose();
++        assertFalse(first.hasObservers());
++        assertTrue(second.hasObservers());
++        preloader.reset();
++        assertFalse(second.hasObservers());
++        first.onNext("stale");
++        foreground.assertNoValues();
++    }
++
++    @Test
++    public void pendingErrorOrEmptyResultUsesOneLazyForegroundFallback() {
++        for (boolean fail : new boolean[]{false, true}) {
++            PublishSubject<String> pending = PublishSubject.create();
++            AtomicInteger preparations = new AtomicInteger();
++            AtomicInteger fallbacks = new AtomicInteger();
++            NextVideoPreloader<String> preloader = new NextVideoPreloader<>(id -> {
++                preparations.incrementAndGet();
++                return pending;
++            }, () -> 0, value -> true);
++            preloader.prefetch("next");
++            TestObserver<String> foreground = preloader.consume("next")
++                    .onErrorResumeNext(Observable.empty())
++                    .switchIfEmpty(Observable.defer(() -> {
++                        fallbacks.incrementAndGet();
++                        return Observable.just("normal");
++                    })).test();
++            assertEquals(0, fallbacks.get());
++            if (fail) pending.onError(new IllegalStateException("offline"));
++            else pending.onComplete();
++            foreground.assertValue("normal").assertComplete();
++            assertEquals(1, preparations.get());
++            assertEquals(1, fallbacks.get());
++        }
++    }
++
++    @Test
++    public void claimedAndCachedResultsAreRevalidatedWhenConsumed() {
++        boolean[] valid = {true};
++        PublishSubject<String> pending = PublishSubject.create();
++        NextVideoPreloader<String> preloader = new NextVideoPreloader<>(id -> pending, () -> 0, value -> valid[0]);
++        preloader.prefetch("next");
++        Observable<String> claimed = preloader.consume("next");
++        pending.onNext("format");
++        valid[0] = false;
++        claimed.test().assertNoValues().assertComplete();
++
++        valid[0] = true;
++        NextVideoPreloader<String> cached = new NextVideoPreloader<>(Observable::just, () -> 0, value -> valid[0]);
++        cached.prefetch("next");
++        Observable<String> result = cached.consume("next");
++        valid[0] = false;
++        result.test().assertNoValues().assertComplete();
++    }
++
 +}
 diff --git a/common/src/test/java/com/liskovsoft/smartyoutubetv2/common/misc/PlaybackNonceIsolationTest.java b/common/src/test/java/com/liskovsoft/smartyoutubetv2/common/misc/PlaybackNonceIsolationTest.java
 new file mode 100644
@@ -1145,6 +1378,103 @@ index 000000000..1b6e1555d
 +        finally { state.endIsolated(); }
 +        state.reset();
 +        assertEquals("fresh", state.get(() -> "fresh"));
++    }
++}
+diff --git a/common/src/test/java/com/liskovsoft/smartyoutubetv2/common/misc/PreparationStrategyTest.java b/common/src/test/java/com/liskovsoft/smartyoutubetv2/common/misc/PreparationStrategyTest.java
+new file mode 100644
+index 000000000..cd4635ee7
+--- /dev/null
++++ b/common/src/test/java/com/liskovsoft/smartyoutubetv2/common/misc/PreparationStrategyTest.java
+@@ -0,0 +1,91 @@
++package com.liskovsoft.smartyoutubetv2.common.misc;
++
++import com.liskovsoft.youtubeapi.videoinfo.V2.VideoInfoService;
++
++import com.liskovsoft.youtubeapi.common.helpers.AppClient;
++import org.junit.Before;
++import org.junit.Test;
++import org.junit.runner.RunWith;
++import org.robolectric.RobolectricTestRunner;
++import org.robolectric.annotation.Config;
++import java.lang.reflect.Field;
++import static org.junit.Assert.*;
++
++/** Only constructs local services; it never makes a format or network request. */
++@RunWith(RobolectricTestRunner.class)
++@Config(sdk = 28)
++public class PreparationStrategyTest {
++    private VideoInfoService active;
++
++    @Before public void setup() throws Exception {
++        set(null, "sInstance", null);
++        active = VideoInfoService.instance();
++    }
++
++    @Test public void preparationStartsWithTheChosenRecoveryClient() throws Exception {
++        set(active, "mNextInfoType", AppClient.IOS);
++        set(active, "mActualInfoType", AppClient.WEB);
++        VideoInfoService prepared = VideoInfoService.createForPreparation();
++        assertNotSame(active, prepared);
++        assertEquals(AppClient.IOS, get(prepared, "mNextInfoType"));
++        assertEquals(AppClient.IOS, get(prepared, "mPreparationStartType"));
++        assertEquals(true, get(prepared, "mIsIsolated"));
++        assertNull(get(prepared, "mActualInfoType"));
++    }
++
++    @Test public void preparationDoesNotMutateTheActiveClientOrPlaybackState() throws Exception {
++        set(active, "mNextInfoType", AppClient.IOS);
++        set(active, "mActualInfoType", AppClient.WEB);
++        set(active, "mIsUnplayable", false);
++        VideoInfoService prepared = VideoInfoService.createForPreparation();
++        set(prepared, "mNextInfoType", AppClient.VISIONOS);
++        set(prepared, "mActualInfoType", AppClient.VISIONOS);
++        set(prepared, "mIsUnplayable", true);
++        assertEquals(AppClient.IOS, get(active, "mNextInfoType"));
++        assertEquals(AppClient.WEB, get(active, "mActualInfoType"));
++        assertEquals(false, get(active, "mIsUnplayable"));
++    }
++
++    @Test public void activationKeepsAnOverrideChangedDuringPreparation() throws Exception {
++        set(active, "mNextInfoType", AppClient.IOS);
++        VideoInfoService prepared = VideoInfoService.createForPreparation();
++        set(prepared, "mActualInfoType", AppClient.IOS);
++        set(active, "mNextInfoType", AppClient.MWEB);
++        active.activatePreparedState(prepared);
++        assertEquals(AppClient.MWEB, get(active, "mNextInfoType"));
++        assertEquals(AppClient.IOS, get(active, "mActualInfoType"));
++    }
++
++    @Test public void defaultPreparationCannotEraseALaterRecoveryOverride() throws Exception {
++        VideoInfoService prepared = VideoInfoService.createForPreparation();
++        assertNull(get(prepared, "mNextInfoType"));
++        set(prepared, "mActualInfoType", AppClient.WEB_EMBED);
++        set(active, "mNextInfoType", AppClient.VISIONOS);
++        active.activatePreparedState(prepared);
++        assertEquals(AppClient.VISIONOS, get(active, "mNextInfoType"));
++    }
++
++    @Test public void activationTransfersTheResolvedClientAndStatus() throws Exception {
++        set(active, "mNextInfoType", AppClient.IOS);
++        set(active, "mActualInfoType", AppClient.WEB);
++        VideoInfoService prepared = VideoInfoService.createForPreparation();
++        set(prepared, "mActualInfoType", AppClient.VISIONOS);
++        set(prepared, "mIsUnplayable", false);
++        active.activatePreparedState(prepared);
++        assertEquals(AppClient.VISIONOS, get(active, "mActualInfoType"));
++        assertEquals(AppClient.IOS, get(active, "mNextInfoType"));
++        assertEquals(false, get(active, "mIsUnplayable"));
++    }
++
++    private static Object get(VideoInfoService service, String name) throws Exception {
++        Field field = VideoInfoService.class.getDeclaredField(name);
++        field.setAccessible(true);
++        return field.get(service);
++    }
++
++    private static void set(VideoInfoService service, String name, Object value) throws Exception {
++        Field field = VideoInfoService.class.getDeclaredField(name);
++        field.setAccessible(true);
++        field.set(service, value);
 +    }
 +}
 diff --git a/common/src/test/java/com/liskovsoft/smartyoutubetv2/common/misc/ShortsNavigationTest.java b/common/src/test/java/com/liskovsoft/smartyoutubetv2/common/misc/ShortsNavigationTest.java
@@ -1657,6 +1987,211 @@ index 000000000..7185b5387
 +        tweaks.onProfileChanged();
 +        assertFalse(tweaks.isShortsButtonVisible());
 +        assertFalse(tweaks.isShortsPreparationEnabled());
++    }
++}
+diff --git a/common/src/test/java/com/liskovsoft/smartyoutubetv2/common/misc/ShortsPreparationLifecycleTest.java b/common/src/test/java/com/liskovsoft/smartyoutubetv2/common/misc/ShortsPreparationLifecycleTest.java
+new file mode 100644
+index 000000000..f9c24312d
+--- /dev/null
++++ b/common/src/test/java/com/liskovsoft/smartyoutubetv2/common/misc/ShortsPreparationLifecycleTest.java
+@@ -0,0 +1,199 @@
++package com.liskovsoft.smartyoutubetv2.common.misc;
++
++import android.content.Context;
++import com.liskovsoft.mediaserviceinterfaces.data.MediaItemFormatInfo;
++import com.liskovsoft.sharedutils.prefs.GlobalPreferences;
++import com.liskovsoft.smartyoutubetv2.common.app.models.data.Playlist;
++import com.liskovsoft.smartyoutubetv2.common.app.models.data.Video;
++import com.liskovsoft.smartyoutubetv2.common.app.models.playback.controllers.SuggestionsController;
++import com.liskovsoft.smartyoutubetv2.common.app.models.playback.controllers.VideoLoaderController;
++import com.liskovsoft.smartyoutubetv2.common.app.views.PlaybackView;
++import com.liskovsoft.smartyoutubetv2.common.prefs.PlayerTweaksData;
++import com.liskovsoft.youtubeapi.service.PreparedShort;
++import io.reactivex.Observable;
++import io.reactivex.subjects.PublishSubject;
++import org.junit.Before;
++import org.junit.Test;
++import org.junit.runner.RunWith;
++import org.robolectric.RobolectricTestRunner;
++import org.robolectric.RuntimeEnvironment;
++import org.robolectric.annotation.Config;
++
++import java.lang.reflect.Field;
++import java.lang.reflect.Constructor;
++import java.lang.reflect.Method;
++import java.lang.reflect.Proxy;
++import java.util.concurrent.atomic.AtomicInteger;
++
++import static org.junit.Assert.*;
++
++@RunWith(RobolectricTestRunner.class)
++@Config(sdk = 28)
++public class ShortsPreparationLifecycleTest {
++    private Context context;
++    private Video current;
++    private Video next;
++    private boolean playing;
++    private long duration;
++    private VideoLoaderController controller;
++    private PublishSubject<PreparedShort> pending;
++    private AtomicInteger preparations;
++    private AtomicInteger foreground;
++    private AtomicInteger cancelledForeground;
++
++    @Before public void setup() throws Exception {
++        context = RuntimeEnvironment.getApplication();
++        GlobalPreferences.instance(context);
++        Playlist.instance().clear();
++        PlayerTweaksData.instance(context).setShortsPreparationEnabled(true);
++        current = video("current");
++        next = video("next");
++        pending = PublishSubject.create();
++        preparations = new AtomicInteger();
++        foreground = new AtomicInteger();
++        cancelledForeground = new AtomicInteger();
++        PlaybackView player = (PlaybackView) Proxy.newProxyInstance(PlaybackView.class.getClassLoader(),
++                new Class<?>[]{PlaybackView.class}, (object, method, arguments) -> {
++                    if (method.getName().equals("isPlaying")) return playing;
++                    if (method.getName().equals("getDurationMs")) return duration;
++                    Class<?> type = method.getReturnType();
++                    if (!type.isPrimitive() || type == void.class) return null;
++                    if (type == boolean.class) return false;
++                    if (type == long.class) return 0L;
++                    if (type == float.class) return 0f;
++                    return 0;
++                });
++        controller = new VideoLoaderController() {
++            @Override public PlaybackView getPlayer() { return player; }
++            @Override public Video getVideo() { return current; }
++            @Override public Context getContext() { return context; }
++            @Override protected Observable<MediaItemFormatInfo> loadRegularFormatInfo(String id) {
++                foreground.incrementAndGet();
++                return Observable.<MediaItemFormatInfo>never().doOnDispose(cancelledForeground::incrementAndGet);
++            }
++        };
++        SuggestionsController suggestions = new SuggestionsController() {
++            @Override public Video getNext() { return next; }
++        };
++        set("mSuggestionsController", suggestions);
++        set("mNextVideoPreloader", new NextVideoPreloader<>(id -> {
++            preparations.incrementAndGet();
++            return pending;
++        }, () -> 0, value -> true));
++    }
++
++    @Test public void readyEventStartsPreparationWhenSourceAndMetadataPrecedePlayback() {
++        controller.onVideoLoaded(current);
++        controller.onMetadata(null);
++        assertEquals(0, preparations.get());
++        playing = true;
++        duration = 10_000;
++        controller.onPlay();
++        assertEquals(1, preparations.get());
++        assertTrue(pending.hasObservers());
++        controller.onPlay();
++        controller.onMetadata(null);
++        assertEquals(1, preparations.get());
++    }
++
++    @Test public void metadataArrivingAfterReadyStartsPreparationImmediately() {
++        playing = true;
++        duration = 10_000;
++        Video available = next;
++        next = null;
++        controller.onPlay();
++        assertEquals(0, preparations.get());
++        next = available;
++        controller.onMetadata(null);
++        assertEquals(1, preparations.get());
++    }
++
++    @Test public void foregroundJoinsPendingPreparationAndFallsBackOnlyOnceAfterError() throws Exception {
++        playing = true;
++        duration = 10_000;
++        controller.onPlay();
++        current = next;
++        loadFormats();
++        assertEquals(1, preparations.get());
++        assertEquals(0, foreground.get());
++        assertTrue(pending.hasObservers());
++        pending.onError(new IllegalStateException("synthetic preparation failure"));
++        assertEquals(1, preparations.get());
++        assertEquals(1, foreground.get());
++        controller.onEngineReleased();
++        assertEquals(1, cancelledForeground.get());
++    }
++
++    @Test public void preparationRejectedAtActivationUsesExactlyOneForegroundFallback() throws Exception {
++        playing = true;
++        duration = 10_000;
++        controller.onPlay();
++        current = next;
++        loadFormats();
++        assertEquals(0, foreground.get());
++        Constructor<?> constructor = PreparedShort.class.getDeclaredConstructors()[0];
++        constructor.setAccessible(true);
++        PreparedShort expired = (PreparedShort) constructor.newInstance(null, null, null, null);
++        pending.onNext(expired); // Real activate() rejects this result at its final validity check.
++        assertEquals(1, preparations.get());
++        assertEquals(1, foreground.get());
++        controller.onFinish();
++        assertEquals(1, cancelledForeground.get());
++    }
++
++    @Test public void stalePreparationFailureCannotStartLookupForTheReplacementVideo() throws Exception {
++        playing = true;
++        duration = 10_000;
++        controller.onPlay();
++        current = next;
++        loadFormats();
++        current = video("replacement");
++        pending.onError(new IllegalStateException("late preparation failure"));
++        assertEquals(0, foreground.get());
++        controller.onFinish();
++    }
++
++    @Test public void leavingDuringPendingForegroundPreparationCancelsItWithoutFallback() throws Exception {
++        playing = true;
++        duration = 10_000;
++        controller.onPlay();
++        current = next;
++        loadFormats();
++        assertTrue(pending.hasObservers());
++        controller.onFinish();
++        assertFalse(pending.hasObservers());
++        pending.onError(new IllegalStateException("late failure"));
++        assertEquals(0, foreground.get());
++    }
++
++    @Test public void openingAnotherVideoCancelsTheUnrelatedPreparedRequest() throws Exception {
++        playing = true;
++        duration = 10_000;
++        controller.onPlay();
++        current = video("different");
++        loadFormats();
++        assertFalse(pending.hasObservers());
++        assertEquals(1, preparations.get());
++        assertEquals(1, foreground.get());
++        controller.onFinish();
++    }
++
++    private Video video(String id) {
++        Video video = new Video();
++        video.videoId = id;
++        video.isShorts = true;
++        return video;
++    }
++
++    private void set(String name, Object value) throws Exception {
++        Field field = VideoLoaderController.class.getDeclaredField(name);
++        field.setAccessible(true);
++        field.set(controller, value);
++    }
++
++    private void loadFormats() throws Exception {
++        Method method = VideoLoaderController.class.getDeclaredMethod("loadFormatInfo", Video.class);
++        method.setAccessible(true);
++        method.invoke(controller, current);
 +    }
 +}
 diff --git a/common/src/test/java/com/liskovsoft/smartyoutubetv2/common/misc/VideoShortsClassificationTest.java b/common/src/test/java/com/liskovsoft/smartyoutubetv2/common/misc/VideoShortsClassificationTest.java
