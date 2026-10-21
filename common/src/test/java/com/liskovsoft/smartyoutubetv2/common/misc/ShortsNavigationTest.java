@@ -195,15 +195,16 @@ public class ShortsNavigationTest {
         assertEquals(1, results.size());
     }
 
-    @Test public void failedSourcePaginationUsesAVerifiedShortRecommendation() throws Exception {
+    @Test public void knownShortRecommendationDoesNotWaitForSourcePagination() throws Exception {
         VideoGroup source = group(current);
         field(source, "mMediaGroup", mediaGroup("page_one"));
         Video fallback = video("fallback", true);
         rows.add(group(video("long", false), fallback));
-        assertNull(controller.getNext()); // Preserve source order while its page is available.
+        assertSame(fallback, controller.getNext());
         controller.requestNextShort(results::add);
-        page.onError(new IllegalStateException("offline"));
         assertEquals(Arrays.asList(fallback), results);
+        assertEquals(0, requests.get());
+        assertFalse(page.hasObservers());
     }
 
     @Test public void lightweightGroupCopyDoesNotBreakNextOrPrevious() {

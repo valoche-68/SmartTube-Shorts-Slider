@@ -4,7 +4,7 @@
 
 Ce tutoriel active les mêmes options de navigation et de lecture que notre script, directement dans **SmartTube officiel**. Tout se fait sur la TV, sans ordinateur ni ADB.
 
-Les menus ci-dessous ont été vérifiés dans le code officiel **32.56 stable et bêta**. Les libellés peuvent varier dans d’autres versions ; les essais sur Fire TV restent à faire. Notez vos réglages actuels pour pouvoir les remettre ensuite.
+Les menus ci-dessous ont été vérifiés dans le code officiel **32.68 stable et bêta**, ainsi que 32.56. Les libellés peuvent varier dans d’autres versions ; les essais sur Fire TV restent à faire. Notez vos réglages actuels pour pouvoir les remettre ensuite.
 
 Si vous utilisez plusieurs comptes, sélectionnez d’abord celui à configurer dans **Paramètres → Comptes**. Avec **Utiliser des paramètres distincts pour chaque compte**, répétez les réglages pour chaque compte souhaité ; sinon ils sont partagés.
 
@@ -59,4 +59,4 @@ Ce parcours conserve l’application officielle. Il **n’ajoute ni le bouton de
 
 ---
 
-Références : code officiel des [réaffectations](https://github.com/yuliskov/SmartTube/blob/32.56s/common/src/main/java/com/liskovsoft/smartyoutubetv2/common/app/presenters/settings/GeneralSettingsPresenter.java), des [réglages du lecteur](https://github.com/yuliskov/SmartTube/blob/32.56s/common/src/main/java/com/liskovsoft/smartyoutubetv2/common/app/presenters/settings/PlayerSettingsPresenter.java) et des [libellés français](https://github.com/yuliskov/SmartTube/blob/32.56s/common/src/main/res/values-fr/strings.xml).
+Références : code officiel des [réaffectations](https://github.com/yuliskov/SmartTube/blob/32.68s/common/src/main/java/com/liskovsoft/smartyoutubetv2/common/app/presenters/settings/GeneralSettingsPresenter.java), des [réglages du lecteur](https://github.com/yuliskov/SmartTube/blob/32.68s/common/src/main/java/com/liskovsoft/smartyoutubetv2/common/app/presenters/settings/PlayerSettingsPresenter.java) et des [libellés français](https://github.com/yuliskov/SmartTube/blob/32.68s/common/src/main/res/values-fr/strings.xml).

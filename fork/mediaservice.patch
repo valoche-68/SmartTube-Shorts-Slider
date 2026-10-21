@@ -1,42 +1,53 @@
 diff --git a/youtubeapi/src/main/java/com/liskovsoft/youtubeapi/app/AppService.java b/youtubeapi/src/main/java/com/liskovsoft/youtubeapi/app/AppService.java
-index fd0fac31..688fdd3e 100644
+index 6a44094f..85c52dc6 100644
 --- a/youtubeapi/src/main/java/com/liskovsoft/youtubeapi/app/AppService.java
 +++ b/youtubeapi/src/main/java/com/liskovsoft/youtubeapi/app/AppService.java
-@@ -17,7 +17,7 @@ import kotlin.Pair;
+@@ -22,7 +22,7 @@ import kotlin.Pair;
  public class AppService {
      private static AppService sInstance;
-     private final AppServiceInt mAppServiceInt;
+     private final AppServiceCore mAppServiceCore;
 -    private String mClientPlaybackNonce;
 +    private final PlaybackNonceState mPlaybackNonce = new PlaybackNonceState();
  
      private AppService() {
-         mAppServiceInt = new AppServiceIntCached();
-@@ -101,7 +101,7 @@ public class AppService {
+         mAppServiceCore = new AppServiceCoreCached();
+@@ -131,7 +131,7 @@ public class AppService {
+      * NOTE: Unique per video info instance<br/>
+      * A nonce is a unique value chosen by an entity in a protocol, and it is used to protect that entity against attacks which fall under the very large umbrella of "replay".
+      */
+-    public synchronized String getClientPlaybackNonce() {
++    public String getClientPlaybackNonce() {
+         return getClientPlaybackNonce(null);
+     }
+ 
+@@ -139,26 +139,21 @@ public class AppService {
+      * NOTE: Unique per video info instance<br/>
+      * A nonce is a unique value chosen by an entity in a protocol, and it is used to protect that entity against attacks which fall under the very large umbrella of "replay".
+      */
+-    public synchronized String getClientPlaybackNonce(@Nullable AppClient client) {
+-        if (mClientPlaybackNonce != null) {
+-            return mClientPlaybackNonce;
+-        }
+-
+-        PlayerDataExtractor playerDataExtractor = mAppServiceCore.getPlayerDataExtractor(client);
+-
+-        if (playerDataExtractor == null) {
+-            return null;
+-        }
+-
+-        mClientPlaybackNonce = playerDataExtractor.createClientPlaybackNonce();
+-
+-        return mClientPlaybackNonce;
++    public String getClientPlaybackNonce(@Nullable AppClient client) {
++        return mPlaybackNonce.get(() -> {
++            PlayerDataExtractor extractor = mAppServiceCore.getPlayerDataExtractor(client);
++            return extractor != null ? extractor.createClientPlaybackNonce() : null;
++        });
      }
  
      public void resetClientPlaybackNonce() {
 -        mClientPlaybackNonce = null;
 +        mPlaybackNonce.reset();
-     }
- 
-     /**
-@@ -109,19 +109,14 @@ public class AppService {
-      * A nonce is a unique value chosen by an entity in a protocol, and it is used to protect that entity against attacks which fall under the very large umbrella of "replay".
-      */
-     public synchronized String getClientPlaybackNonce() {
--        if (mClientPlaybackNonce != null) {
--            return mClientPlaybackNonce;
--        }
--
--        if (mAppServiceInt.getPlayerDataExtractor() == null) {
--            return null;
--        }
--
--        mClientPlaybackNonce = mAppServiceInt.getPlayerDataExtractor().createClientPlaybackNonce();
--
--        return mClientPlaybackNonce;
-+        return mPlaybackNonce.get(() -> mAppServiceInt.getPlayerDataExtractor() == null ? null :
-+                mAppServiceInt.getPlayerDataExtractor().createClientPlaybackNonce());
      }
  
 +    public void beginShortsPreparation() { mPlaybackNonce.beginIsolated(); }
@@ -48,10 +59,10 @@ index fd0fac31..688fdd3e 100644
       */
 diff --git a/youtubeapi/src/main/java/com/liskovsoft/youtubeapi/app/PlaybackNonceState.java b/youtubeapi/src/main/java/com/liskovsoft/youtubeapi/app/PlaybackNonceState.java
 new file mode 100644
-index 00000000..538ff57b
+index 00000000..3cbde39f
 --- /dev/null
 +++ b/youtubeapi/src/main/java/com/liskovsoft/youtubeapi/app/PlaybackNonceState.java
-@@ -0,0 +1,32 @@
+@@ -0,0 +1,35 @@
 +package com.liskovsoft.youtubeapi.app;
 +
 +/** Keeps speculative lookups from replacing the current video's history identifier. */
@@ -60,20 +71,23 @@ index 00000000..538ff57b
 +    private String active;
 +    private final ThreadLocal<String[]> isolated = new ThreadLocal<>();
 +
-+    public synchronized String get(Factory factory) {
++    public String get(Factory factory) {
 +        String[] local = isolated.get();
++        // A speculative extractor may perform I/O. Never hold the playback lock for it.
 +        if (local != null) {
 +            if (local[0] == null) local[0] = factory.create();
 +            return local[0];
 +        }
-+        if (active == null) active = factory.create();
-+        return active;
++        synchronized (this) {
++            if (active == null) active = factory.create();
++            return active;
++        }
 +    }
 +
-+    public synchronized void reset() {
++    public void reset() {
 +        String[] local = isolated.get();
 +        if (local != null) local[0] = null;
-+        else active = null;
++        else synchronized (this) { active = null; }
 +    }
 +
 +    public void beginIsolated() {
@@ -127,18 +141,18 @@ index 01d79fdd..9a6c8210 100644
  internal fun ItemWrapper.getFeedbackToken() = getFeedbackTokens()?.getOrNull(0)
 diff --git a/youtubeapi/src/main/java/com/liskovsoft/youtubeapi/service/PreparedShort.java b/youtubeapi/src/main/java/com/liskovsoft/youtubeapi/service/PreparedShort.java
 new file mode 100644
-index 00000000..b54bf551
+index 00000000..c6cf5c1a
 --- /dev/null
 +++ b/youtubeapi/src/main/java/com/liskovsoft/youtubeapi/service/PreparedShort.java
-@@ -0,0 +1,60 @@
+@@ -0,0 +1,63 @@
 +package com.liskovsoft.youtubeapi.service;
 +
 +import com.liskovsoft.mediaserviceinterfaces.data.MediaItemFormatInfo;
 +import com.liskovsoft.mediaserviceinterfaces.oauth.Account;
 +import com.liskovsoft.sharedutils.rx.RxHelper;
 +import com.liskovsoft.youtubeapi.app.AppService;
-+import com.liskovsoft.youtubeapi.service.data.YouTubeMediaItemFormatInfo;
 +import com.liskovsoft.youtubeapi.videoinfo.V2.VideoInfoService;
++import com.liskovsoft.youtubeapi.service.internal.FormatInfoWrapper;
 +import io.reactivex.Observable;
 +
 +/** A speculative result; playback cache and history change only on activation. */
@@ -147,6 +161,7 @@ index 00000000..b54bf551
 +    private final VideoInfoService service;
 +    private final String nonce;
 +    private final Account account;
++    private FormatInfoWrapper.LookupContext context;
 +    private final long created = System.nanoTime();
 +
 +    private PreparedShort(MediaItemFormatInfo format, VideoInfoService service, String nonce, Account account) {
@@ -164,9 +179,11 @@ index 00000000..b54bf551
 +            try {
 +                if (Thread.currentThread().isInterrupted()) throw new InterruptedException();
 +                VideoInfoService service = VideoInfoService.createForPreparation();
-+                MediaItemFormatInfo format = YouTubeMediaItemFormatInfo.from(service.getVideoInfo(videoId, null));
++                FormatInfoWrapper.LookupContext context = FormatInfoWrapper.createForPreparation(service);
++                MediaItemFormatInfo format = context.getFormatInfo(videoId, null);
 +                if (Thread.currentThread().isInterrupted()) throw new InterruptedException();
 +                PreparedShort result = new PreparedShort(format, service, app.getClientPlaybackNonce(), account);
++                result.context = context;
 +                if (!result.isValid() || !videoId.equals(format.getVideoId())) {
 +                    throw new IllegalStateException("No usable prepared format");
 +                }
@@ -187,34 +204,375 @@ index 00000000..b54bf551
 +        if (!isValid()) return null;
 +        AppService.instance().activatePreparedNonce(nonce);
 +        VideoInfoService.instance().activatePreparedState(service);
-+        YouTubeMediaItemService.instance().activatePreparedFormat(format);
++        FormatInfoWrapper.activatePreparedFormat(format, context);
 +        return format;
 +    }
 +}
-diff --git a/youtubeapi/src/main/java/com/liskovsoft/youtubeapi/service/YouTubeMediaItemService.java b/youtubeapi/src/main/java/com/liskovsoft/youtubeapi/service/YouTubeMediaItemService.java
-index 09beae09..0246dd5c 100644
---- a/youtubeapi/src/main/java/com/liskovsoft/youtubeapi/service/YouTubeMediaItemService.java
-+++ b/youtubeapi/src/main/java/com/liskovsoft/youtubeapi/service/YouTubeMediaItemService.java
-@@ -559,6 +559,10 @@ public class YouTubeMediaItemService implements MediaItemService {
-         mCachedFormatInfo = null;
-     }
+diff --git a/youtubeapi/src/main/java/com/liskovsoft/youtubeapi/service/internal/FormatInfoWrapper.kt b/youtubeapi/src/main/java/com/liskovsoft/youtubeapi/service/internal/FormatInfoWrapper.kt
+index fcb0fb8c..f057d8bd 100644
+--- a/youtubeapi/src/main/java/com/liskovsoft/youtubeapi/service/internal/FormatInfoWrapper.kt
++++ b/youtubeapi/src/main/java/com/liskovsoft/youtubeapi/service/internal/FormatInfoWrapper.kt
+@@ -12,175 +12,222 @@ import com.liskovsoft.youtubeapi.service.data.YouTubeMediaItemFormatInfo
+ import com.liskovsoft.youtubeapi.videoinfo.V2.VideoInfoService
  
-+    public void activatePreparedFormat(MediaItemFormatInfo formatInfo) {
-+        mCachedFormatInfo = formatInfo;
+ internal object FormatInfoWrapper {
+-    private var mCachedFormatInfo: MediaItemFormatInfo? = null
+-    private var mTryInnertubeFirst: Boolean = false
+-    private val mInnertubeResult = object { var isUnplayable: Boolean = false; var client: AppClient? = null }
+-    private val mInnertubeProvider: (String, String?) -> MediaItemFormatInfo? =
+-        { videoId, clickTrackingParams ->
+-            getFormatInfoInnertube(videoId, clickTrackingParams).also {
+-                mInnertubeResult.isUnplayable = it?.isUnplayable ?: true
+-                mInnertubeResult.client = it?.clientInfo as? AppClient
+-                persistFormatInfoType(it)
++    private val active = LookupContext(null, false)
++
++    @JvmStatic fun getFormatInfo(videoId: String?, clickTrackingParams: String?): MediaItemFormatInfo? =
++        active.getFormatInfo(videoId, clickTrackingParams)
++    @JvmStatic fun switchNextFormat(force: Boolean) = active.switchNextFormat(force)
++    @JvmStatic fun resetFormat() = active.resetFormat()
++    @JvmStatic fun invalidateCache() = active.invalidateCache()
++    @JvmStatic fun syncWithAuthInfoIfNeeded(formatInfo: MediaItemFormatInfo?) = active.syncWithAuthInfoIfNeeded(formatInfo)
++
++    @JvmStatic fun createForPreparation(service: VideoInfoService): LookupContext =
++        synchronized(active.strategyLock) {
++            LookupContext(service, true).also {
++                it.mTryInnertubeFirst = active.mTryInnertubeFirst
++                it.mInnertubeResult = active.mInnertubeResult
++                it.mPreparationStartGeneration = active.mStrategyGeneration
+             }
+         }
+-    private val mLegacyProvider: (String, String?) -> MediaItemFormatInfo? =
+-        { videoId, clickTrackingParams -> getFormatInfoLegacy(videoId, clickTrackingParams) }
+-    private val lock = Any()
+ 
+-    @JvmStatic
+-    fun getFormatInfo(videoId: String?, clickTrackingParams: String?): MediaItemFormatInfo? {
+-        if (videoId == null)
+-            return null
+-
+-        try {
+-            synchronized(lock) {
+-                return selectPlaybackFormatInfo(videoId, clickTrackingParams)
++    @JvmStatic fun activatePreparedFormat(formatInfo: MediaItemFormatInfo, prepared: LookupContext?) {
++        active.mCachedFormatInfo = formatInfo
++        synchronized(active.strategyLock) {
++            if (prepared != null && active.mStrategyGeneration == prepared.mPreparationStartGeneration) {
++                active.mTryInnertubeFirst = prepared.mTryInnertubeFirst
++                active.mInnertubeResult = prepared.mInnertubeResult
+             }
+-        } finally {
+-            ReloadPlaybackGate.reset(videoId)
+         }
+-    }
+-
+-    @JvmStatic
+-    fun switchNextFormat(force: Boolean) {
+-        if (mTryInnertubeFirst && !mInnertubeResult.isUnplayable) {
+-            if (!force && mInnertubeResult.client?.let { PoTokenGate.resetCache(it) } ?: false)
+-                return
+-
+-            mTryInnertubeFirst = false
+-        } else {
+-            val endReached: Boolean = getVideoInfoService().switchNextFormat(force)
+-            if (endReached)
+-                mTryInnertubeFirst = true
++        if (prepared?.mUsedInnertube == true) active.persistFormatInfoType(formatInfo)
 +    }
 +
-     private MediaItemFormatInfo getCachedFormatInfo(String videoId) {
-         return  mCachedFormatInfo != null &&
-                 mCachedFormatInfo.getVideoId() != null &&
++    /** Same official auth/fallback path, with a private cache, strategy and lock for speculative work. */
++    open class LookupContext internal constructor(
++        private val preparationService: VideoInfoService?, private val isolated: Boolean
++    ) {
++        @Volatile internal var mCachedFormatInfo: MediaItemFormatInfo? = null
++        @Volatile internal var mTryInnertubeFirst: Boolean = false
++        internal data class InnertubeResult(val isUnplayable: Boolean = false, val client: AppClient? = null)
++        @Volatile internal var mInnertubeResult = InnertubeResult()
++        @Volatile internal var mStrategyGeneration = 0L
++        internal var mPreparationStartGeneration = 0L
++        internal var mUsedInnertube = false
++        private val mInnertubeProvider: (String, String?) -> MediaItemFormatInfo? =
++            { videoId, clickTrackingParams ->
++                getFormatInfoInnertube(videoId, clickTrackingParams).also {
++                    mUsedInnertube = true
++                    mInnertubeResult = InnertubeResult(it?.isUnplayable ?: true, it?.clientInfo as? AppClient)
++                    persistFormatInfoType(it)
++                }
++            }
++        private val mLegacyProvider: (String, String?) -> MediaItemFormatInfo? =
++            { videoId, clickTrackingParams -> getFormatInfoLegacy(videoId, clickTrackingParams) }
++        private val lock = Any()
++        internal val strategyLock = Any()
++
++        fun getFormatInfo(videoId: String?, clickTrackingParams: String?): MediaItemFormatInfo? {
++            if (videoId == null)
++                return null
++
++            try {
++                synchronized(lock) {
++                    return selectPlaybackFormatInfo(videoId, clickTrackingParams)
++                }
++            } finally {
++                // Cancelled preparation may finish after foreground recovery for the same video.
++                if (!isolated) ReloadPlaybackGate.reset(videoId)
++            }
+         }
+-    }
+-
+-    @JvmStatic
+-    fun resetFormat() {
+-        getVideoInfoService().resetInfoType()
+-    }
+ 
+-    @JvmStatic
+-    fun invalidateCache() {
+-        mCachedFormatInfo = null
+-    }
+-
+-    @JvmStatic
+-    fun syncWithAuthInfoIfNeeded(formatInfo: MediaItemFormatInfo?) {
+-        if (formatInfo == null) {
+-            return
++        fun switchNextFormat(force: Boolean) {
++            val previous = synchronized(strategyLock) {
++                Triple(mStrategyGeneration, mTryInnertubeFirst, mInnertubeResult)
++            }
++            // Recovery may touch token providers; never hold a strategy lock during that work.
++            val tryInnertubeFirst = if (previous.second && !previous.third.isUnplayable) {
++                if (!force && previous.third.client?.let { PoTokenGate.resetCache(it) } ?: false) {
++                    synchronized(strategyLock) { mStrategyGeneration++ }
++                    return
++                }
++                false
++            } else {
++                getVideoInfoService().switchNextFormat(force) || previous.second
++            }
++            synchronized(strategyLock) {
++                if (mStrategyGeneration == previous.first) mTryInnertubeFirst = tryInnertubeFirst
++                mStrategyGeneration++
++            }
+         }
+ 
+-        if (shouldBeSynced(formatInfo) && !formatInfo.isSynced()) {
+-            val videoInfo = getVideoInfoService().getAuthVideoInfo(formatInfo.getVideoId(), formatInfo.getClickTrackingParams())
+-            formatInfo.sync(YouTubeMediaItemFormatInfo.from(videoInfo))
++        fun resetFormat() {
++            getVideoInfoService().resetInfoType()
++            synchronized(strategyLock) { mStrategyGeneration++ }
+         }
+ 
+-        if (shouldBeSynced(formatInfo)) { // still not synced
+-            throw IllegalStateException("Update history error: the format should be synced first")
++        fun invalidateCache() {
++            mCachedFormatInfo = null
+         }
+-    }
+ 
+-    private fun shouldBeSynced(formatInfo: MediaItemFormatInfo): Boolean {
+-        return !formatInfo.isAuth() && !formatInfo.isUnplayable() && getSignInService().isSigned
+-    }
++        fun syncWithAuthInfoIfNeeded(formatInfo: MediaItemFormatInfo?) {
++            if (formatInfo == null) {
++                return
++            }
+ 
+-    private fun selectPlaybackFormatInfo(videoId: String, clickTrackingParams: String?): MediaItemFormatInfo? {
+-        var formatInfo = getPrimaryProvider()(videoId, clickTrackingParams)
++            if (shouldBeSynced(formatInfo) && !formatInfo.isSynced()) {
++                val videoInfo = getVideoInfoService().getAuthVideoInfo(formatInfo.getVideoId(), formatInfo.getClickTrackingParams())
++                formatInfo.sync(YouTubeMediaItemFormatInfo.from(videoInfo))
++            }
+ 
+-        if (formatInfo != null && formatInfo.isUnplayable()) {
+-            formatInfo = getSecondaryProvider()(videoId, clickTrackingParams)
++            if (shouldBeSynced(formatInfo)) { // still not synced
++                throw IllegalStateException("Update history error: the format should be synced first")
++            }
+         }
+ 
+-        return formatInfo
+-    }
++        private fun shouldBeSynced(formatInfo: MediaItemFormatInfo): Boolean {
++            return !formatInfo.isAuth() && !formatInfo.isUnplayable() && getSignInService().isSigned
++        }
+ 
+-    private fun getPrimaryProvider(): (String, String?) -> MediaItemFormatInfo? {
+-        return if (mTryInnertubeFirst) mInnertubeProvider else mLegacyProvider
+-    }
++        private fun selectPlaybackFormatInfo(videoId: String, clickTrackingParams: String?): MediaItemFormatInfo? {
++            var formatInfo = getPrimaryProvider()(videoId, clickTrackingParams)
+ 
+-    private fun getSecondaryProvider(): (String, String?) -> MediaItemFormatInfo? {
+-        return if (mTryInnertubeFirst) mLegacyProvider else mInnertubeProvider
+-    }
++            if (formatInfo != null && formatInfo.isUnplayable()) {
++                formatInfo = getSecondaryProvider()(videoId, clickTrackingParams)
++            }
+ 
+-    private fun getFormatInfoInnertube(videoId: String, clickTrackingParams: String?): MediaItemFormatInfo? {
+-        //videoId = "K04WmBtVsOs"; // the testing video: Memories of Memories
++            return formatInfo
++        }
+ 
+-        val cachedFormatInfo: MediaItemFormatInfo? = getCachedFormatInfo(videoId)
++        private fun getPrimaryProvider(): (String, String?) -> MediaItemFormatInfo? {
++            return if (mTryInnertubeFirst) mInnertubeProvider else mLegacyProvider
++        }
+ 
+-        if (cachedFormatInfo != null) {
+-            return cachedFormatInfo
++        private fun getSecondaryProvider(): (String, String?) -> MediaItemFormatInfo? {
++            return if (mTryInnertubeFirst) mLegacyProvider else mInnertubeProvider
+         }
+ 
+-        checkSigned()
++        private fun getFormatInfoInnertube(videoId: String, clickTrackingParams: String?): MediaItemFormatInfo? {
++            //videoId = "K04WmBtVsOs"; // the testing video: Memories of Memories
+ 
+-        AppService.instance().resetClientPlaybackNonce() // history fix: unique value per each video info
++            val cachedFormatInfo: MediaItemFormatInfo? = getCachedFormatInfo(videoId)
+ 
+-        val formatInfo = InnertubeService.createFormatInfo(videoId)
++            if (cachedFormatInfo != null) {
++                return cachedFormatInfo
++            }
+ 
+-        setCachedFormatInfo(formatInfo, clickTrackingParams)
++            checkSigned()
+ 
+-        return formatInfo
+-    }
++            AppService.instance().resetClientPlaybackNonce() // history fix: unique value per each video info
+ 
+-    private fun getFormatInfoLegacy(videoId: String?, clickTrackingParams: String?): MediaItemFormatInfo? {
+-        val cachedFormatInfo = getCachedFormatInfo(videoId)
++            val formatInfo = requestInnertubeFormatInfo(videoId)
+ 
+-        if (cachedFormatInfo != null) {
+-            return cachedFormatInfo
++            setCachedFormatInfo(formatInfo, clickTrackingParams)
++
++            return formatInfo
+         }
+ 
+-        checkSigned()
++        private fun getFormatInfoLegacy(videoId: String?, clickTrackingParams: String?): MediaItemFormatInfo? {
++            val cachedFormatInfo = getCachedFormatInfo(videoId)
+ 
+-        val videoInfo = getVideoInfoService().getVideoInfo(videoId, clickTrackingParams)
++            if (cachedFormatInfo != null) {
++                return cachedFormatInfo
++            }
+ 
+-        val formatInfo = YouTubeMediaItemFormatInfo.from(videoInfo)
++            checkSigned()
+ 
+-        setCachedFormatInfo(formatInfo, clickTrackingParams)
++            val formatInfo = requestLegacyFormatInfo(videoId, clickTrackingParams)
+ 
+-        return formatInfo
+-    }
++            setCachedFormatInfo(formatInfo, clickTrackingParams)
+ 
+-    private fun getCachedFormatInfo(videoId: String?): MediaItemFormatInfo? {
+-        return mCachedFormatInfo?.takeIf { videoId != null && it.getVideoId() == videoId && it.isCacheActual() }
+-    }
++            return formatInfo
++        }
+ 
+-    private fun setCachedFormatInfo(formatInfo: MediaItemFormatInfo?, clickTrackingParams: String?) {
+-        if (formatInfo == null || formatInfo.isUnplayable()) {
+-            mCachedFormatInfo = null
+-            return
++        private fun getCachedFormatInfo(videoId: String?): MediaItemFormatInfo? {
++            return mCachedFormatInfo?.takeIf { videoId != null && it.getVideoId() == videoId && it.isCacheActual() }
+         }
+ 
+-        mCachedFormatInfo = formatInfo
+-        formatInfo.setClickTrackingParams(clickTrackingParams)
+-    }
++        private fun setCachedFormatInfo(formatInfo: MediaItemFormatInfo?, clickTrackingParams: String?) {
++            if (formatInfo == null || formatInfo.isUnplayable()) {
++                mCachedFormatInfo = null
++                return
++            }
+ 
+-    private fun persistFormatInfoType(formatInfo: MediaItemFormatInfo?) {
+-        if (!GlobalPreferences.isInitialized()) {
+-            return
++            mCachedFormatInfo = formatInfo
++            formatInfo.setClickTrackingParams(clickTrackingParams)
+         }
+ 
+-        val appClient = formatInfo?.clientInfo as? AppClient
++        internal fun persistFormatInfoType(formatInfo: MediaItemFormatInfo?) {
++            if (isolated || !GlobalPreferences.isInitialized()) {
++                return
++            }
+ 
+-        val videoInfoType = appClient?.ordinal ?: -1
++            val appClient = formatInfo?.clientInfo as? AppClient
+ 
+-        if (getData().videoInfoType != videoInfoType)
+-            getData().videoInfoType = videoInfoType
+-    }
++            val videoInfoType = appClient?.ordinal ?: -1
+ 
+-    private fun checkSigned() {
+-        getSignInService().checkAuth()
+-    }
++            if (getData().videoInfoType != videoInfoType)
++                getData().videoInfoType = videoInfoType
++        }
+ 
+-    private fun getSignInService(): YouTubeSignInService {
+-        return YouTubeSignInService.instance()
+-    }
++        protected open fun requestLegacyFormatInfo(videoId: String?, clickTrackingParams: String?): MediaItemFormatInfo? =
++            YouTubeMediaItemFormatInfo.from(getVideoInfoService().getVideoInfo(videoId, clickTrackingParams))
+ 
+-    private fun getVideoInfoService(): VideoInfoService {
+-        return VideoInfoService.instance()
+-    }
++        protected open fun requestInnertubeFormatInfo(videoId: String): MediaItemFormatInfo? =
++            InnertubeService.createFormatInfo(videoId)
+ 
+-    private fun getData(): MediaServiceData {
+-        return MediaServiceData.instance()
++        protected open fun checkSigned() {
++            getSignInService().checkAuth()
++        }
++
++        private fun getSignInService(): YouTubeSignInService {
++            return YouTubeSignInService.instance()
++        }
++
++        private fun getVideoInfoService(): VideoInfoService {
++            return preparationService ?: VideoInfoService.instance()
++        }
++
++        private fun getData(): MediaServiceData {
++            return MediaServiceData.instance()
++        }
+     }
+-}
+\ No newline at end of file
++}
 diff --git a/youtubeapi/src/main/java/com/liskovsoft/youtubeapi/videoinfo/V2/VideoInfoService.java b/youtubeapi/src/main/java/com/liskovsoft/youtubeapi/videoinfo/V2/VideoInfoService.java
-index c3b000e9..8562dd1d 100644
+index 3832c712..b30e15d0 100644
 --- a/youtubeapi/src/main/java/com/liskovsoft/youtubeapi/videoinfo/V2/VideoInfoService.java
 +++ b/youtubeapi/src/main/java/com/liskovsoft/youtubeapi/videoinfo/V2/VideoInfoService.java
-@@ -55,11 +55,25 @@ public class VideoInfoService extends VideoInfoServiceBase {
+@@ -50,15 +50,36 @@ public class VideoInfoService extends VideoInfoServiceBase {
+     @Nullable
+     private AppClient mActualInfoType = null;
+     @Nullable
+-    private AppClient mNextInfoType = null;
++    private volatile AppClient mNextInfoType = null;
      private boolean mUseAuth;
      private List<TranslationLanguage> mCachedTranslationLanguages;
      private boolean mIsUnplayable;
 +    private boolean mIsIsolated;
++    private AppClient mPreparationStartType;
  
      private VideoInfoService() {
          mVideoInfoApi = RetrofitHelper.create(VideoInfoApi.class);
@@ -223,12 +581,18 @@ index c3b000e9..8562dd1d 100644
 +    public static VideoInfoService createForPreparation() {
 +        VideoInfoService service = new VideoInfoService();
 +        service.mIsIsolated = true;
++        // Reuse the active recovery strategy without sharing playback state or caches.
++        service.mPreparationStartType = instance().mNextInfoType;
++        service.mNextInfoType = service.mPreparationStartType;
 +        return service;
 +    }
 +
 +    public void activatePreparedState(VideoInfoService prepared) {
 +        mActualInfoType = prepared.mActualInfoType;
-+        mNextInfoType = prepared.mNextInfoType;
++        // A newer user/error-recovery choice takes precedence over this older lookup.
++        if (mNextInfoType == prepared.mPreparationStartType) {
++            mNextInfoType = prepared.mNextInfoType;
++        }
 +        mIsUnplayable = prepared.mIsUnplayable;
 +        persistVideoInfoType();
 +    }
@@ -236,7 +600,13 @@ index c3b000e9..8562dd1d 100644
      public static VideoInfoService instance() {
          if (sInstance == null) {
              sInstance = new VideoInfoService();
-@@ -139,6 +153,7 @@ public class VideoInfoService extends VideoInfoServiceBase {
+@@ -117,10 +138,12 @@ public class VideoInfoService extends VideoInfoServiceBase {
+ 
+     private VideoInfo firstInfoWith(String videoId, String clickTrackingParams, InfoTester infoTester) {
+         //final AppClient beginType = getDefaultClient();
+-        final AppClient beginType = mNextInfoType != null ? mNextInfoType : VIDEO_INFO_TYPE_LIST[0];
++        final AppClient requestedType = mNextInfoType;
++        final AppClient beginType = requestedType != null ? requestedType : VIDEO_INFO_TYPE_LIST[0];
          AppClient nextType = beginType;
  
          do {
@@ -244,7 +614,7 @@ index c3b000e9..8562dd1d 100644
              VideoInfo result = getVideoInfoWithRentFix(nextType, videoId, clickTrackingParams);
  
              if (result != null && infoTester.test(result)) {
-@@ -336,7 +351,7 @@ public class VideoInfoService extends VideoInfoServiceBase {
+@@ -286,7 +309,7 @@ public class VideoInfoService extends VideoInfoServiceBase {
      }
  
      private void persistVideoInfoType() {

@@ -58,7 +58,7 @@ Si ADB vient d’être installé, ouvrir un nouveau terminal avant d’utiliser 
 
 ## Parcours guidé
 
-1. Le script contrôle la version installée. Les versions vérifiées sont **32.56 stable et bêta, code Android 2446**. Il refuse une version inconnue ; suivre le [tutoriel manuel](manual-setup.fr.md) dans ce cas, en tenant compte des éventuelles différences de menus.
+1. Le script contrôle la version installée. Les versions vérifiées sont **32.68 stable et bêta (code Android 2458)** et **32.56 stable et bêta (2446)**. Les réglages ciblés et les conflits de touches ont été revérifiés dans les sources des deux canaux 32.68. Il refuse une version inconnue ; suivre le [tutoriel manuel](manual-setup.fr.md) dans ce cas, en tenant compte des éventuelles différences de menus.
 2. Créer une **nouvelle sauvegarde complète** avec Paramètres → Sauvegarde/restauration → Sauvegarde locale. Indiquer au script le chemin complet du ZIP affiché sur la TV. Les emplacements varient selon Android ; aucune ancienne sauvegarde n'est choisie silencieusement.
 3. Choisir navigation, lecture automatique et playlist de section, ou consulter les réglages. Le profil actif est utilisé ; `--profile NOM` permet de choisir un profil déjà présent.
 4. Lire le récapitulatif. Activer l'automatique désactive la boucle Shorts et peut sélectionner le mode global « vidéo suivante », qui s'applique également aux vidéos longues.
@@ -72,14 +72,14 @@ Ne pas changer d'autres réglages entre la sauvegarde et la restauration : l'imp
 
 ```sh
 # Voir l'état, sans modifier la TV
-python3 tools/configure_shorts.py --backup sauvegarde.zip --version 32.56 --status
+python3 tools/configure_shorts.py --backup sauvegarde.zip --version 32.68 --status
 
 # Simulation : aucun fichier créé, aucun transfert, aucune restauration
-python3 tools/configure_shorts.py --backup sauvegarde.zip --version 32.56 \
+python3 tools/configure_shorts.py --backup sauvegarde.zip --version 32.68 \
   --navigation up-down --autoplay on --section on --dry-run
 
 # Préparer le ZIP à importer manuellement
-python3 tools/configure_shorts.py --backup sauvegarde.zip --version 32.56 \
+python3 tools/configure_shorts.py --backup sauvegarde.zip --version 32.68 \
   --navigation up-down --autoplay on --section on --output ./backup_shorts_prive
 ```
 
@@ -92,7 +92,7 @@ Le ZIP configuré peut être importé avec le gestionnaire de fichiers de la TV 
 Créer d'abord une **nouvelle sauvegarde** de l'état actuel, puis :
 
 ```sh
-python3 tools/configure_shorts.py --backup sauvegarde_actuelle.zip --version 32.56 \
+python3 tools/configure_shorts.py --backup sauvegarde_actuelle.zip --version 32.68 \
   --undo /chemin/prive/undo.json
 ```
 

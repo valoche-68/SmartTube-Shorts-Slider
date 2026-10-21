@@ -6,6 +6,11 @@ on:
     paths-ignore: ['smarttube_*.json']
   pull_request:
   workflow_dispatch:
+    inputs:
+      build_install_apk:
+        description: Build signed stable and beta APKs for validation without publishing a release
+        type: boolean
+        default: false
 
 permissions:
   contents: read
@@ -51,16 +56,61 @@ jobs:
       - name: Apply reviewed media patch
         run: python3 fork/apply_media_patch.py
       - name: Validate both Android variants
+        if: inputs.build_install_apk != true
         run: >-
           bash gradlew :common:testStstableDebugUnitTest
           --tests '*ShortsPreferencesTest' --tests '*NextVideoPreloaderTest' --tests '*PlaybackNonceIsolationTest'
-          --tests '*VideoShortsClassificationTest' --tests '*ShortsNavigationTest'
+          --tests '*VideoShortsClassificationTest' --tests '*ShortsNavigationTest' --tests '*SuggestionsControllerTest'
+          --tests '*PreparationStrategyTest' --tests '*ShortsPreparationLifecycleTest'
           :youtubeapi:testStstableDebugUnitTest --tests '*ShortsIdentityTest'
+          :exoplayer-library-sabr:testStstableDebugUnitTest --tests '*SabrCdnSelectorTest'
           :common:testStbetaDebugUnitTest
           --tests '*ShortsPreferencesTest' --tests '*NextVideoPreloaderTest' --tests '*PlaybackNonceIsolationTest'
-          --tests '*VideoShortsClassificationTest' --tests '*ShortsNavigationTest'
+          --tests '*VideoShortsClassificationTest' --tests '*ShortsNavigationTest' --tests '*SuggestionsControllerTest'
+          --tests '*PreparationStrategyTest' --tests '*ShortsPreparationLifecycleTest'
           :youtubeapi:testStbetaDebugUnitTest --tests '*ShortsIdentityTest'
+          :exoplayer-library-sabr:testStbetaDebugUnitTest --tests '*SabrCdnSelectorTest'
           :smarttubetv:assembleStstableDebug :smarttubetv:assembleStbetaDebug --console=plain
+      - name: Build verified stable and beta APKs for validation
+        if: github.event_name == 'workflow_dispatch' && inputs.build_install_apk == true
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          SIGNING_KEY: ${{ secrets.SIGNING_KEY }}
+          KEY_STORE_PASSWORD: ${{ secrets.KEY_STORE_PASSWORD }}
+          KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
+          ALIAS: ${{ secrets.ALIAS }}
+        run: |
+          python3 - <<'PY'
+          import importlib.util
+          from pathlib import Path
+          spec = importlib.util.spec_from_file_location('release', '.github/scripts/release.py')
+          release = importlib.util.module_from_spec(spec)
+          spec.loader.exec_module(release)
+          for channel in ('stable', 'beta'):
+              folder = Path('release-build', channel).resolve()
+              info = release.prepare(channel, release.latest(channel), folder)
+              info['validation_only'] = True
+              assets = release.build(folder, info)
+              release.run('git', 'archive', '--format=tar.gz', '-o', assets / 'source.tar.gz', 'HEAD', cwd=folder)
+          PY
+      - name: Remove temporary signing material
+        if: always()
+        run: |
+          find release-build -type f \( -name keystore.properties -o -name release-key.jks \) -delete 2>/dev/null || test ! -d release-build
+      - name: Keep signed device validation APKs
+        if: success() && github.event_name == 'workflow_dispatch' && inputs.build_install_apk == true
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
+        with:
+          name: stable-device-validation
+          path: release-build/stable/release_assets/
+          retention-days: 14
+      - name: Keep signed beta validation APKs
+        if: success() && github.event_name == 'workflow_dispatch' && inputs.build_install_apk == true
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
+        with:
+          name: beta-device-validation
+          path: release-build/beta/release_assets/
+          retention-days: 14
       - name: Keep test reports
         if: always()
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
@@ -69,4 +119,11 @@ jobs:
           path: |
             common/build/reports/tests/
             MediaServiceCore/youtubeapi/build/reports/tests/
+            exoplayer-amzn-2.10.6/library/sabr/build/reports/tests/
+            release-build/stable/common/build/reports/tests/
+            release-build/stable/MediaServiceCore/youtubeapi/build/reports/tests/
+            release-build/stable/exoplayer-amzn-2.10.6/library/sabr/build/reports/tests/
+            release-build/beta/common/build/reports/tests/
+            release-build/beta/MediaServiceCore/youtubeapi/build/reports/tests/
+            release-build/beta/exoplayer-amzn-2.10.6/library/sabr/build/reports/tests/
           retention-days: 30

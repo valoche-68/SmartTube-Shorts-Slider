@@ -26,7 +26,7 @@ Le lanceur réutilise Python 3.10+ et ADB s’ils sont utilisables, puis install
 
 Le menu en français propose haut/bas, gauche/droite ou aucun raccourci ; lecture automatique ou boucle ; playlist de la section ; consultation et annulation des changements. Il utilise une **sauvegarde officielle récente** et l’import doit être validé sur la TV. Aucun root sur la TV ni installation d’APK.
 
-**Compatibilité vérifiée dans le code : SmartTube officiel 32.56 stable et bêta.** Les versions inconnues sont refusées plutôt que modifiées à l’aveugle. Le test de bout en bout sur Fire TV reste à effectuer ; les [réglages manuels](manual-setup.fr.md) restent disponibles.
+**Compatibilité vérifiée dans le code : SmartTube officiel 32.68 et 32.56, stable et bêta.** Les versions inconnues sont refusées plutôt que modifiées à l’aveugle. Le test de bout en bout sur Fire TV reste à effectuer ; les [réglages manuels](manual-setup.fr.md) restent disponibles.
 
 > Le script n’ajoute **ni bouton dans le lecteur, ni préparation anticipée**. Il conserve votre APK officiel et ses mises à jour.
 

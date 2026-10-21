@@ -24,7 +24,7 @@ sh -c 's=$(curl -fsSL https://raw.githubusercontent.com/valoche-68/SmartTube-Sho
 & ([scriptblock]::Create((Invoke-WebRequest -UseBasicParsing -Uri 'https://raw.githubusercontent.com/valoche-68/SmartTube-Shorts-Slider/main/tools/start.ps1').Content))
 ```
 
-French menus · Official **32.56 stable/beta** · No player button added.
+French menus · Official **32.68 / 32.56 stable/beta** · No player button added.
 
 [Script setup & undo →](docs/user-guide.md#official-smarttube)
 

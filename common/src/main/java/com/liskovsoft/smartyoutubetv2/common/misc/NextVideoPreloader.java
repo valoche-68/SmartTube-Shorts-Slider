@@ -2,6 +2,7 @@ package com.liskovsoft.smartyoutubetv2.common.misc;
 
 import io.reactivex.Observable;
 import io.reactivex.disposables.SerialDisposable;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 /** One cancellable lookup, retained until consumed. Called on the UI thread. */
 public final class NextVideoPreloader<T> {
@@ -9,53 +10,108 @@ public final class NextVideoPreloader<T> {
     public interface Loader<T> { Observable<T> load(String videoId); }
     public interface Clock { long now(); }
     public interface Validator<T> { boolean valid(T value); }
+    public interface Observer { void event(String event, long elapsedMs); }
     private final Loader<T> loader;
     private final Clock clock;
     private final Validator<T> validator;
-    private final SerialDisposable request = new SerialDisposable();
-    private String videoId;
-    private boolean running;
-    private T result;
-    private long retryAt;
-    private int generation;
+    private final Observer observer;
+    private Lookup<T> lookup;
+
+    private static final class Lookup<T> {
+        final String videoId;
+        final SerialDisposable request = new SerialDisposable();
+        boolean running = true;
+        T result;
+        long retryAt;
+        long started;
+        Lookup(String videoId) { this.videoId = videoId; }
+    }
 
     public NextVideoPreloader(Loader<T> loader, Clock clock, Validator<T> validator) {
+        this(loader, clock, validator, (event, elapsedMs) -> {});
+    }
+
+    public NextVideoPreloader(Loader<T> loader, Clock clock, Validator<T> validator, Observer observer) {
         this.loader = loader;
         this.clock = clock;
         this.validator = validator;
+        this.observer = observer;
     }
 
     public void prefetch(String id) {
         if (id == null || id.isEmpty()) return;
-        if (id.equals(videoId) && (running || (result != null && validator.valid(result)) || clock.now() < retryAt)) return;
+        if (lookup != null && id.equals(lookup.videoId) &&
+                (lookup.running || (lookup.result != null && validator.valid(lookup.result)) || clock.now() < lookup.retryAt)) return;
         reset();
-        videoId = id;
-        running = true;
-        int token = generation;
-        request.set(Observable.defer(() -> loader.load(id)).take(1).subscribe(
-                value -> { if (token == generation && validator.valid(value)) result = value; },
-                error -> finish(token), () -> finish(token)));
+        Lookup<T> pending = new Lookup<>(id);
+        lookup = pending;
+        pending.started = clock.now();
+        event("prepare_start", pending);
+        pending.request.set(Observable.defer(() -> loader.load(id)).take(1).subscribe(
+                value -> {
+                    if (!pending.request.isDisposed() && validator.valid(value)) {
+                        pending.result = value;
+                        finish(pending);
+                        event("prepare_ready", pending);
+                    }
+                }, error -> {
+                    finish(pending);
+                    if (!pending.request.isDisposed()) {
+                        event("prepare_error", pending);
+                    }
+                }, () -> {
+                    finish(pending);
+                    if (!pending.request.isDisposed()) {
+                        if (pending.result == null) event("prepare_empty", pending);
+                    }
+                }));
+    }
+
+    /** Consume only a completed result. An unfinished preparation must never delay foreground playback. */
+    public Observable<T> consume(String id) {
+        Lookup<T> pending = lookup;
+        if (id == null || pending == null || !id.equals(pending.videoId)) {
+            reset();
+            observer.event("consume_miss", 0);
+            return null;
+        }
+        if (pending.result != null && validator.valid(pending.result)) {
+            T value = pending.result;
+            event("consume_hit", pending);
+            reset();
+            return once(Observable.just(value).filter(validator::valid));
+        }
+        event(pending.running ? "consume_pending_miss" : "consume_miss", pending);
+        reset();
+        return null;
+    }
+
+    private Observable<T> once(Observable<T> source) {
+        AtomicBoolean subscribed = new AtomicBoolean();
+        return Observable.defer(() -> subscribed.compareAndSet(false, true) ? source : Observable.empty());
     }
 
     public T take(String id) {
-        T value = id != null && id.equals(videoId) && result != null && validator.valid(result) ? result : null;
+        T value = lookup != null && id != null && id.equals(lookup.videoId) && lookup.result != null &&
+                validator.valid(lookup.result) ? lookup.result : null;
         reset();
         return value;
     }
 
-    private void finish(int token) {
-        if (token == generation) {
-            running = false;
-            retryAt = clock.now() + RETRY_DELAY_MS;
-        }
+    private void finish(Lookup<T> pending) {
+        pending.running = false;
+        pending.retryAt = clock.now() + RETRY_DELAY_MS;
+    }
+
+    private void event(String name, Lookup<T> pending) {
+        observer.event(name, Math.max(0, clock.now() - pending.started));
     }
 
     public void reset() {
-        generation++;
-        request.set(null);
-        videoId = null;
-        running = false;
-        result = null;
-        retryAt = 0;
+        if (lookup != null) {
+            if (lookup.running) event("prepare_cancel", lookup);
+            lookup.request.dispose();
+        }
+        lookup = null;
     }
 }

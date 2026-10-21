@@ -26,7 +26,7 @@ The launcher reuses working Python 3.10+ and ADB installations, and installs mis
 
 The assistant modifies a recent official backup, retains the original, and lets you restore it through SmartTube's own interface. No TV root, uninstall or replacement APK is involved. You can inspect settings, choose navigation, configure automatic playback and the section playlist, preview changes, and selectively undo them using a fresh backup.
 
-The verified source schema is official **32.56 stable and beta**. Unknown versions are rejected. End-to-end Fire TV validation remains pending. The tool does **not** add the player button or speculative preparation. Manual settings remain an option.
+The verified source schema is official **32.68 and 32.56, stable and beta**. Unknown versions are rejected. End-to-end Fire TV validation remains pending. The tool does **not** add the player button or speculative preparation. Manual settings remain an option.
 
 ## Shorts Slider
 

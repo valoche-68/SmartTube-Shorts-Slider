@@ -17,7 +17,9 @@ import time
 import xml.etree.ElementTree as ET
 import zipfile
 
-SUPPORTED = {"32.56": 2446}  # Verified against upstream tags 32.56 and 32.56s.
+# Same targeted preference slots and native key-conflict handling in these official tags.
+# 32.68 beta: ffa16426ea3c; stable: 94553dd7151e. Unknown builds remain rejected.
+SUPPORTED = {"32.56": 2446, "32.68": 2458}
 DELIM = "%OB%"
 TWEAKS = "video_player_tweaks_data"
 PLAYER = "video_player_data"

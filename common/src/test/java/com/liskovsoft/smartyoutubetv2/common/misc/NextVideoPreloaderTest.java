@@ -88,4 +88,65 @@ public class NextVideoPreloaderTest {
         valid[0] = false;
         assertNull(preloader.take("next"));
     }
+    @Test
+    public void pendingLookupIsCancelledAndDoesNotHoldForegroundPlayback() {
+        PublishSubject<String> pending = PublishSubject.create();
+        AtomicInteger calls = new AtomicInteger();
+        NextVideoPreloader<String> preloader = new NextVideoPreloader<>(id -> {
+            calls.incrementAndGet();
+            return pending;
+        }, () -> 0, value -> true);
+        preloader.prefetch("next");
+        assertNull(preloader.consume("next"));
+        assertEquals(1, calls.get());
+        assertFalse(pending.hasObservers());
+        pending.onNext("late format");
+        assertNull(preloader.consume("next"));
+    }
+
+    @Test
+    public void completedLookupCanBeConsumedOnlyOnceWithoutRestartingNetwork() {
+        AtomicInteger calls = new AtomicInteger();
+        NextVideoPreloader<String> preloader = new NextVideoPreloader<>(id -> {
+            calls.incrementAndGet();
+            return Observable.just("format");
+        }, () -> 0, value -> true);
+        preloader.prefetch("next");
+        Observable<String> cached = preloader.consume("next");
+        assertNotNull(cached);
+        cached.test().assertValue("format").assertComplete();
+        cached.test().assertNoValues().assertComplete();
+        assertEquals(1, calls.get());
+        assertNull(preloader.consume("next"));
+    }
+
+    @Test
+    public void failedOrEmptyPreparationLeavesForegroundFreeToUseNormalLookup() {
+        for (boolean fail : new boolean[]{false, true}) {
+            PublishSubject<String> pending = PublishSubject.create();
+            AtomicInteger fallbacks = new AtomicInteger();
+            NextVideoPreloader<String> preloader = new NextVideoPreloader<>(id -> pending, () -> 0, value -> true);
+            preloader.prefetch("next");
+            if (fail) pending.onError(new IllegalStateException("offline"));
+            else pending.onComplete();
+            Observable<String> prepared = preloader.consume("next");
+            assertNull(prepared);
+            Observable.defer(() -> {
+                fallbacks.incrementAndGet();
+                return Observable.just("normal");
+            }).test().assertValue("normal").assertComplete();
+            assertEquals(1, fallbacks.get());
+        }
+    }
+
+    @Test
+    public void cachedResultIsRevalidatedAtDeferredForegroundConsumption() {
+        boolean[] valid = {true};
+        NextVideoPreloader<String> preloader = new NextVideoPreloader<>(Observable::just, () -> 0, value -> valid[0]);
+        preloader.prefetch("next");
+        Observable<String> result = preloader.consume("next");
+        valid[0] = false;
+        result.test().assertNoValues().assertComplete();
+    }
+
 }
