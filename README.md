@@ -41,7 +41,7 @@ A custom SmartTube APK with two additions for Shorts:
 
 [Installation, settings & APK choices →](docs/user-guide.md#shorts-slider)
 
-*Fire TV testing and speed measurements are still pending.*
+*Fire TV testing is in progress; speed improvements have not been measured.*
 
 ---
 

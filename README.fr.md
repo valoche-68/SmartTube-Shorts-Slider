@@ -41,7 +41,7 @@ Un APK personnalisé de SmartTube, avec deux ajouts pour les Shorts :
 
 [Installation, réglages et choix de l’APK →](docs/user-guide.fr.md#shorts-slider)
 
-*Les essais sur Fire TV et les mesures de vitesse restent à faire.*
+*Essais Fire TV en cours ; aucun gain de vitesse mesuré pour le moment.*
 
 ---
 
