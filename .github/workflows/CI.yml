@@ -3,7 +3,7 @@ name: Validate application and configuration tool
 on:
   push:
     branches: [main]
-    paths-ignore: ['smarttube_*.json']
+    paths-ignore: ['smarttube_*.json', '.github/release-state.json']
   pull_request:
   workflow_dispatch:
     inputs:

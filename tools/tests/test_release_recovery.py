@@ -275,6 +275,31 @@ class StateRecoveryTest(unittest.TestCase):
         self.assertNotIn('--input', args)
         content = next(value.removeprefix('content=') for value in args if value.startswith('content='))
         self.assertEqual(json.loads(base64.b64decode(content)), self.state)
+        self.assertIn('branch=main', args)
+        self.assertIn(f'repos/{release.REPO}/contents/.github/release-state.json', args)
+
+    def test_reads_the_durable_state_from_main(self):
+        response = json.dumps({'sha': 'state-sha', 'content': base64.b64encode(json.dumps(self.state).encode()).decode()})
+        result = subprocess.CompletedProcess(['gh'], 0, stdout=response, stderr='')
+        with patch.object(release.subprocess, 'run', return_value=result) as run:
+            self.assertEqual(release.state_read(), (self.state, 'state-sha'))
+        self.assertEqual(run.call_args.args[0][-1],
+                         f'repos/{release.REPO}/contents/.github/release-state.json?ref=main')
+
+    def test_initial_state_write_never_creates_another_branch(self):
+        with patch.object(release, 'gh', return_value='created') as gh:
+            release.state_write(self.state, None)
+        self.assertEqual(gh.call_count, 1)
+        self.assertIn('branch=main', gh.call_args.args)
+        self.assertFalse(any(value.startswith('ref=refs/heads/') for value in gh.call_args.args))
+
+    def test_missing_state_can_be_initialized_but_permission_errors_are_not_ignored(self):
+        missing = subprocess.CompletedProcess(['gh'], 1, stdout='', stderr='HTTP 404')
+        denied = subprocess.CompletedProcess(['gh'], 1, stdout='', stderr='HTTP 403')
+        with patch.object(release.subprocess, 'run', side_effect=[missing, denied]):
+            self.assertEqual(release.state_read(), ({}, None))
+            with self.assertRaisesRegex(RuntimeError, 'Cannot read automation state'):
+                release.state_read()
 
     def test_retry_uses_same_sha_when_server_state_has_not_changed(self):
         with patch.object(release, 'gh', side_effect=[self.error, 'success']) as gh, \

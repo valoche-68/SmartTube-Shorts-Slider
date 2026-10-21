@@ -318,6 +318,8 @@ def build(folder, provenance):
 
 def commit_metadata(assets, channel):
     names = [f'smarttube_{channel}.json'] + (['smarttube_stable2.json'] if channel == 'stable' else [])
+    # State writes also advance main; fetch them before committing the next channel's OTA files.
+    run('git', 'pull', '--ff-only', 'origin', 'main')
     for name in names: shutil.copy2(assets / name, ROOT / name)
     run('git', 'add', '--', *names)
     if subprocess.run(['git', 'diff', '--cached', '--quiet', '--', *names], cwd=ROOT).returncode:
@@ -390,7 +392,7 @@ def publish(folder, provenance, assets):
 
 
 def state_read():
-    result = subprocess.run(['gh', 'api', f'repos/{REPO}/contents/release-state.json?ref=automation-state'], capture_output=True, text=True)
+    result = subprocess.run(['gh', 'api', f'repos/{REPO}/contents/.github/release-state.json?ref=main'], capture_output=True, text=True)
     if result.returncode:
         if '404' in result.stderr: return {}, None
         raise RuntimeError('Cannot read automation state')
@@ -399,20 +401,9 @@ def state_read():
 
 
 def state_write(state, sha):
-    if sha is None:
-        result = subprocess.run(['gh', 'api', f'repos/{REPO}/git/ref/heads/automation-state'], capture_output=True)
-        if result.returncode:
-            if b'404' not in result.stderr:
-                raise RuntimeError('Cannot inspect automation state branch')
-            head = api(f'repos/{REPO}/git/ref/heads/main')['object']['sha']
-            try:
-                gh('api', f'repos/{REPO}/git/refs', '-f', 'ref=refs/heads/automation-state', '-f', 'sha=' + head)
-            except subprocess.CalledProcessError:
-                # The branch may have been created before the response was lost.
-                api(f'repos/{REPO}/git/ref/heads/automation-state')
     content = base64.b64encode(json.dumps(state, indent=2).encode()).decode()
-    args = ['api', '--method', 'PUT', f'repos/{REPO}/contents/release-state.json',
-            '-f', 'message=Record release automation result', '-f', 'branch=automation-state', '-f', 'content=' + content]
+    args = ['api', '--method', 'PUT', f'repos/{REPO}/contents/.github/release-state.json',
+            '-f', 'message=Record release automation result', '-f', 'branch=main', '-f', 'content=' + content]
     if sha: args.extend(['-f', 'sha=' + sha])
     last_error = None
     for attempt in range(3):

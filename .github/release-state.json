@@ -1,0 +1,44 @@
+{
+  "stable:9336539b3db340c7bcf55f95afad44d1d1abb7e4:293c646eae82b11f00a7bb6ac790373d02c66b4aeee93ce465f76c32c3e2b1cd": {
+    "status": "published",
+    "tag": "32.56s",
+    "run_id": "37072738003"
+  },
+  "beta:26c330dbf400bd9cf7ed800b8ab9a066d06ffb4f:293c646eae82b11f00a7bb6ac790373d02c66b4aeee93ce465f76c32c3e2b1cd": {
+    "status": "published",
+    "tag": "32.56",
+    "run_id": "37072738003"
+  },
+  "stable:9336539b3db340c7bcf55f95afad44d1d1abb7e4:b1c66e04a089f9f96f8066fe6b7d773b5f36a2fbf355a228f33cde6ba5c51fd9": {
+    "status": "published",
+    "tag": "32.56s",
+    "run_id": "37523617179"
+  },
+  "beta:26c330dbf400bd9cf7ed800b8ab9a066d06ffb4f:b1c66e04a089f9f96f8066fe6b7d773b5f36a2fbf355a228f33cde6ba5c51fd9": {
+    "status": "published",
+    "tag": "32.56",
+    "run_id": "37523617179"
+  },
+  "beta:ffa16426ea3c7c82077e0f00228818b85f373588:b1c66e04a089f9f96f8066fe6b7d773b5f36a2fbf355a228f33cde6ba5c51fd9": {
+    "status": "failed",
+    "tag": "32.68",
+    "run_id": "39097884655"
+  },
+  "stable:94553dd7151e8a911926ef2c9e3ef30fca007b48:b1c66e04a089f9f96f8066fe6b7d773b5f36a2fbf355a228f33cde6ba5c51fd9": {
+    "status": "failed",
+    "tag": "32.68s",
+    "run_id": "39546731033"
+  },
+  "stable:94553dd7151e8a911926ef2c9e3ef30fca007b48:5afa496897a1537d71fef644c85aad52840159c01c8f818c216e0c32f41ec642": {
+    "status": "published",
+    "tag": "v32.68-stable-slider",
+    "run_id": "39636698469",
+    "published_via": "verified-ci-artifacts"
+  },
+  "beta:ffa16426ea3c7c82077e0f00228818b85f373588:5afa496897a1537d71fef644c85aad52840159c01c8f818c216e0c32f41ec642": {
+    "status": "published",
+    "tag": "v32.68-beta-slider",
+    "run_id": "39636698469",
+    "published_via": "verified-ci-artifacts"
+  }
+}
