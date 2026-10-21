@@ -99,6 +99,7 @@ backup_org_smarttube_stable/
 
 # Additional reviewed patch and private configuration outputs
 !/fork/mediaservice.patch
+!/fork/mediaservice-beta.patch
 __pycache__/
 original.zip
 configured.zip

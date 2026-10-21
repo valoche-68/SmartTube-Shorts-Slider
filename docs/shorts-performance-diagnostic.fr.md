@@ -1,6 +1,6 @@
 # Diagnostic des transitions entre Shorts
 
-État du 21 octobre 2026 : les essais de la révision interne 3 ont révélé des régressions malgré ses tests automatisés. Le correctif suivant est en validation ; aucune amélioration de vitesse n'est encore confirmée sur appareil.
+État du 21 octobre 2026 : les essais de la révision interne 3 ont révélé des régressions malgré ses tests automatisés. Le correctif est porté sur la stable officielle 32.68 (tag `32.68s` et sous-modules correspondants) et reste en validation ; aucune amélioration de vitesse n'est encore confirmée sur appareil.
 
 ## Journaux et causes identifiées
 
@@ -15,7 +15,7 @@ Deux attentes supplémentaires ont été retirées : une préparation inachevée
 
 ## Parcours restauré
 
-Le chargement utilise le parcours officiel complet, avec authentification et repli Innertube. La préparation l'exécute dans un service et un cache privés. Seul un résultat terminé et encore valide peut être activé ; sinon la lecture normale démarre immédiatement. Aucun historique n'est écrit par cette préparation.
+Le chargement conserve le parcours complet de la version 32.68, avec authentification, choix des clients et repli Innertube. La préparation l'exécute dans un service et un cache privés. Seul un résultat terminé et encore valide peut être activé ; sinon la lecture normale démarre immédiatement. Aucun historique n'est écrit par cette préparation.
 
 Les résultats sont livrés sur le fil principal après la notification du présentateur. Une génération de requête annule les anciens résultats lors des changements rapides. Le contrôleur conserve l'abonnement réel, dont la fin est visible par le passage automatique. Bouton OFF remet le Short en boucle.
 
@@ -27,9 +27,9 @@ Les traces `ShortsPreparation` distinguent cache prêt, cache manquant ou encore
 
 Les tests reproduisent maintenant le véritable ordre de `PlaybackPresenter.onNewVideo`, sans préaffecter sa vidéo courante. Ils vérifient le chargement, le passage automatique après fin des formats, la boucle avec le bouton OFF, l'activation différée d'un cache prêt et les changements rapides. Les tests de service vérifient aussi authentification, repli Innertube et isolation du cache.
 
-Les 61 tests du module commun passent localement. Les deux défauts ont aussi été réintroduits séparément dans des copies temporaires du contrôleur : chacun fait échouer trois tests du cycle réel. Les correctifs s’appliquent sans conflit aux sources officielles exactes.
+Avant le portage sur 32.68, les 61 tests du module commun passaient localement sur la base 32.56. Les deux défauts ont aussi été réintroduits séparément dans des copies temporaires du contrôleur : chacun fait échouer trois tests du cycle réel. Cette preuve doit être complétée par les tests du portage sur les sources 32.68 exactes.
 
-Les sources et les tests sont compilés localement sous JDK 17, puis exécutés avec JUnit et Robolectric 4.11.1, SDK simulé 28, en réutilisant les classes déjà compilées des autres modules. Une construction complète et signée en CI est nécessaire avant livraison. Aucun résultat de test automatisé ne constitue une mesure de fluidité sur Fire TV.
+Les sources et les tests sont compilés localement sous JDK 17, puis exécutés avec JUnit et Robolectric 4.11.1, SDK simulé 28, en réutilisant les classes déjà compilées des autres modules. Sur la base 32.68, une exécution Gradle complète a ensuite validé **84 tests Android** : 68 du module commun, 7 du service média et 9 du lecteur SABR, sans échec. Les **66 tests Python** passent également (9 cas Windows ignorés sur Linux). Les correctifs s’appliquent aux tags stable et bêta exacts, avec leurs sous-modules propres. La construction signée des huit APK en CI précède leur livraison. Aucun résultat de test automatisé ne constitue une mesure de fluidité sur Fire TV.
 
 ## Prochain essai sur appareil
 

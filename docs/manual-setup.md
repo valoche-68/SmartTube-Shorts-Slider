@@ -4,7 +4,7 @@
 
 This tutorial enables the same navigation and playback options as our script, directly in **official SmartTube**. Everything is done on your TV, with no computer or ADB needed.
 
-The menus below were checked against official **32.56 stable and beta** source code. Labels may differ in other versions; Fire TV testing remains pending. Note your current settings so you can restore them later.
+The menus below were checked against official **32.68 stable and beta**, as well as 32.56 source code. Labels may differ in other versions; Fire TV testing remains pending. Note your current settings so you can restore them later.
 
 If you use multiple accounts, first select the one to configure under **Settings → Accounts**. With **Use separate settings per each account** enabled, repeat the settings for each account you want to configure; otherwise, settings are shared.
 
@@ -59,4 +59,4 @@ This keeps the official app. It **does not add Shorts Slider’s autoplay button
 
 ---
 
-References: official [key remapping](https://github.com/yuliskov/SmartTube/blob/32.56s/common/src/main/java/com/liskovsoft/smartyoutubetv2/common/app/presenters/settings/GeneralSettingsPresenter.java), [player settings](https://github.com/yuliskov/SmartTube/blob/32.56s/common/src/main/java/com/liskovsoft/smartyoutubetv2/common/app/presenters/settings/PlayerSettingsPresenter.java) and [English labels](https://github.com/yuliskov/SmartTube/blob/32.56s/common/src/main/res/values/strings.xml).
+References: official [key remapping](https://github.com/yuliskov/SmartTube/blob/32.68s/common/src/main/java/com/liskovsoft/smartyoutubetv2/common/app/presenters/settings/GeneralSettingsPresenter.java), [player settings](https://github.com/yuliskov/SmartTube/blob/32.68s/common/src/main/java/com/liskovsoft/smartyoutubetv2/common/app/presenters/settings/PlayerSettingsPresenter.java) and [English labels](https://github.com/yuliskov/SmartTube/blob/32.68s/common/src/main/res/values/strings.xml).

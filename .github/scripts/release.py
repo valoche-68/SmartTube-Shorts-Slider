@@ -45,8 +45,22 @@ def digest(path):
     return hashlib.sha256(Path(path).read_bytes()).hexdigest()
 
 
+def media_patch_name(channel):
+    if channel not in ('stable', 'beta'):
+        raise RuntimeError('Unknown release channel: ' + channel)
+    return 'mediaservice-beta.patch' if channel == 'beta' and CONFIG.get('media_beta_base_commit') else 'mediaservice.patch'
+
+
+def media_patch_names():
+    names = ['mediaservice.patch']
+    if CONFIG.get('media_beta_base_commit'):
+        names.append('mediaservice-beta.patch')
+    return names
+
+
 def patch_digest():
-    return hashlib.sha256(b''.join((ROOT / 'fork' / name).read_bytes() for name in ['shorts.patch', 'mediaservice.patch', 'config.json'])).hexdigest()
+    names = ['shorts.patch', *media_patch_names(), 'config.json']
+    return hashlib.sha256(b''.join((ROOT / 'fork' / name).read_bytes() for name in names)).hexdigest()
 
 
 def latest(channel):
@@ -81,6 +95,7 @@ def signing(folder):
 
 
 def prepare(channel, upstream_tag, folder):
+    media_patch = ROOT / 'fork' / media_patch_name(channel)
     if folder.exists(): raise RuntimeError('Build directory already exists: ' + str(folder))
     run('git', 'clone', '--quiet', '--shared', '--no-checkout', ROOT, folder)
     run('git', 'fetch', '--quiet', f'https://github.com/{UPSTREAM}.git', 'refs/tags/' + upstream_tag, cwd=folder)
@@ -103,8 +118,8 @@ def prepare(channel, upstream_tag, folder):
     # Check application cleanly; a source change needs review, never a forced merge.
     run('git', 'apply', '--check', ROOT / 'fork/shorts.patch', cwd=folder)
     run('git', 'apply', ROOT / 'fork/shorts.patch', cwd=folder)
-    run('git', 'apply', '--check', ROOT / 'fork/mediaservice.patch', cwd=folder / 'MediaServiceCore')
-    run('git', 'apply', ROOT / 'fork/mediaservice.patch', cwd=folder / 'MediaServiceCore')
+    run('git', 'apply', '--check', media_patch, cwd=folder / 'MediaServiceCore')
+    run('git', 'apply', media_patch, cwd=folder / 'MediaServiceCore')
     text = re.sub(r'versionName\s+"[^"]+"', f'versionName "{version_name}"', original, count=1)
     text = re.sub(r'versionCode\s+\d+', f'versionCode {version_code}', text, count=1)
     text = text.replace('def project = "SmartTube"', 'def project = "SmartTube_Shorts_Slider"')
@@ -129,7 +144,7 @@ def prepare(channel, upstream_tag, folder):
     for name in ['README.md', 'README.fr.md', 'LICENSE', '.gitignore', '.gitattributes']:
         shutil.copy2(ROOT / name, folder / name)
     (folder / 'fork').mkdir(exist_ok=True)
-    for name in ['config.json', 'shorts.patch', 'mediaservice.patch', 'apply_media_patch.py']:
+    for name in ['config.json', 'shorts.patch', *media_patch_names(), 'apply_media_patch.py']:
         shutil.copy2(ROOT / 'fork' / name, folder / 'fork' / name)
     (folder / 'fork/build.json').write_text(json.dumps(provenance, indent=2) + '\n')
     run('git', 'config', 'user.name', 'SmartTube Shorts Slider build', cwd=folder)
@@ -164,6 +179,7 @@ def validate_recovery_provenance(info, channel, upstream_tag, upstream_commit, t
 
 def recover_from_tag(channel, upstream_tag, upstream_commit, target, folder):
     """Rebuild the exact existing fork source commit, without creating or replacing any tag."""
+    media_patch = ROOT / 'fork' / media_patch_name(channel)
     commit = existing_tag_commit(target)
     if commit is None:
         raise RuntimeError('Draft recovery requires its existing immutable source tag')
@@ -187,8 +203,8 @@ def recover_from_tag(channel, upstream_tag, upstream_commit, target, folder):
     media = run('git', 'rev-parse', 'HEAD', cwd=folder / 'MediaServiceCore', capture=True)
     if media != info['media_commit']:
         raise RuntimeError('Existing source tag has an unexpected media submodule')
-    run('git', 'apply', '--check', ROOT / 'fork/mediaservice.patch', cwd=folder / 'MediaServiceCore')
-    run('git', 'apply', ROOT / 'fork/mediaservice.patch', cwd=folder / 'MediaServiceCore')
+    run('git', 'apply', '--check', media_patch, cwd=folder / 'MediaServiceCore')
+    run('git', 'apply', media_patch, cwd=folder / 'MediaServiceCore')
     info['source_commit'] = checked_out
     configure_build_environment(folder)
     return info
@@ -292,9 +308,10 @@ The maintainer's Fire TV test and speed comparison remain pending.
 def build(folder, provenance):
     flavor = 'St' + provenance['channel']
     run('bash', 'gradlew', ':common:test' + flavor + 'DebugUnitTest', '--tests', '*ShortsPreferencesTest', '--tests', '*NextVideoPreloaderTest',
-        '--tests', '*PlaybackNonceIsolationTest', '--tests', '*VideoShortsClassificationTest', '--tests', '*ShortsNavigationTest',
+        '--tests', '*PlaybackNonceIsolationTest', '--tests', '*VideoShortsClassificationTest', '--tests', '*ShortsNavigationTest', '--tests', '*SuggestionsControllerTest',
         '--tests', '*PreparationStrategyTest', '--tests', '*ShortsPreparationLifecycleTest',
         ':youtubeapi:test' + flavor + 'DebugUnitTest', '--tests', '*ShortsIdentityTest',
+        ':exoplayer-library-sabr:test' + flavor + 'DebugUnitTest', '--tests', '*SabrCdnSelectorTest',
         ':smarttubetv:assemble' + flavor + 'Release', '--console=plain', cwd=folder)
     return make_assets(folder, provenance)
 

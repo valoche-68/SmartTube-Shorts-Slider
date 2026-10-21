@@ -39,7 +39,11 @@ new_media = ['youtubeapi/src/main/java/com/liskovsoft/youtubeapi/app/PlaybackNon
              'youtubeapi/src/main/java/com/liskovsoft/youtubeapi/service/PreparedShort.java',
              'youtubeapi/src/test/java/com/liskovsoft/youtubeapi/common/models/gen/ShortsIdentityTest.kt']
 subprocess.run(['git', '-C', str(media), 'add', '-N', '--', *new_media], check=True)
-patch = subprocess.check_output(['git', '-C', str(media), 'diff', '--binary', config['media_base_commit'], '--',
-                                 'youtubeapi/src/main/java', new_media[-1]])
-(root / 'fork/mediaservice.patch').write_bytes(patch)
+media_bases = [('mediaservice.patch', config['media_base_commit'])]
+if config.get('media_beta_base_commit'):
+    media_bases.append(('mediaservice-beta.patch', config['media_beta_base_commit']))
+for name, base in media_bases:
+    patch = subprocess.check_output(['git', '-C', str(media), 'diff', '--binary', base, '--',
+                                     'youtubeapi/src/main/java', new_media[-1]])
+    (root / 'fork' / name).write_bytes(patch)
 print('Reviewed patch files refreshed.')

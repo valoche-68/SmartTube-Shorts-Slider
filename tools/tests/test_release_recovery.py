@@ -218,6 +218,8 @@ class ExactTagRebuildTest(unittest.TestCase):
         self.assertEqual(info['source_commit'], 'existing-immutable-commit')
         self.assertTrue(any(command[:3] == ('git', 'submodule', 'update') for command in self.commands))
         self.assertEqual(sum(command[:2] == ('git', 'apply') for command in self.commands), 2)
+        selected = self.root / 'fork' / release.media_patch_name('beta')
+        self.assertEqual([command[-1] for command in self.commands if command[:2] == ('git', 'apply')], [selected, selected])
         self.assertFalse(any(command[1] in ('commit', 'push', 'tag') for command in self.commands))
         environment.assert_called_once_with(self.folder)
 

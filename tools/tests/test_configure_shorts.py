@@ -14,21 +14,23 @@ PKG = 'org.smarttube.stable'
 ROOT = 'data/' + PKG + '/Backup/'
 
 
-def fixture(legacy=False, profile=''):
+def fixture(legacy=False, profile='', package=PKG, version_code=None):
+    root = 'data/' + package + '/Backup/'
     values = {cfg.TWEAKS: ['null'] * 61, cfg.PLAYER: ['null'] * 63, cfg.GENERAL: ['null'] * 73}
     values[cfg.TWEAKS][44] = 'true'
     values[cfg.TWEAKS][45] = 'true'
     values[cfg.TWEAKS][57] = 'false'
+    if version_code is not None: values[cfg.GENERAL][39] = str(version_code)
     prefix = profile + '_' if profile else ''
-    entries = {ROOT + 'shared_prefs/yt_service_prefs.xml': b'<map><string name="account">synthetic</string></map>'}
+    entries = {root + 'shared_prefs/yt_service_prefs.xml': b'<map><string name="account">synthetic</string></map>'}
     xml = '<map><boolean name="multi_profiles" value="' + ('true' if profile else 'false') + '"/>'
     xml += '<string name="last_profile_name">' + profile + '</string>'
     for key, array in values.items():
         text = cfg.DELIM.join(array)
         if legacy: xml += '<string name="' + prefix + key + '">' + text + '</string>'
-        else: entries[ROOT + 'files/app_prefs/' + prefix + key] = text.encode()
+        else: entries[root + 'files/app_prefs/' + prefix + key] = text.encode()
     xml += '<string name="unrelated">unchanged</string></map>'
-    entries[ROOT + 'shared_prefs/' + PKG + '_preferences.xml'] = xml.encode()
+    entries[root + 'shared_prefs/' + package + '_preferences.xml'] = xml.encode()
     return archive(entries)
 
 
@@ -101,3 +103,45 @@ class ConfigureTest(unittest.TestCase):
         cfg.configure(backup, 'off')
         self.assertEqual(backup.effective('vertical'), 'false')
         self.assertEqual(backup.effective('horizontal'), 'false')
+
+    def test_3268_backup_is_supported_for_both_channels_without_modifying_the_original(self):
+        for channel in ('stable', 'beta'):
+            for legacy in (False, True):
+                with self.subTest(channel=channel, legacy=legacy), tempfile.TemporaryDirectory() as folder:
+                    package = 'org.smarttube.' + channel
+                    original = fixture(legacy=legacy, package=package, version_code=2458)
+                    source = Path(folder) / 'backup.zip'
+                    source.write_bytes(original)
+                    target = Path(folder) / 'result'
+                    self.assertEqual(cfg.main(['--backup', str(source), '--version', '32.68',
+                                              '--channel', channel, '--navigation', 'up-down',
+                                              '--autoplay', 'on', '--section', 'on', '--output', str(target)]), 0)
+                    self.assertEqual(source.read_bytes(), original)
+                    self.assertEqual((target / 'original.zip').read_bytes(), original)
+                    backup = cfg.Backup((target / 'configured.zip').read_bytes(), package)
+                    self.assertEqual(backup.get_slot(cfg.GENERAL, 39), '2458')
+                    self.assertEqual(backup.effective('vertical'), 'true')
+                    self.assertEqual(backup.effective('horizontal'), 'false')
+                    self.assertEqual(backup.effective('loop'), 'false')
+                    self.assertEqual(backup.effective('playback'), '2')
+                    self.assertEqual(backup.effective('section'), 'true')
+
+    def test_3268_version_validation_rejects_different_codes_and_custom_builds(self):
+        adb = cfg.Adb.__new__(cfg.Adb)
+        for name, code, valid in (('32.68', 2458, True), ('32.68', 2457, False),
+                                   ('32.68-slider.4', 245804, False), ('32.69', 2459, False)):
+            with self.subTest(name=name, code=code):
+                reply = type('Reply', (), {'stdout': 'versionName=' + name + '\nversionCode=' + str(code)})()
+                with patch.object(adb, 'shell', return_value=reply):
+                    if valid:
+                        self.assertEqual(adb.version(PKG), '32.68')
+                    else:
+                        with self.assertRaises(cfg.ConfigError): adb.version(PKG)
+        with tempfile.TemporaryDirectory() as folder:
+            source = Path(folder) / 'backup.zip'
+            source.write_bytes(fixture(version_code=2446))
+            target = Path(folder) / 'result'
+            with self.assertRaises(cfg.ConfigError):
+                cfg.main(['--backup', str(source), '--version', '32.68', '--navigation', 'up-down',
+                          '--output', str(target)])
+            self.assertFalse(target.exists())
