@@ -1,35 +1,36 @@
 # Diagnostic des transitions entre Shorts
 
-État du 20 octobre 2026 : stable corrigée construite et installée sur la Fire TV à la demande de l’utilisateur, sans lancement de l’application. Les releases publiques restent inchangées.
+État du 21 octobre 2026 : les essais de la révision interne 3 ont révélé des régressions malgré ses tests automatisés. Le correctif suivant est en validation ; aucune amélioration de vitesse n'est encore confirmée sur appareil.
 
-## Ce que les journaux permettent de dire
+## Journaux et causes identifiées
 
-Lecture seule du tampon Android existant, sans lancement, navigation, arrêt de SmartTube ni effacement des logs. La capture couvre environ six minutes et contient 639 lignes du processus SmartTube. Les fichiers bruts restent privés hors du dépôt.
+Les journaux Android ont été lus sans lancer, arrêter ou manipuler SmartTube. La dernière capture couvre environ trois minutes et contient 554 lignes du processus. Elle indique un cache manquant, puis aucune recherche de formats au premier plan, réception de formats ou préparation démarrée. Cette absence correspond au blocage constaté dans le code ; elle ne mesure pas un délai réseau de vingt secondes. Les fichiers bruts restent privés, hors du dépôt.
 
-Des suggestions ont échoué avec un résultat absent. Un délai réseau a aussi été dépassé pendant la synchronisation de l’historique authentifié ; cette pile ne prouve pas un blocage de la préparation du Short suivant. La version installée ne journalise pas les succès, échecs et durées de cette préparation. Aucun temps de transition précis ne peut être déduit de cette capture.
+Deux défauts du contrôleur expliquent les symptômes :
 
-## Défauts confirmés dans le code
+- Le présentateur affecte la nouvelle vidéo **après** avoir notifié les contrôleurs. Une vérification de l'identité courante exécutée pendant cette notification abandonnait donc la demande avant son envoi. Les anciens tests avaient déjà affecté la nouvelle vidéo et masquaient ce défaut.
+- L'enveloppe d'abonnement restait marquée active après la fin de la recherche de formats. Le contrôle de fin de lecture bloquait alors le passage automatique au suivant. La navigation manuelle utilisait un autre parcours.
 
-- Les événements de source et de métadonnées peuvent arriver avant que le lecteur soit prêt. La condition « lecture en cours » empêche alors la préparation. La reprise périodique ne se fait qu’une fois par minute.
-- Si Bas est pressé pendant une préparation, l’ancienne consommation du cache annule la requête utile puis lance une nouvelle recherche de formats pour la même vidéo.
-- Le service isolé ne reprenait pas le choix de client de récupération en cours et pouvait effacer ce choix à l’activation.
+Deux attentes supplémentaires ont été retirées : une préparation inachevée n'est plus transférée au premier plan, et un Short déjà connu n'attend plus la pagination de la section avant d'être proposé.
 
-## Corrections locales
+## Parcours restauré
 
-La préparation est aussi déclenchée à l’événement réel de démarrage de lecture. Une requête déjà en cours pour le Short choisi est transférée à la lecture au premier plan, avec un propriétaire unique pour son annulation. Une erreur, un résultat vide ou devenu invalide entraîne un seul repli vers la lecture normale. Le choix de client de récupération est copié sans partager les caches et un choix plus récent reste prioritaire.
+Le chargement utilise le parcours officiel complet, avec authentification et repli Innertube. La préparation l'exécute dans un service et un cache privés. Seul un résultat terminé et encore valide peut être activé ; sinon la lecture normale démarre immédiatement. Aucun historique n'est écrit par cette préparation.
 
-Les traces `ShortsPreparation` enregistrent les étapes et les durées : préparation démarrée/prête, résultat disponible ou manquant, transfert d’une requête en cours, repli normal, formats reçus et lecture prête. Elles ne contiennent ni identifiant vidéo, ni adresse de lecture, ni compte ou jeton.
+Les résultats sont livrés sur le fil principal après la notification du présentateur. Une génération de requête annule les anciens résultats lors des changements rapides. Le contrôleur conserve l'abonnement réel, dont la fin est visible par le passage automatique. Bouton OFF remet le Short en boucle.
 
-Les tampons vidéo officiels restent inchangés. Aucun gain chiffré n’est annoncé avant un essai sur appareil.
+La préparation reste limitée aux formats et adresses d'une seule vidéo suivante, avec annulation, contrôle de validité et délai avant nouvelle tentative après erreur. Les tampons vidéo officiels restent inchangés.
 
-## Validation locale
+Les traces `ShortsPreparation` distinguent cache prêt, cache manquant ou encore en préparation, recherche normale, formats reçus et lecture prête. Elles ne contiennent ni identifiant vidéo, ni adresse de lecture, ni compte ou jeton.
 
-Les trois sources Java modifiées compilent sous JDK 17. Les 21 tests ciblés passent : neuf tests du préchargeur, sept tests du cycle du lecteur et cinq tests du choix de client isolé. Ils ont été exécutés avec JUnit et Robolectric 4.11.1, Android SDK simulé 28, en réutilisant les classes déjà compilées des autres modules. Les 60 contrôles Python passent également (neuf cas Windows sont ignorés sur Linux).
+## Validation
 
-Le dépôt Google ne répondait pas depuis le PC et le cache local était incomplet. La [construction complète GitHub](https://github.com/valoche-68/SmartTube-Shorts-Slider/actions/runs/39502417942) a ensuite réussi sur la branche `codex/shorts-preparation-validation` : 54 tests du module commun et 7 tests média, aucun échec. Les quatre APK signés ont été contrôlés (signature, identifiant, version, architectures et adresses de mise à jour). L’archive des sources et les APK sont disponibles dans les artefacts de validation, sans création de release.
+Les tests reproduisent maintenant le véritable ordre de `PlaybackPresenter.onNewVideo`, sans préaffecter sa vidéo courante. Ils vérifient le chargement, le passage automatique après fin des formats, la boucle avec le bouton OFF, l'activation différée d'un cache prêt et les changements rapides. Les tests de service vérifient aussi authentification, repli Innertube et isolation du cache.
 
-La stable ARMv7, de code interne 244603, a remplacé la version installée par `adb install -r`. L’APK relu sur l’appareil correspond au fichier vérifié ; l’UID et la date de première installation sont conservés. Aucune désinstallation, suppression de données ou ouverture de l’application n’a été effectuée. Le gain de vitesse reste à confirmer par l’utilisateur.
+Les 61 tests du module commun passent localement. Les deux défauts ont aussi été réintroduits séparément dans des copies temporaires du contrôleur : chacun fait échouer trois tests du cycle réel. Les correctifs s’appliquent sans conflit aux sources officielles exactes.
 
-## Prochain essai
+Les sources et les tests sont compilés localement sous JDK 17, puis exécutés avec JUnit et Robolectric 4.11.1, SDK simulé 28, en réutilisant les classes déjà compilées des autres modules. Une construction complète et signée en CI est nécessaire avant livraison. Aucun résultat de test automatisé ne constitue une mesure de fluidité sur Fire TV.
 
-La version corrigée est installée et attend son premier lancement par l’utilisateur. Comparer plusieurs transitions depuis l’accueil, puis une autre section, avec la préparation activée et désactivée. Lire les nouvelles traces pour séparer le temps d’obtention des formats du temps de démarrage du lecteur. Vérifier aussi Bas rapide, retour Haut, sortie du lecteur et réseau défaillant.
+## Prochain essai sur appareil
+
+Depuis l'accueil puis une autre section : vérifier plusieurs transitions, la lecture automatique ON/OFF, Bas rapide et retour Haut. Comparer préparation activée et désactivée en lisant les durées des traces. Le premier Short nécessite toujours son chargement normal. Ne décrire un gain de vitesse qu'après cet essai.

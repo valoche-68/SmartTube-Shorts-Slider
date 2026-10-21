@@ -2,7 +2,6 @@ package com.liskovsoft.smartyoutubetv2.common.misc;
 
 import io.reactivex.Observable;
 import io.reactivex.disposables.SerialDisposable;
-import io.reactivex.subjects.ReplaySubject;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 /** One cancellable lookup, retained until consumed. Called on the UI thread. */
@@ -21,7 +20,6 @@ public final class NextVideoPreloader<T> {
     private static final class Lookup<T> {
         final String videoId;
         final SerialDisposable request = new SerialDisposable();
-        final ReplaySubject<T> completion = ReplaySubject.createWithSize(1);
         boolean running = true;
         T result;
         long retryAt;
@@ -55,24 +53,21 @@ public final class NextVideoPreloader<T> {
                         pending.result = value;
                         finish(pending);
                         event("prepare_ready", pending);
-                        pending.completion.onNext(value);
                     }
                 }, error -> {
                     finish(pending);
                     if (!pending.request.isDisposed()) {
                         event("prepare_error", pending);
-                        pending.completion.onError(error);
                     }
                 }, () -> {
                     finish(pending);
                     if (!pending.request.isDisposed()) {
                         if (pending.result == null) event("prepare_empty", pending);
-                        pending.completion.onComplete();
                     }
                 }));
     }
 
-    /** Consume a completed result, or transfer a matching pending request to its single foreground subscriber. */
+    /** Consume only a completed result. An unfinished preparation must never delay foreground playback. */
     public Observable<T> consume(String id) {
         Lookup<T> pending = lookup;
         if (id == null || pending == null || !id.equals(pending.videoId)) {
@@ -86,17 +81,9 @@ public final class NextVideoPreloader<T> {
             reset();
             return once(Observable.just(value).filter(validator::valid));
         }
-        if (!pending.running) {
-            reset();
-            observer.event("consume_miss", 0);
-            return null;
-        }
-        event("consume_pending", pending);
-        lookup = null; // The foreground subscription now owns cancellation of this lookup.
-        return once(pending.completion.take(1).filter(validator::valid).doFinally(() -> {
-            if (pending.running) event("foreground_cancel", pending);
-            pending.request.dispose();
-        }));
+        event(pending.running ? "consume_pending_miss" : "consume_miss", pending);
+        reset();
+        return null;
     }
 
     private Observable<T> once(Observable<T> source) {

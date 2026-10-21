@@ -319,10 +319,6 @@ public class SuggestionsController extends BasePlayerController {
 
     /** Resolve the next Short without changing the global section-playlist preference. */
     public Video getNextShort() {
-        return getNextShort(false);
-    }
-
-    private Video getNextShort(boolean ignoreContinuation) {
         Video current = getVideo();
         if (getPlayer() == null || current == null) {
             return null;
@@ -343,10 +339,7 @@ public class SuggestionsController extends BasePlayerController {
         if (next != null) {
             return next;
         }
-        // A page that has not arrived is not the end of the source section.
-        if (!ignoreContinuation && canContinueShortsSource(source, current)) {
-            return null;
-        }
+        // Use an already known Short immediately; pagination must not delay a playable fallback.
 
         next = Video.from(current.nextMediaItem);
         if (isUnseenPlayableShort(next, current)) {
@@ -507,7 +500,7 @@ public class SuggestionsController extends BasePlayerController {
         OnNextVideo callback = mPendingShortsCallback;
         boolean stillCurrent = mPendingShortsVideo != null && getVideo() == mPendingShortsVideo && getPlayer() != null;
         if (next == null && stillCurrent) {
-            next = getNextShort(true); // An unavailable source page may still have a verified Short fallback.
+            next = getNextShort(); // Metadata may have supplied a playable Short while pagination was pending.
         }
         cancelShortsRequest();
         if (callback != null && stillCurrent) {

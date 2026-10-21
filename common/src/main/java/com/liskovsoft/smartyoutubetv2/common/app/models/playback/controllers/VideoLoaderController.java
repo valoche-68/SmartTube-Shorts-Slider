@@ -31,7 +31,7 @@ import com.liskovsoft.youtubeapi.service.YouTubeServiceManager;
 
 import io.reactivex.Observable;
 import io.reactivex.disposables.Disposable;
-import io.reactivex.disposables.SerialDisposable;
+import io.reactivex.android.schedulers.AndroidSchedulers;
 
 public class VideoLoaderController extends BasePlayerController {
     private static final String TAG = VideoLoaderController.class.getSimpleName();
@@ -44,6 +44,7 @@ public class VideoLoaderController extends BasePlayerController {
     private SuggestionsController mSuggestionsController;
     private ErrorFixerController mErrorFixerController;
     private Disposable mFormatInfoAction;
+    private long mFormatInfoGeneration;
     private final NextVideoPreloader<PreparedShort> mNextVideoPreloader = new NextVideoPreloader<>(
             PreparedShort::load, SystemClock::elapsedRealtime, PreparedShort::isValid,
             (event, elapsedMs) -> Log.i(PREPARATION_TAG, "%s elapsed_ms=%s", event, elapsedMs));
@@ -309,34 +310,36 @@ public class VideoLoaderController extends BasePlayerController {
             mNextVideoPreloader.reset();
         }
         disposeActions();
+        final long generation = mFormatInfoGeneration;
+        // PlaybackPresenter assigns its current video only after dispatching onNewVideo.
+        // Start the requested lookup now; publish its result asynchronously after that dispatch.
         Observable<MediaItemFormatInfo> normal = Observable.defer(() -> {
-            if (getPlayer() == null || getVideo() != video) return Observable.empty();
             if (video.isShorts()) Log.i(PREPARATION_TAG, "foreground_lookup");
             return loadRegularFormatInfo(video.videoId);
         });
         Observable<MediaItemFormatInfo> format;
         if (prepared != null) {
-            format = prepared.flatMap(value -> {
-                if (getPlayer() == null || getVideo() != video) return Observable.<MediaItemFormatInfo>empty();
+            format = prepared.observeOn(AndroidSchedulers.mainThread()).flatMap(value -> {
+                if (generation != mFormatInfoGeneration || getPlayer() == null) return Observable.<MediaItemFormatInfo>empty();
                 MediaItemFormatInfo activated = value.activate(); // Revalidates expiry and the selected account.
                 return activated != null ? Observable.just(activated) : Observable.empty();
             }).onErrorResumeNext(Observable.empty()).switchIfEmpty(Observable.defer(() -> {
+                if (generation != mFormatInfoGeneration || getPlayer() == null) return Observable.empty();
                 Log.i(PREPARATION_TAG, "prepared_fallback");
                 return normal;
             }));
         } else {
             format = normal;
         }
-        SerialDisposable action = new SerialDisposable();
-        mFormatInfoAction = action;
-        action.set(format.subscribe(info -> {
-                               if (getPlayer() != null && getVideo() == video) processFormatInfo(info);
+        // Keep the actual subscription: it becomes disposed at completion, which autoplay checks.
+        mFormatInfoAction = format.observeOn(AndroidSchedulers.mainThread()).subscribe(info -> {
+                               if (generation == mFormatInfoGeneration && getPlayer() != null) processFormatInfo(info);
                            },
                            error -> {
-                               if (getPlayer() == null || getVideo() != video) return;
+                               if (generation != mFormatInfoGeneration || getPlayer() == null) return;
                                getPlayer().showProgressBar(false);
                                mErrorFixerController.runFormatErrorAction(error);
-                           }));
+                           });
     }
 
     protected Observable<MediaItemFormatInfo> loadRegularFormatInfo(String videoId) {
@@ -468,6 +471,7 @@ public class VideoLoaderController extends BasePlayerController {
     }
 
     private void disposeActions() {
+        mFormatInfoGeneration++;
         MediaServiceManager.instance().disposeActions();
         RxHelper.disposeActions(mFormatInfoAction);
         Utils.removeCallbacks(mReloadVideo, mLoadNext, mRestartEngine, mMetadataSync);

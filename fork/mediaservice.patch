@@ -127,17 +127,16 @@ index 01d79fdd..9a6c8210 100644
  internal fun ItemWrapper.getFeedbackToken() = getFeedbackTokens()?.getOrNull(0)
 diff --git a/youtubeapi/src/main/java/com/liskovsoft/youtubeapi/service/PreparedShort.java b/youtubeapi/src/main/java/com/liskovsoft/youtubeapi/service/PreparedShort.java
 new file mode 100644
-index 00000000..b54bf551
+index 00000000..b29bc972
 --- /dev/null
 +++ b/youtubeapi/src/main/java/com/liskovsoft/youtubeapi/service/PreparedShort.java
-@@ -0,0 +1,60 @@
+@@ -0,0 +1,59 @@
 +package com.liskovsoft.youtubeapi.service;
 +
 +import com.liskovsoft.mediaserviceinterfaces.data.MediaItemFormatInfo;
 +import com.liskovsoft.mediaserviceinterfaces.oauth.Account;
 +import com.liskovsoft.sharedutils.rx.RxHelper;
 +import com.liskovsoft.youtubeapi.app.AppService;
-+import com.liskovsoft.youtubeapi.service.data.YouTubeMediaItemFormatInfo;
 +import com.liskovsoft.youtubeapi.videoinfo.V2.VideoInfoService;
 +import io.reactivex.Observable;
 +
@@ -164,7 +163,7 @@ index 00000000..b54bf551
 +            try {
 +                if (Thread.currentThread().isInterrupted()) throw new InterruptedException();
 +                VideoInfoService service = VideoInfoService.createForPreparation();
-+                MediaItemFormatInfo format = YouTubeMediaItemFormatInfo.from(service.getVideoInfo(videoId, null));
++                MediaItemFormatInfo format = YouTubeMediaItemService.createForPreparation(service).getFormatInfo(videoId);
 +                if (Thread.currentThread().isInterrupted()) throw new InterruptedException();
 +                PreparedShort result = new PreparedShort(format, service, app.getClientPlaybackNonce(), account);
 +                if (!result.isValid() || !videoId.equals(format.getVideoId())) {
@@ -192,10 +191,65 @@ index 00000000..b54bf551
 +    }
 +}
 diff --git a/youtubeapi/src/main/java/com/liskovsoft/youtubeapi/service/YouTubeMediaItemService.java b/youtubeapi/src/main/java/com/liskovsoft/youtubeapi/service/YouTubeMediaItemService.java
-index 09beae09..0246dd5c 100644
+index 09beae09..04f72a57 100644
 --- a/youtubeapi/src/main/java/com/liskovsoft/youtubeapi/service/YouTubeMediaItemService.java
 +++ b/youtubeapi/src/main/java/com/liskovsoft/youtubeapi/service/YouTubeMediaItemService.java
-@@ -559,6 +559,10 @@ public class YouTubeMediaItemService implements MediaItemService {
+@@ -46,8 +46,19 @@ public class YouTubeMediaItemService implements MediaItemService {
+     private static final String TAG = YouTubeMediaItemService.class.getSimpleName();
+     private static YouTubeMediaItemService sInstance;
+     private MediaItemFormatInfo mCachedFormatInfo;
++    private final VideoInfoService mPreparationVideoInfoService;
+ 
+     private YouTubeMediaItemService() {
++        this(null);
++    }
++
++    protected YouTubeMediaItemService(VideoInfoService preparationVideoInfoService) {
++        mPreparationVideoInfoService = preparationVideoInfoService;
++    }
++
++    static YouTubeMediaItemService createForPreparation(VideoInfoService videoInfoService) {
++        // Use the normal lookup, authentication and fallbacks, with a private one-video cache.
++        return new YouTubeMediaItemService(videoInfoService);
+     }
+ 
+     public static YouTubeMediaItemService instance() {
+@@ -95,9 +106,7 @@ public class YouTubeMediaItemService implements MediaItemService {
+ 
+         checkSigned();
+ 
+-        VideoInfo videoInfo = getVideoInfoService().getVideoInfo(videoId, clickTrackingParams);
+-
+-        MediaItemFormatInfo formatInfo = YouTubeMediaItemFormatInfo.from(videoInfo);
++        MediaItemFormatInfo formatInfo = requestLegacyFormatInfo(videoId, clickTrackingParams);
+ 
+         setCachedFormatInfo(formatInfo, clickTrackingParams);
+ 
+@@ -115,13 +124,22 @@ public class YouTubeMediaItemService implements MediaItemService {
+ 
+         checkSigned();
+ 
+-        MediaItemFormatInfo formatInfo = InnertubeService.createFormatInfo(videoId);
++        MediaItemFormatInfo formatInfo = requestInnertubeFormatInfo(videoId);
+ 
+         setCachedFormatInfo(formatInfo, clickTrackingParams);
+ 
+         return formatInfo;
+     }
+ 
++    protected MediaItemFormatInfo requestLegacyFormatInfo(String videoId, String clickTrackingParams) {
++        VideoInfoService service = mPreparationVideoInfoService != null ? mPreparationVideoInfoService : getVideoInfoService();
++        return YouTubeMediaItemFormatInfo.from(service.getVideoInfo(videoId, clickTrackingParams));
++    }
++
++    protected MediaItemFormatInfo requestInnertubeFormatInfo(String videoId) {
++        return InnertubeService.createFormatInfo(videoId);
++    }
++
+     @Override
+     public Observable<MediaItemFormatInfo> getFormatInfoObserve(MediaItem item) {
+         return RxHelper.fromCallable(() -> getFormatInfo(item));
+@@ -559,6 +577,10 @@ public class YouTubeMediaItemService implements MediaItemService {
          mCachedFormatInfo = null;
      }
  
@@ -206,6 +260,15 @@ index 09beae09..0246dd5c 100644
      private MediaItemFormatInfo getCachedFormatInfo(String videoId) {
          return  mCachedFormatInfo != null &&
                  mCachedFormatInfo.getVideoId() != null &&
+@@ -574,7 +596,7 @@ public class YouTubeMediaItemService implements MediaItemService {
+         }
+     }
+ 
+-    private void checkSigned() {
++    protected void checkSigned() {
+         getSignInService().checkAuth();
+     }
+ 
 diff --git a/youtubeapi/src/main/java/com/liskovsoft/youtubeapi/videoinfo/V2/VideoInfoService.java b/youtubeapi/src/main/java/com/liskovsoft/youtubeapi/videoinfo/V2/VideoInfoService.java
 index c3b000e9..61a28782 100644
 --- a/youtubeapi/src/main/java/com/liskovsoft/youtubeapi/videoinfo/V2/VideoInfoService.java
