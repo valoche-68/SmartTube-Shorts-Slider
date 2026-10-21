@@ -1,0 +1,11 @@
+{
+  "channel": "beta",
+  "upstream_tag": "32.68",
+  "upstream_commit": "ffa16426ea3c7c82077e0f00228818b85f373588",
+  "version_name": "32.68-slider.4",
+  "version_code": 245804,
+  "tag": "v32.68-beta-slider",
+  "fork_commit": "7c02bc35e617e0801153a98fe342be1efd5a9541",
+  "patch_sha256": "5afa496897a1537d71fef644c85aad52840159c01c8f818c216e0c32f41ec642",
+  "media_commit": "7c2451ea9aaff623d53ef1fceaf863a9cfe16cf5"
+}

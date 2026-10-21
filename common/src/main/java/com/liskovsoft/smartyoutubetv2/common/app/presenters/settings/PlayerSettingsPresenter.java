@@ -239,6 +239,9 @@ public class PlayerSettingsPresenter extends BasePresenter<Void> {
             }, mPlayerTweaksData.isPlayerButtonEnabled(pair[1])));
         }
 
+        options.add(UiOptionItem.from(getContext().getString(R.string.shorts_show_auto_scroll),
+                option -> mPlayerTweaksData.setShortsButtonVisible(option.isSelected()),
+                mPlayerTweaksData.isShortsButtonVisible()));
         settingsPresenter.appendCheckedCategory(getContext().getString(R.string.player_buttons), options);
     }
 
@@ -349,6 +352,10 @@ public class PlayerSettingsPresenter extends BasePresenter<Void> {
 
     private void appendMiscCategory(AppDialogPresenter settingsPresenter) {
         List<OptionItem> options = new ArrayList<>();
+        options.add(UiOptionItem.from(getContext().getString(R.string.shorts_prepare_next),
+                getContext().getString(R.string.shorts_prepare_next_desc),
+                option -> mPlayerTweaksData.setShortsPreparationEnabled(option.isSelected()),
+                mPlayerTweaksData.isShortsPreparationEnabled()));
 
         options.add(UiOptionItem.from(getContext().getString(R.string.suggestions_horizontally_scrolled),
                 option -> mPlayerTweaksData.setSuggestionsHorizontallyScrolled(option.isSelected()),
