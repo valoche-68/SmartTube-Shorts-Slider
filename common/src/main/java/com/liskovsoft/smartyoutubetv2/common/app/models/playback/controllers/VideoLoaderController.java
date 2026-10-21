@@ -1,6 +1,8 @@
 package com.liskovsoft.smartyoutubetv2.common.app.models.playback.controllers;
 
 import android.os.Build.VERSION;
+import android.os.SystemClock;
+import com.liskovsoft.youtubeapi.service.PreparedShort;
 
 import com.liskovsoft.mediaserviceinterfaces.MediaItemService;
 import com.liskovsoft.mediaserviceinterfaces.ServiceManager;
@@ -22,20 +24,30 @@ import com.liskovsoft.smartyoutubetv2.common.app.presenters.AppDialogPresenter;
 import com.liskovsoft.smartyoutubetv2.common.app.presenters.dialogs.VideoActionPresenter;
 import com.liskovsoft.smartyoutubetv2.common.app.views.PlaybackView;
 import com.liskovsoft.smartyoutubetv2.common.misc.MediaServiceManager;
+import com.liskovsoft.smartyoutubetv2.common.misc.NextVideoPreloader;
 import com.liskovsoft.smartyoutubetv2.common.prefs.PlayerData;
 import com.liskovsoft.smartyoutubetv2.common.utils.Utils;
 import com.liskovsoft.youtubeapi.service.YouTubeServiceManager;
 
+import io.reactivex.Observable;
 import io.reactivex.disposables.Disposable;
+import io.reactivex.android.schedulers.AndroidSchedulers;
 
 public class VideoLoaderController extends BasePlayerController {
     private static final String TAG = VideoLoaderController.class.getSimpleName();
     private static final int MIN_SHUFFLE_SIZE = 30;
+    private static final String PREPARATION_TAG = "ShortsPreparation";
+    private long mShortsLoadStarted = -1;
+    private boolean mShortsPlayLogged;
     private final Playlist mPlaylist;
     private Video mPendingVideo;
     private SuggestionsController mSuggestionsController;
     private ErrorFixerController mErrorFixerController;
     private Disposable mFormatInfoAction;
+    private long mFormatInfoGeneration;
+    private final NextVideoPreloader<PreparedShort> mNextVideoPreloader = new NextVideoPreloader<>(
+            PreparedShort::load, SystemClock::elapsedRealtime, PreparedShort::isValid,
+            (event, elapsedMs) -> Log.i(PREPARATION_TAG, "%s elapsed_ms=%s", event, elapsedMs));
     private final Runnable mReloadVideo = () -> {
         getMainController().onNewVideo(getVideo());
     };
@@ -106,6 +118,7 @@ public class VideoLoaderController extends BasePlayerController {
 
     @Override
     public void onEngineReleased() {
+        mNextVideoPreloader.reset();
         disposeActions();
     }
 
@@ -116,8 +129,22 @@ public class VideoLoaderController extends BasePlayerController {
         }
         
         getPlayer().setButtonState(R.id.action_repeat, video.finishOnEnded ? PlayerConstants.PLAYBACK_MODE_CLOSE : getPlayerData().getPlaybackMode());
-        // Can't set title at this point
-        //checkSleepTimer();
+        preloadNextVideoIfNeeded();
+    }
+
+    @Override
+    public void onPlay() {
+        if (mShortsLoadStarted >= 0 && !mShortsPlayLogged) {
+            mShortsPlayLogged = true;
+            Log.i(PREPARATION_TAG, "play_ready elapsed_ms=%s", SystemClock.elapsedRealtime() - mShortsLoadStarted);
+        }
+        // Source/metadata callbacks can precede READY; do not wait for the minute tickle.
+        preloadNextVideoIfNeeded();
+    }
+
+    @Override
+    public void onTickle() {
+        preloadNextVideoIfNeeded();
     }
 
     @Override
@@ -151,11 +178,33 @@ public class VideoLoaderController extends BasePlayerController {
     }
 
     public void loadNext() {
+        loadNext(false);
+    }
+
+    private void loadNext(boolean automatic) {
         if (getPlayer() == null || getVideo() == null) {
             return;
         }
 
         Video next = mSuggestionsController.getNext();
+        if (getVideo().isShorts() && next == null) {
+            Video current = getVideo();
+            mSuggestionsController.requestNextShort(automatic, candidate -> {
+                if (getPlayer() == null || getVideo() != current ||
+                        (automatic && !getPlayerTweaksData().isShortsAutoScrollEnabled())) {
+                    return;
+                }
+                if (candidate != null) {
+                    openVideoInt(candidate);
+                    if (getPlayerTweaksData().isPlayerUiOnNextEnabled() && getPlayer() != null) {
+                        getPlayer().showOverlay(true);
+                    }
+                } else {
+                    stopPlayback();
+                }
+            });
+            return;
+        }
 
         if (next != null) {
             openVideoInt(next);
@@ -203,6 +252,8 @@ public class VideoLoaderController extends BasePlayerController {
      */
     private void loadVideo(Video item) {
         if (getPlayer() != null && item != null) {
+            mShortsLoadStarted = item.isShorts() ? SystemClock.elapsedRealtime() : -1;
+            mShortsPlayLogged = false;
             mPlaylist.setCurrent(item);
             getPlayer().setVideo(item);
             getPlayer().resetPlayerState();
@@ -253,16 +304,46 @@ public class VideoLoaderController extends BasePlayerController {
         // Fix no progress on next video (the engine may still buffering a bit)
         //getPlayer().showProgressBar(true);
         Utils.post(mShowProgressBar);
+        Observable<PreparedShort> prepared = getPlayerTweaksData().isShortsPreparationEnabled() ?
+                mNextVideoPreloader.consume(video.videoId) : null;
+        if (prepared == null) {
+            mNextVideoPreloader.reset();
+        }
         disposeActions();
-
-        ServiceManager service = YouTubeServiceManager.instance();
-        MediaItemService mediaItemManager = service.getMediaItemService();
-        mFormatInfoAction = mediaItemManager.getFormatInfoObserve(video.videoId)
-                .subscribe(this::processFormatInfo,
+        final long generation = mFormatInfoGeneration;
+        // PlaybackPresenter assigns its current video only after dispatching onNewVideo.
+        // Start the requested lookup now; publish its result asynchronously after that dispatch.
+        Observable<MediaItemFormatInfo> normal = Observable.defer(() -> {
+            if (video.isShorts()) Log.i(PREPARATION_TAG, "foreground_lookup");
+            return loadRegularFormatInfo(video.videoId);
+        });
+        Observable<MediaItemFormatInfo> format;
+        if (prepared != null) {
+            format = prepared.observeOn(AndroidSchedulers.mainThread()).flatMap(value -> {
+                if (generation != mFormatInfoGeneration || getPlayer() == null) return Observable.<MediaItemFormatInfo>empty();
+                MediaItemFormatInfo activated = value.activate(); // Revalidates expiry and the selected account.
+                return activated != null ? Observable.just(activated) : Observable.empty();
+            }).onErrorResumeNext(Observable.empty()).switchIfEmpty(Observable.defer(() -> {
+                if (generation != mFormatInfoGeneration || getPlayer() == null) return Observable.empty();
+                Log.i(PREPARATION_TAG, "prepared_fallback");
+                return normal;
+            }));
+        } else {
+            format = normal;
+        }
+        // Keep the actual subscription: it becomes disposed at completion, which autoplay checks.
+        mFormatInfoAction = format.observeOn(AndroidSchedulers.mainThread()).subscribe(info -> {
+                               if (generation == mFormatInfoGeneration && getPlayer() != null) processFormatInfo(info);
+                           },
                            error -> {
+                               if (generation != mFormatInfoGeneration || getPlayer() == null) return;
                                getPlayer().showProgressBar(false);
                                mErrorFixerController.runFormatErrorAction(error);
                            });
+    }
+
+    protected Observable<MediaItemFormatInfo> loadRegularFormatInfo(String videoId) {
+        return YouTubeServiceManager.instance().getMediaItemService().getFormatInfoObserve(videoId);
     }
 
     private void processFormatInfo(MediaItemFormatInfo formatInfo) {
@@ -272,6 +353,9 @@ public class VideoLoaderController extends BasePlayerController {
             return;
         }
 
+        if (mShortsLoadStarted >= 0) {
+            Log.i(PREPARATION_TAG, "formats_ready elapsed_ms=%s", SystemClock.elapsedRealtime() - mShortsLoadStarted);
+        }
         String bgImageUrl = null;
 
         getVideo().sync(formatInfo);
@@ -387,6 +471,7 @@ public class VideoLoaderController extends BasePlayerController {
     }
 
     private void disposeActions() {
+        mFormatInfoGeneration++;
         MediaServiceManager.instance().disposeActions();
         RxHelper.disposeActions(mFormatInfoAction);
         Utils.removeCallbacks(mReloadVideo, mLoadNext, mRestartEngine, mMetadataSync);
@@ -426,7 +511,7 @@ public class VideoLoaderController extends BasePlayerController {
                 }
             case PlayerConstants.PLAYBACK_MODE_ALL:
             case PlayerConstants.PLAYBACK_MODE_SHUFFLE:
-                loadNext();
+                loadNext(video.isShorts());
                 break;
             case PlayerConstants.PLAYBACK_MODE_ONE:
                 if (VERSION.SDK_INT <= 19) {
@@ -536,6 +621,7 @@ public class VideoLoaderController extends BasePlayerController {
     @Override
     public void onMetadata(MediaItemMetadata metadata) {
         initRandomNext();
+        preloadNextVideoIfNeeded();
     }
 
     private void initRandomNext() {
@@ -592,8 +678,12 @@ public class VideoLoaderController extends BasePlayerController {
         Video video = getVideo();
         if (video != null && video.finishOnEnded) {
             playbackMode = PlayerConstants.PLAYBACK_MODE_CLOSE;
-        } else if (video != null && video.belongsToShortsGroup() && getPlayerTweaksData().isLoopShortsEnabled()) {
-            playbackMode = PlayerConstants.PLAYBACK_MODE_ONE;
+        } else if (video != null && (video.isShorts() || video.belongsToShortsGroup())) {
+            if (getPlayerTweaksData().isShortsAutoScrollEnabled()) {
+                playbackMode = PlayerConstants.PLAYBACK_MODE_ALL;
+            } else {
+                playbackMode = PlayerConstants.PLAYBACK_MODE_ONE;
+            }
         }
         return playbackMode;
     }
@@ -620,13 +710,27 @@ public class VideoLoaderController extends BasePlayerController {
         }
     }
 
+    @Override
+    public void onFinish() {
+        mNextVideoPreloader.reset();
+        disposeActions();
+    }
+
     private void preloadNextVideoIfNeeded() {
-        if (isEmbedPlayer() || getPlayer() == null || getVideo() == null || getVideo().isLive) {
+        if (!getPlayerTweaksData().isShortsPreparationEnabled()) {
+            mNextVideoPreloader.reset();
             return;
         }
-
-        if (getPlayer().getDurationMs() - getPlayer().getPositionMs() < 50_000) {
-            MediaServiceManager.instance().loadFormatInfo(mSuggestionsController.getNext(), formatInfo -> {});
+        if (isEmbedPlayer() || getPlayer() == null || !getPlayer().isPlaying() || getPlayer().getDurationMs() <= 0 ||
+                getVideo() == null || getVideo().isLive || !getVideo().isShorts()) {
+            return;
+        }
+        // Keep one separate format/URL result. No media bytes or second decoder are loaded.
+        Video next = mSuggestionsController.getNext();
+        if (next != null && next.videoId != null && next.isShorts() && !next.isLive && !next.videoId.equals(getVideo().videoId)) {
+            mNextVideoPreloader.prefetch(next.videoId);
+        } else {
+            mNextVideoPreloader.reset();
         }
     }
 }
