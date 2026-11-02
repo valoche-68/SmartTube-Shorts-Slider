@@ -16,13 +16,25 @@ Notre version de SmartTube pour naviguer entre les Shorts et piloter leur lectur
 
 [Utilisation et réglages de Shorts Slider →](docs/manual-setup.fr.md) · [Installation et mises à jour →](docs/user-guide.fr.md#télécharger-et-mettre-à-jour)
 
+## 📲 Installer notre APK par ADB
+
+Collez une commande sur votre PC : elle vérifie Python et ADB, installe les prérequis manquants sur les systèmes pris en charge, puis vous guide pour installer la **stable Shorts Slider** sur la TV. Une autorisation système peut être demandée. L’application n’est pas lancée après installation.
+
+**Linux / macOS — Terminal**
+
+```sh
+sh -c 's=$(curl -fsSL https://raw.githubusercontent.com/valoche-68/SmartTube-Shorts-Slider/main/tools/start.sh) && sh -c "$s" sh "$@"' sh
+```
+
+**Windows — PowerShell**
+
+```powershell
+& ([scriptblock]::Create((Invoke-WebRequest -UseBasicParsing -Uri 'https://raw.githubusercontent.com/valoche-68/SmartTube-Shorts-Slider/main/tools/start.ps1').Content))
+```
+
+[Mode d’emploi de l’installation →](docs/install.fr.md) · [Voir le script complet →](tools/install_slider.py)
+
 *Essais Fire TV en cours. Le premier Short peut encore être long à charger ; la préparation du suivant ne prépare pas ce premier démarrage.*
-
-## 🎛️ Et SmartTube officiel ?
-
-Les réglages natifs existent, mais leur activation n’a pas reproduit le fonctionnement attendu pendant les essais rapportés sur Fire TV. **Nous ne présentons plus le tutoriel ni le script officiel comme une alternative validée à notre APK.** Notre version modifie aussi le parcours de lecture ; elle ne fait pas qu’activer des options cachées.
-
-[Réglages officiels : limites et statut du script →](docs/official-settings.fr.md)
 
 ---
 

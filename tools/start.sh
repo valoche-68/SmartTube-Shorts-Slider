@@ -1,6 +1,12 @@
 #!/bin/sh
-# Install missing prerequisites, then run the small configuration assistant.
+# Install missing prerequisites, then install our Shorts Slider APK by ADB.
 set -eu
+
+smarttube_script=install_slider.py
+if [ "${1:-}" = --official-settings ]; then
+    smarttube_script=configure_shorts.py
+    shift
+fi
 
 smarttube_find_on_path() {
     smarttube_executable=
@@ -149,7 +155,7 @@ smarttube_install_macos() {
 
 smarttube_need_adb=1
 for smarttube_argument do
-    case "$smarttube_argument" in -h|--help|--backup|--backup=*) smarttube_need_adb=0 ;; esac
+    case "$smarttube_argument" in -h|--help|--download-only|--backup|--backup=*) smarttube_need_adb=0 ;; esac
 done
 smarttube_find_python
 smarttube_adb=
@@ -182,8 +188,8 @@ fi
 
 curl --fail --silent --show-error --location --proto '=https' --proto-redir '=https' \
     --connect-timeout 15 --max-time 120 \
-    --output "$smarttube_tmp/configure_shorts.py" \
-    'https://raw.githubusercontent.com/valoche-68/SmartTube-Shorts-Slider/main/tools/configure_shorts.py'
+    --output "$smarttube_tmp/$smarttube_script" \
+    "https://raw.githubusercontent.com/valoche-68/SmartTube-Shorts-Slider/main/tools/$smarttube_script"
 
 # stdin remains connected to the terminal so input() can read menu answers.
-"$smarttube_python" "$smarttube_tmp/configure_shorts.py" "$@"
+"$smarttube_python" "$smarttube_tmp/$smarttube_script" "$@"

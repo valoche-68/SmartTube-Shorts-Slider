@@ -32,6 +32,8 @@ Native preferences exist in the reviewed sources, but the reported Fire TV trial
 
 [Latest stable](https://github.com/valoche-68/SmartTube-Shorts-Slider/releases/latest) · [Beta and all releases](https://github.com/valoche-68/SmartTube-Shorts-Slider/releases)
 
+**Guided PC installation:** [paste one ADB command](install.md) · [read the full script](../tools/install_slider.py). It installs our stable APK, detects the architecture and does not launch the app.
+
 Available APKs: `armeabi-v7a`, `arm64-v8a`, `x86`, and a universal package containing those three native architectures. Check Android's supported ABIs with `adb shell getprop ro.product.cpu.abilist`; the hardware's marketing name is not sufficient.
 
 The Android package IDs are `org.smarttube.stable` and `org.smarttube.beta`. Shorts Slider updates use the release certificate listed below. An update with the same package ID and signature preserves data: **do not uninstall the app to update it**. Keep a recent backup.

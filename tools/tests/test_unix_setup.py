@@ -74,7 +74,7 @@ elif name == 'curl':
     target = args[args.index('--output') + 1] if '--output' in args else args[args.index('-o') + 1]
     if 'https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh' in args:
         pathlib.Path(target).write_text((root / 'wrapper-template').read_text().replace('TOOL_NAME', 'bootstrap-brew'))
-    elif any(value.endswith('/tools/configure_shorts.py') for value in args):
+    elif any(value.endswith(('/tools/configure_shorts.py', '/tools/install_slider.py')) for value in args):
         pathlib.Path(target).write_text('print("assistant fixture launched")\n')
     else:
         raise SystemExit('Unexpected download: no internet access is allowed in this test')
@@ -159,6 +159,15 @@ else:
         self.assert_launched(result, events)
         self.assertFalse(any(name in ('sudo', 'apt-get') for name, _ in events))
         self.assertTrue(any(name == 'adb' for name, _ in events))
+
+    def test_download_only_does_not_require_or_install_adb(self):
+        self.executable('python3')
+        self.executable('apt-get')
+        result, events = self.launch('--download-only')
+        self.assert_launched(result, events)
+        self.assertFalse(any(name in ('adb', 'sudo', 'apt-get') for name, _ in events))
+        self.assertTrue(any(name == 'curl' and any(value.endswith('/tools/install_slider.py') for value in args)
+                            for name, args in events))
 
     def test_linux_package_managers_install_missing_dependencies(self):
         for manager, python_package, adb_package in (

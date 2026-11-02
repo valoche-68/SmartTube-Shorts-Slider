@@ -114,7 +114,7 @@ function Install-SliderPackage {
 function Test-SliderNeedsAdb {
     param([string[]]$AssistantArguments)
     foreach ($argument in $AssistantArguments) {
-        if ($argument -in @('-h', '--help', '--backup') -or $argument -like '--backup=*') { return $false }
+        if ($argument -in @('-h', '--help', '--download-only', '--backup') -or $argument -like '--backup=*') { return $false }
     }
     return $true
 }
@@ -138,7 +138,7 @@ function Initialize-SliderPrerequisites {
                 throw 'ADB a ete installe mais reste introuvable. Fermez puis rouvrez PowerShell et relancez la commande.'
             }
         }
-        # configure_shorts.py resolves adb with shutil.which. Make this exact
+        # The Python installer resolves adb with shutil.which. Make this exact
         # checked executable visible, including an SDK not previously in PATH.
         $env:PATH = (Split-Path -Parent $adb) + [IO.Path]::PathSeparator + $env:PATH
     }
@@ -148,16 +148,21 @@ function Initialize-SliderPrerequisites {
 function Start-SliderAssistant {
     param([string[]]$AssistantArguments)
     $ErrorActionPreference = 'Stop'
+    $assistantScript = 'install_slider.py'
+    if ($AssistantArguments.Count -gt 0 -and $AssistantArguments[0] -eq '--official-settings') {
+        $assistantScript = 'configure_shorts.py'
+        $AssistantArguments = @($AssistantArguments | Select-Object -Skip 1)
+    }
     $python = Initialize-SliderPrerequisites $AssistantArguments
     $pythonFlags = @($python.Flags)
     $assistantFolder = Join-Path ([IO.Path]::GetTempPath()) ('smarttube-assistant.' + [guid]::NewGuid().ToString('N'))
-    $assistantFile = Join-Path $assistantFolder 'configure_shorts.py'
+    $assistantFile = Join-Path $assistantFolder $assistantScript
     $previousTls = [Net.ServicePointManager]::SecurityProtocol
     try {
         New-Item -ItemType Directory -Path $assistantFolder | Out-Null
         [Net.ServicePointManager]::SecurityProtocol = $previousTls -bor [Net.SecurityProtocolType]::Tls12
         Invoke-WebRequest -UseBasicParsing -TimeoutSec 120 `
-            -Uri 'https://raw.githubusercontent.com/valoche-68/SmartTube-Shorts-Slider/main/tools/configure_shorts.py' `
+            -Uri "https://raw.githubusercontent.com/valoche-68/SmartTube-Shorts-Slider/main/tools/$assistantScript" `
             -OutFile $assistantFile
         & $python.Path @pythonFlags $assistantFile @AssistantArguments
         if ($LASTEXITCODE -ne 0) {

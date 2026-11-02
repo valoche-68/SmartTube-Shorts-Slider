@@ -32,6 +32,8 @@ Les préférences natives existent dans les bases étudiées, mais les essais ra
 
 **[Dernière stable](https://github.com/valoche-68/SmartTube-Shorts-Slider/releases/latest)** · **[Bêtas et toutes les versions](https://github.com/valoche-68/SmartTube-Shorts-Slider/releases)**
 
+**Installation guidée depuis le PC :** [copier-coller une commande ADB](install.fr.md) · [voir le script complet](../tools/install_slider.py). Elle installe notre APK stable, détecte l’architecture et ne lance pas l’application.
+
 | APK | À choisir selon les architectures prises en charge par Android |
 | --- | --- |
 | `armeabi-v7a` | ARM 32 bits, fréquent sur les Fire TV |

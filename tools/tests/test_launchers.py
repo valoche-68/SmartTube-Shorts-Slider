@@ -11,9 +11,9 @@ TOOLS = Path(__file__).resolve().parents[1]
 
 
 class LauncherTest(unittest.TestCase):
-    def launch(self, payload, fail_download=False, arguments=()):
+    def launch(self, payload, fail_download=False, arguments=(), official=False):
         # These transport tests use offline mode; setup tests mock all installers.
-        arguments = ('--backup', 'fixture.zip', *arguments)
+        arguments = (('--official-settings',) if official else ()) + ('--backup', 'fixture.zip', *arguments)
         with tempfile.TemporaryDirectory(prefix='shorts launcher ') as directory:
             folder = Path(directory)
             fixture = folder / 'payload.py'
@@ -60,6 +60,16 @@ if [ "$SMARTTUBE_TEST_FAIL" = 1 ]; then exit 22; fi
                              arguments=['--profile', 'living room'])
         self.assertEqual(result.returncode, 0, result.stderr)
         self.assertEqual(json.loads(result.stdout), [['--backup', 'fixture.zip', '--profile', 'living room'], 'menu answer'])
+
+    def test_default_downloads_our_apk_installer(self):
+        result = self.launch('import pathlib,sys\nprint(pathlib.Path(sys.argv[0]).name)\n')
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertEqual(result.stdout.strip(), 'install_slider.py')
+
+    def test_official_settings_require_the_explicit_legacy_mode(self):
+        result = self.launch('import pathlib,sys\nprint(pathlib.Path(sys.argv[0]).name)\n', official=True)
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertEqual(result.stdout.strip(), 'configure_shorts.py')
 
     def test_partial_download_is_never_executed(self):
         result = self.launch('print("MUST_NOT_RUN")\n', fail_download=True)

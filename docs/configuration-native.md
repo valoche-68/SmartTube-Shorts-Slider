@@ -31,20 +31,20 @@ Copiez-collez **une seule commande** dans votre console :
 **Linux / macOS — Terminal**
 
 ```sh
-sh -c 's=$(curl -fsSL https://raw.githubusercontent.com/valoche-68/SmartTube-Shorts-Slider/main/tools/start.sh) && sh -c "$s" sh "$@"' sh
+sh -c 's=$(curl -fsSL https://raw.githubusercontent.com/valoche-68/SmartTube-Shorts-Slider/main/tools/start.sh) && sh -c "$s" sh "$@"' sh --official-settings
 ```
 
 **Windows — PowerShell**
 
 ```powershell
-& ([scriptblock]::Create((Invoke-WebRequest -UseBasicParsing -Uri 'https://raw.githubusercontent.com/valoche-68/SmartTube-Shorts-Slider/main/tools/start.ps1').Content))
+& ([scriptblock]::Create((Invoke-WebRequest -UseBasicParsing -Uri 'https://raw.githubusercontent.com/valoche-68/SmartTube-Shorts-Slider/main/tools/start.ps1').Content)) --official-settings
 ```
 
-La commande récupère le lanceur de ce dépôt. Après vérification et installation éventuelle des prérequis, celui-ci télécharge `configure_shorts.py` dans un dossier temporaire. Le menu garde l’accès au clavier. Si le téléchargement échoue, aucun fichier incomplet n’est exécuté. Le dossier temporaire est supprimé à la fermeture, sans supprimer les sauvegardes privées. Git n’est pas nécessaire ; les règles d’exécution de PowerShell restent inchangées.
+Le mode explicite `--official-settings` est indispensable : sans cette option, le lanceur installe notre APK. La commande récupère le lanceur de ce dépôt. Après vérification et installation éventuelle des prérequis, celui-ci télécharge `configure_shorts.py` dans un dossier temporaire. Le menu garde l’accès au clavier. Si le téléchargement échoue, aucun fichier incomplet n’est exécuté. Le dossier temporaire est supprimé à la fermeture, sans supprimer les sauvegardes privées. Git n’est pas nécessaire ; les règles d’exécution de PowerShell restent inchangées.
 
 Pour obtenir l’aide ou utiliser la bêta, on peut ajouter `--help` ou `--channel beta` à la fin de la commande. Les autres options du script fonctionnent de la même manière.
 
-Si le projet est déjà présent sur le PC, `sh tools/start.sh` ou `& ([scriptblock]::Create((Get-Content -Raw .\tools\start.ps1)))` proposent la même installation automatique. Pour lancer uniquement le script local, avec les prérequis déjà installés :
+Si le projet est déjà présent sur le PC, `sh tools/start.sh --official-settings` ou `& ([scriptblock]::Create((Get-Content -Raw .\tools\start.ps1))) --official-settings` proposent la même installation automatique. Pour lancer uniquement le script local, avec les prérequis déjà installés :
 
 ```sh
 python3 tools/configure_shorts.py

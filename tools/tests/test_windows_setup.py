@@ -40,7 +40,7 @@ class WindowsSetupTest(unittest.TestCase):
         self.run_powershell(r"""
 Assert (Test-SliderNeedsAdb @()) 'Interactive menu requires ADB'
 Assert (Test-SliderNeedsAdb @('--status')) 'Online status requires ADB'
-foreach ($options in @(@('--help'), @('-h'), @('--backup', 'living room.zip'), @('--backup=living room.zip'))) {
+foreach ($options in @(@('--help'), @('-h'), @('--download-only'), @('--backup', 'living room.zip'), @('--backup=living room.zip'))) {
     Assert (-not (Test-SliderNeedsAdb $options)) 'Help/local backup must not install ADB'
 }
 $script:pythonChecks = 0

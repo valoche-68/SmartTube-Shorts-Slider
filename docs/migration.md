@@ -16,7 +16,7 @@ Si Android signale une signature incompatible ou un numéro de version trop bas,
 
 Une signature différente empêche l'installation directe. Le fork garde les identifiants officiels : il ne peut pas cohabiter avec l'officiel du même canal.
 
-1. Tester d'abord les réglages officiels ou le script guidé : cela peut éviter la migration.
+1. Identifier le canal et la signature actuellement installés. L’installateur de Shorts Slider refuse les variantes incompatibles ; les réglages officiels ne constituent pas une migration vers notre APK.
 2. Si vous choisissez le fork, créer une sauvegarde complète récente dans l'application actuellement installée.
 3. Copier le ZIP sur le PC, hors du stockage lié à l'application, vérifier sa lisibilité et conserver une copie. Ne pas supposer qu'une sauvegarde sur la TV survivra à la désinstallation.
 4. Télécharger l'APK cible, vérifier son architecture, son SHA-256 et sa signature **avant** de retirer l'ancienne application.
