@@ -38,4 +38,4 @@ sh -c 's=$(curl -fsSL https://raw.githubusercontent.com/valoche-68/SmartTube-Sho
 
 ---
 
-Basé sur [SmartTube](https://github.com/yuliskov/SmartTube) · [Construction et maintenance](docs/development.md) · [MIT](LICENSE)
+Basé sur [SmartTube](https://github.com/yuliskov/SmartTube) · [Construction et maintenance](docs/development.fr.md) · [MIT](LICENSE)

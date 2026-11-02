@@ -1,5 +1,9 @@
 # Privacy Policy for SmartTube (F-Droid Build)
 
+[Home](README.md) · **English** · [Français](PRIVACY.fr.md)
+
+This upstream document covers the F-Droid build only. It does not describe the Shorts Slider stable or beta APKs.
+
 **Last Updated:** March 21, 2026
 
 This Privacy Policy applies specifically to the **F-Droid flavor** of SmartTube (Package ID: `app.smarttube.fdroid`). This version is specifically hardened for user privacy and compliance with F-Droid’s inclusion policy.
@@ -22,7 +26,7 @@ To provide core functionality and enhanced features, the application communicate
 * **SponsorBlock:** The app sends the ID of the video being viewed to the SponsorBlock API to retrieve crowd-sourced skip segments.
 * **DeArrow:** The app sends the ID of the video being viewed to the DeArrow API to retrieve crowd-sourced titles.
 * **Return YouTube Dislike (RYD):** The app sends the Video ID to the RYD API to retrieve estimated dislike counts.
-* **Anonymous Metadata Requests:** These requests are "read-only" and do not include personal identifiers, Google account tokens, or user-specific profile data. 
+* **Anonymous Metadata Requests:** These requests are "read-only" and do not include personal identifiers, Google account tokens, or user-specific profile data.
 * **General API Communication:** The application may communicate with other third-party infrastructure (such as official YouTube/Google endpoints) solely to fetch media content and metadata required for the application to function. These functional requests do not involve the collection or storage of personal user data by the developer.
 
 ## 5. Automated Decision-Making and Profiling

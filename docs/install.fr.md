@@ -45,7 +45,7 @@ La stable est sélectionnée par défaut. Une version identique ne sera pas réi
 
 L’installation utilise `adb install -r`, sans désinstallation. Android exige une signature compatible pour remplacer l’application ; une mise à jour acceptée conserve ses données. Le script vérifie ensuite la version et, si disponibles, l’UID et la date de première installation. Il ne se connecte pas à votre compte et ne lit pas vos identifiants.
 
-**Si SmartTube officiel ou une variante incompatible occupe le même canal, le script s’arrête.** Il ne désinstalle rien, ne force pas une signature et ne promet pas de migration automatique du compte. Suivez le [guide de migration](migration.md) avant de changer de signature.
+**Si SmartTube officiel ou une variante incompatible occupe le même canal, le script s’arrête.** Il ne désinstalle rien, ne force pas une signature et ne promet pas de migration automatique du compte. Suivez le [guide de migration](migration.fr.md) avant de changer de signature.
 
 L’installation peut arrêter l’ancienne application pendant son remplacement. Lancez-la à un moment où cela ne gêne pas son utilisation. Le script ne lance pas l’application après l’installation.
 

@@ -1,32 +1,32 @@
-# Assistant officiel — outil expérimental de sauvegarde
+# Official assistant — experimental backup tool
 
-[Accueil en français](../README.fr.md) · [English status](official-settings.md)
+[Home](../README.md) · **English** · [Français](configuration-native.fr.md)
 
-**Ce script n’est plus proposé comme alternative validée à Shorts Slider.** Il modifie des préférences dans une sauvegarde officielle ; il ne corrige ni la reconnaissance des Shorts ni le parcours du lecteur. Les essais rapportés avec l’officiel n’ont pas reproduit le résultat attendu. Ses tests synthétiques prouvent les changements de valeurs et leur annulation, pas la navigation ou l’automatique sur TV. Le parcours complet de restauration reste non validé.
+**This script is not offered as a validated alternative to Shorts Slider.** It edits preferences in an official backup; it does not fix Shorts recognition or the player’s behavior. Reported official-app trials did not reproduce the expected result. Synthetic tests prove value changes and selective undo, not navigation or autoplay on TV. The complete restoration workflow remains unvalidated.
 
-**Pour notre APK, ne lancez pas cet assistant :** les options sont déjà activées sur un nouveau profil et se modifient dans les paramètres. Suivez le [guide Shorts Slider](manual-setup.fr.md). Pour comprendre la différence, voir [les limites de l’officiel](official-settings.fr.md).
+**Do not use this assistant for our APK:** its options are already enabled on a new profile and can be changed in settings. Follow the [Shorts Slider guide](manual-setup.md). See [the official app’s limitations](official-settings.md) for the difference.
 
-Les commandes suivantes sont conservées pour des essais volontaires de l’outil expérimental, avec une sauvegarde. Elles n’ajoutent ni bouton ni gestion de préparation du fork, n’installent aucun APK et ne nécessitent pas le root sur la TV.
+The following commands are kept for deliberate experiments with the backup tool. They do not add the fork’s button or preparation handling, install an APK or require root on the TV. The assistant’s menus are in French.
 
-## Installation automatique des prérequis
+## Automatic prerequisite installation
 
-La commande ci-dessous vérifie **Python 3.10+** et **ADB**, conserve les outils déjà utilisables et installe uniquement les prérequis manquants :
+The command below checks **Python 3.10+** and **ADB**, reuses working tools and installs only missing prerequisites:
 
-| Système | Installation utilisée |
+| System | Installation method |
 | --- | --- |
-| Linux | `apt-get`, `dnf`, `pacman`, `zypper` ou `apk`, avec les paquets des dépôts configurés |
-| macOS | [Homebrew](https://docs.brew.sh/Installation), installé depuis sa source officielle s’il manque ; Python et [Android Platform Tools](https://formulae.brew.sh/cask/android-platform-tools) |
-| Windows | [WinGet](https://learn.microsoft.com/en-us/windows/package-manager/winget/install), avec `Python.Python.3.13` et `Google.PlatformTools`, pour l’utilisateur courant |
+| Linux | `apt-get`, `dnf`, `pacman`, `zypper` or `apk`, using packages from configured repositories |
+| macOS | [Homebrew](https://docs.brew.sh/Installation), installed from its official source if missing; Python and [Android Platform Tools](https://formulae.brew.sh/cask/android-platform-tools) |
+| Windows | [WinGet](https://learn.microsoft.com/en-us/windows/package-manager/winget/install), with `Python.Python.3.13` and `Google.PlatformTools`, for the current user |
 
-Le système peut demander une confirmation ou un mot de passe administrateur. Sur Linux, seuls les appels au gestionnaire de paquets utilisent `sudo` si nécessaire. Homebrew peut aussi demander l’installation des outils de développement Apple. **Ne lancez pas toute la commande avec `sudo`.**
+The system may request confirmation or an administrator password. On Linux, only package-manager calls use `sudo` when needed. Homebrew may also request Apple’s developer tools. **Do not run the entire command with `sudo`.**
 
-Sous Linux/macOS, la commande nécessite `curl`. Sous Windows, si WinGet manque, le lanceur indique comment installer [App Installer de Microsoft](https://apps.microsoft.com/detail/9nblggh4nns1), puis s’arrête. Un gestionnaire non pris en charge, des paquets indisponibles ou une version de Python trop ancienne après installation provoquent aussi un arrêt. Il reste possible d’installer [Python](https://www.python.org/downloads/) et [ADB](https://developer.android.com/tools/releases/platform-tools) manuellement, puis de relancer.
+Linux/macOS require `curl`. If WinGet is missing on Windows, the launcher explains how to install [Microsoft App Installer](https://apps.microsoft.com/detail/9nblggh4nns1), then stops. Unsupported package managers, unavailable packages or a Python version that remains too old also cause it to stop. You can install [Python](https://www.python.org/downloads/) and [ADB](https://developer.android.com/tools/releases/platform-tools) manually, then rerun.
 
-Les prérequis sont revérifiés après installation. L’aide (`--help`) et le travail sur une sauvegarde locale (`--backup`) nécessitent Python, mais n’installent pas ADB. Les outils installés restent sur le PC pour les prochains lancements.
+Prerequisites are checked again after installation. Help (`--help`) and local-backup operations (`--backup`) require Python but do not install ADB. Installed tools remain on the PC for future runs.
 
-## Lancer sans télécharger de fichier à la main
+## Start without manually downloading a file
 
-Copiez-collez **une seule commande** dans votre console :
+Paste **one command** into your terminal:
 
 **Linux / macOS — Terminal**
 
@@ -40,68 +40,68 @@ sh -c 's=$(curl -fsSL https://raw.githubusercontent.com/valoche-68/SmartTube-Sho
 & ([scriptblock]::Create((Invoke-WebRequest -UseBasicParsing -Uri 'https://raw.githubusercontent.com/valoche-68/SmartTube-Shorts-Slider/main/tools/start.ps1').Content)) --official-settings
 ```
 
-Le mode explicite `--official-settings` est indispensable : sans cette option, le lanceur installe notre APK. La commande récupère le lanceur de ce dépôt. Après vérification et installation éventuelle des prérequis, celui-ci télécharge `configure_shorts.py` dans un dossier temporaire. Le menu garde l’accès au clavier. Si le téléchargement échoue, aucun fichier incomplet n’est exécuté. Le dossier temporaire est supprimé à la fermeture, sans supprimer les sauvegardes privées. Git n’est pas nécessaire ; les règles d’exécution de PowerShell restent inchangées.
+The explicit `--official-settings` mode is required: without it, the launcher installs our APK. The command retrieves the launcher from this repository. After checking and, if needed, installing prerequisites, it downloads `configure_shorts.py` into a temporary folder. The menu keeps access to keyboard input. A failed download never executes an incomplete file. The temporary folder is removed on exit without removing private backups. Git is not required; PowerShell execution policy is unchanged.
 
-Pour obtenir l’aide ou utiliser la bêta, on peut ajouter `--help` ou `--channel beta` à la fin de la commande. Les autres options du script fonctionnent de la même manière.
+Append `--help` for help or `--channel beta` for the beta channel. Other script options work the same way.
 
-Si le projet est déjà présent sur le PC, `sh tools/start.sh --official-settings` ou `& ([scriptblock]::Create((Get-Content -Raw .\tools\start.ps1))) --official-settings` proposent la même installation automatique. Pour lancer uniquement le script local, avec les prérequis déjà installés :
+With a local checkout, `sh tools/start.sh --official-settings` or `& ([scriptblock]::Create((Get-Content -Raw .\tools\start.ps1))) --official-settings` provides the same prerequisite installation. To run only the local script with prerequisites already installed:
 
 ```sh
 python3 tools/configure_shorts.py
-# Linux / macOS : tools/configure_shorts.sh
-# Windows : tools\configure_shorts.cmd
+# Linux / macOS: tools/configure_shorts.sh
+# Windows: tools\configure_shorts.cmd
 ```
 
-## Connecter la TV
+## Connect the TV
 
-Activer le débogage ADB dans les options développeur de la TV, connecter l’ordinateur et accepter la demande sur la TV. Selon l’appareil, utiliser `adb connect ADRESSE:PORT` ou l’association `adb pair`. La [documentation Android](https://developer.android.com/tools/adb) décrit ces modes. Ne pas exposer ADB sur Internet.
+Enable ADB debugging in the TV’s developer options, connect the PC and accept the prompt on the TV. Depending on the device, use `adb connect ADDRESS:PORT` or `adb pair`. The [Android documentation](https://developer.android.com/tools/adb) describes these modes. Do not expose ADB to the Internet.
 
-Si ADB vient d’être installé, ouvrir un nouveau terminal avant d’utiliser `adb connect`. Avec Homebrew, suivre si nécessaire ses instructions pour ajouter ses outils au `PATH`. Si l’assistant ne trouve aucun appareil connecté, connecter la TV puis relancer la commande ; les prérequis déjà présents ne seront pas réinstallés.
+If ADB was just installed, open a new terminal before using `adb connect`. With Homebrew, follow its instructions to add tools to `PATH` if needed. If the assistant finds no connected device, connect the TV and rerun; existing prerequisites will not be reinstalled.
 
-## Parcours guidé
+## Guided workflow
 
-1. Le script contrôle la version installée. Les formats de préférences étudiés dans les sources sont ceux de **32.68 stable et bêta (code Android 2458)** et **32.56 stable et bêta (2446)**. Cela ne valide pas le fonctionnement dans le lecteur ni le parcours complet sur TV. Il refuse une version inconnue ; suivre le [tutoriel manuel](manual-setup.fr.md) dans ce cas, en tenant compte des éventuelles différences de menus.
-2. Créer une **nouvelle sauvegarde complète** avec Paramètres → Sauvegarde/restauration → Sauvegarde locale. Indiquer au script le chemin complet du ZIP affiché sur la TV. Les emplacements varient selon Android ; aucune ancienne sauvegarde n'est choisie silencieusement.
-3. Choisir navigation, lecture automatique et playlist de section, ou consulter les réglages. Le profil actif est utilisé ; `--profile NOM` permet de choisir un profil déjà présent.
-4. Lire le récapitulatif. Activer l'automatique désactive la boucle Shorts et peut sélectionner le mode global « vidéo suivante », qui s'applique également aux vidéos longues.
-5. Le script garde `original.zip`, crée `configured.zip` et écrit `undo.json` dans un nouveau dossier privé du PC.
-6. Il propose de transférer le ZIP et d'ouvrir l'import officiel. **Valider la restauration sur la TV**, puis relancer l'application. L'arrêt de SmartTube après restauration est normal. Vérifier les réglages.
-7. Revenir au terminal après la restauration pour retirer le ZIP temporaire de la TV. Le dossier privé du PC reste disponible pour revenir en arrière.
+1. The script checks the installed version. The preference formats reviewed in source are **32.68 stable and beta (Android code 2458)** and **32.56 stable and beta (2446)**. This does not validate player behavior or the complete TV workflow. Unknown versions are rejected; read [this approach’s limitations](official-settings.md) before proceeding. Our APK’s guide does not validate official-app settings.
+2. Create a **new complete backup** under Settings → Backup/restore → Local backup. Give the script the ZIP’s full path shown on the TV. Locations vary by Android version; an old backup is never silently selected.
+3. Choose navigation, autoplay and section-playlist settings, or inspect current values. The active profile is used; `--profile NAME` selects an existing profile.
+4. Read the summary. Enabling autoplay disables Shorts looping and may select the global “next video” playback mode, which also affects long videos.
+5. The script keeps `original.zip`, creates `configured.zip` and writes `undo.json` in a new private folder on the PC.
+6. It offers to transfer the ZIP and open the official import interface. **Confirm restoration on the TV**, then reopen the app. SmartTube stopping after restoration is normal. Check the settings.
+7. Return to the terminal after restoration to remove the temporary ZIP from the TV. The PC’s private folder remains available for undo.
 
-Ne pas changer d'autres réglages entre la sauvegarde et la restauration : l'import officiel restaure une sauvegarde complète, même si le script n'en a modifié que quelques valeurs.
+Do not change other settings between backup and restoration: the official import restores an entire backup, even if the script edited only a few values.
 
-## Travail sur un ZIP déjà copié
+## Work with a ZIP already copied to the PC
 
 ```sh
-# Voir l'état, sans modifier la TV
-python3 tools/configure_shorts.py --backup sauvegarde.zip --version 32.68 --status
+# Inspect settings without changing the TV
+python3 tools/configure_shorts.py --backup backup.zip --version 32.68 --status
 
-# Simulation : aucun fichier créé, aucun transfert, aucune restauration
-python3 tools/configure_shorts.py --backup sauvegarde.zip --version 32.68 \
+# Dry run: no files created, no transfer, no restoration
+python3 tools/configure_shorts.py --backup backup.zip --version 32.68 \
   --navigation up-down --autoplay on --section on --dry-run
 
-# Préparer le ZIP à importer manuellement
-python3 tools/configure_shorts.py --backup sauvegarde.zip --version 32.68 \
-  --navigation up-down --autoplay on --section on --output ./backup_shorts_prive
+# Prepare the ZIP for manual import
+python3 tools/configure_shorts.py --backup backup.zip --version 32.68 \
+  --navigation up-down --autoplay on --section on --output ./private_shorts_backup
 ```
 
-`--navigation left-right` choisit gauche/droite ; `off` désactive ces raccourcis. `--autoplay off` remet les Shorts en boucle. Les options omises en mode non interactif laissent leurs réglages en place.
+`--navigation left-right` selects left/right; `off` disables these shortcuts. `--autoplay off` restores Shorts looping. In non-interactive mode, omitted options leave their settings unchanged.
 
-Le ZIP configuré peut être importé avec le gestionnaire de fichiers de la TV ou transféré dans le dossier média de SmartTube, puis ouvert par son import officiel. Si Android refuse le transfert ou l'import, aucune réussite n'est annoncée : utiliser le parcours manuel de sauvegarde/restauration.
+Import the configured ZIP with the TV’s file manager, or transfer it to SmartTube’s media folder and open it with the official import interface. If Android refuses the transfer or import, success is not reported: use the manual backup/restore workflow.
 
-## Annuler les changements
+## Undo changes
 
-Créer d'abord une **nouvelle sauvegarde** de l'état actuel, puis :
+First create a **new backup** of the current state, then run:
 
 ```sh
-python3 tools/configure_shorts.py --backup sauvegarde_actuelle.zip --version 32.68 \
-  --undo /chemin/prive/undo.json
+python3 tools/configure_shorts.py --backup current_backup.zip --version 32.68 \
+  --undo /private/path/undo.json
 ```
 
-Le script rétablit les anciennes valeurs ciblées et conserve les autres réglages de la nouvelle sauvegarde. Si une valeur ciblée a depuis été changée autrement, il s'arrête plutôt que de l'écraser. `original.zip` reste une sauvegarde de secours complète de l'état initial.
+The script restores the previous targeted values and keeps other settings from the new backup. If a targeted value has since been changed by another method, it stops rather than overwriting it. `original.zip` remains a complete emergency backup of the initial state.
 
-## Données privées et limites
+## Private data and limitations
 
-Les sauvegardes peuvent contenir des accès aux comptes. Le script ne les envoie à aucun service externe et ne les affiche pas. Les sorties sont créées dans le répertoire utilisateur, avec des permissions restreintes lorsque le système les prend en charge. Sous Windows, conserver ces fichiers dans votre dossier utilisateur protégé ; les modes Unix ne remplacent pas les autorisations Windows.
+Backups may contain account credentials. The script does not send them to an external service or display them. Outputs are created under the user’s home directory, with restricted permissions where supported. On Windows, keep these files in your protected user folder; Unix permission modes do not replace Windows permissions.
 
-Ne joindre ni sauvegarde ni journal d'annulation à un ticket GitHub. Les archives ambiguës, chemins dangereux, préférences inconnues et sauvegardes d'applications personnalisées sont refusés. La prise en charge d'une future version nécessite la vérification de son schéma officiel.
+Do not attach backups or undo logs to GitHub issues. Ambiguous archives, unsafe paths, unknown preferences and custom-app backups are rejected. Supporting a future version requires checking its official schema.

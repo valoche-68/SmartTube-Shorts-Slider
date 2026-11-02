@@ -1,26 +1,28 @@
-# Construction et maintenance
+# Build and maintenance
 
-## Organisation
+[Home](../README.md) · **English** · [Français](development.fr.md)
 
-`main` contient le développement du fork, la documentation, le script natif et l'automatisation. Les APK publiés sont construits dans un checkout séparé du tag officiel exact : le nom du canal n'est jamais utilisé pour qualifier arbitrairement du code de `master`.
+## Repository layout
 
-- `fork/config.json` : origine, base de comparaison, révision du fork et empreinte publique attendue du certificat.
-- `fork/shorts.patch` : modifications de l'application et tests.
-- `fork/mediaservice.patch` et `fork/mediaservice-beta.patch` : même préparation isolée, adaptée aux sous-modules officiels épinglés de chaque canal.
-- `fork/build.json` dans chaque tag publié : provenance du build. `build-info.json` dans la release ajoute le commit de source final et les empreintes des APK.
+`main` contains the fork’s development code, documentation, ADB installer, experimental official-settings tool and automation. Published APKs are built in a separate checkout of the exact official tag: a channel name is never used to arbitrarily label code from `master`.
 
-Le sous-module média du tag reste épinglé au commit officiel. Son patch public doit être appliqué avant compilation :
+- `fork/config.json`: upstream repository, comparison base, fork revision and expected public certificate fingerprint.
+- `fork/shorts.patch`: application changes and tests.
+- `fork/mediaservice.patch` and `fork/mediaservice-beta.patch`: the same isolated preparation, adapted to each channel’s pinned official submodules.
+- `fork/build.json` in each published tag: build provenance. The release’s `build-info.json` adds the final source commit and APK hashes.
+
+The tag’s media submodule stays pinned to the official commit. Apply its public patch before compiling:
 
 ```sh
 git submodule update --init --recursive
 python3 fork/apply_media_patch.py
 ```
 
-Les deux patchs sont inclus dans chaque tag publié ; il n'y a pas de dépendance à un commit privé de sous-module. Le script local choisit le patch d'après le commit média officiel et refuse un commit inconnu. Pour 32.68, le patch bêta inclut aussi la protection contre un identifiant vidéo absent, publiée ensuite dans la stable officielle.
+Both media patches are included in every published tag; there is no dependency on a private submodule commit. The local script selects the patch based on the official media commit and rejects unknown commits. For 32.68, the beta patch also includes protection against a missing video ID, subsequently released in official stable.
 
-## Développer
+## Development
 
-Installer JDK 17 et Android SDK 34, build-tools 30.0.3 et NDK 21.0.6113669. Configurer `local.properties` ou `ANDROID_HOME`. Ne jamais versionner `keystore.properties`, une clé ou un mot de passe. Le hook local peut être activé avec :
+Install JDK 17, Android SDK 34, build-tools 30.0.3 and NDK 21.0.6113669. Configure `local.properties` or `ANDROID_HOME`. Never commit `keystore.properties`, a key or a password. Enable the local hook and run checks with:
 
 ```sh
 git config core.hooksPath .githooks
@@ -34,45 +36,45 @@ bash gradlew :common:testStstableDebugUnitTest \
   :exoplayer-library-sabr:testStstableDebugUnitTest --tests '*SabrCdnSelectorTest'
 ```
 
-Robolectric est fixé à 4.11.1 dans le module commun pour ces tests sous JDK 17 ; l'ancienne version 4.6.1 ne sait pas instrumenter les classes Java 17.
+The common module pins Robolectric to 4.11.1 for these tests under JDK 17; the previous 4.6.1 version cannot instrument Java 17 classes.
 
-Après une modification de l'application ou du sous-module, **incrémenter la révision de publication**, exécuter `python3 fork/update_patches.py`, puis relire les patchs de l'application et des deux canaux média. La génération utilise une liste explicite de fichiers publics pour le patch de l'application. Ne pas ajouter une modification générique au moteur vidéo sans validation spécifique.
+After changing the application or submodule, **increment the release revision**, run `python3 fork/update_patches.py`, then review the application patch and both media-channel patches. Application patch generation uses an explicit list of public files. Do not make general video-engine changes without specific validation.
 
-Les comportements couverts incluent : migration des préférences, préférences natives cohérentes, masquage indépendant, demandes anticipées dédupliquées et annulables, cache consommable une fois, expiration et contexte d'historique isolé. Les tests de navigation vérifient aussi la conservation de l'identité des Shorts, les listes mixtes sans playlist de section, les fins de liste et l'annulation des réponses tardives. La préparation réutilise le fournisseur de formats dans une instance distincte ; si elle échoue, la lecture normale garde ses propres replis.
+Covered behavior includes preference migration, consistent native preferences, independently hiding the button, deduplicated and cancellable preparation requests, single-use cache entries, expiration and an isolated history context. Navigation tests also check Shorts identity retention, mixed lists without a section playlist, end-of-list behavior and cancellation of late responses. Preparation reuses the format provider in a separate instance; normal playback keeps its own fallbacks if preparation fails.
 
-## Reproduire une release depuis le dépôt principal
+## Reproduce a release from the main repository
 
 ```sh
-python3 .github/scripts/release.py prepare --channel stable --tag 32.68s --folder /chemin/neuf/build-stable
-python3 .github/scripts/release.py build --channel stable --folder /chemin/neuf/build-stable
+python3 .github/scripts/release.py prepare --channel stable --tag 32.68s --folder /new/path/build-stable
+python3 .github/scripts/release.py build --channel stable --folder /new/path/build-stable
 ```
 
-La préparation exige la configuration locale de signature ignorée par Git, ou les variables `SIGNING_KEY` (base64), `KEY_STORE_PASSWORD`, `ALIAS`, `KEY_PASSWORD`. La clé doit correspondre à l'empreinte publique configurée. Les APK sont contrôlés après construction : package, version interne, signature, bibliothèques natives et adresses de mise à jour compilées.
+Preparation requires either the local signing configuration ignored by Git, or the `SIGNING_KEY` (base64), `KEY_STORE_PASSWORD`, `ALIAS` and `KEY_PASSWORD` environment variables. The key must match the configured public fingerprint. After building, APK checks cover the package, internal version, signature, native libraries and compiled update URLs.
 
-Une version officielle de code `N`, révision `R` du fork, produit `N * 100 + R`, avec `1 ≤ R < 100`. Exemple : 2458 et révision 4 donnent 245804. Les tags correspondants sont `v32.68-stable-slider` et `v32.68-beta-slider`. La révision reste dans les métadonnées internes de l’APK pour les mises à jour ; elle n’apparaît pas dans le tag, les noms de téléchargement ni la présentation de la release. Les titres visibles restent « SmartTube Shorts Slider 32.68 — stable » et « SmartTube Shorts Slider 32.68 — beta ». Ne jamais remplacer les binaires d'un tag déjà publié ; incrémenter la révision.
+An official version code `N` and fork revision `R` produce `N * 100 + R`, with `1 ≤ R < 100`. For example, 2458 and revision 4 produce 245804. The corresponding tags are `v32.68-stable-slider` and `v32.68-beta-slider`. The revision remains in internal APK metadata for updates; it does not appear in the tag, download filenames or release presentation. Visible titles remain “SmartTube Shorts Slider 32.68 — stable” and “SmartTube Shorts Slider 32.68 — beta”. Never replace binaries for an already published tag; increment the revision.
 
-## Automatisation GitHub
+## GitHub automation
 
-Le workflow `release-shorts-slider.yml` s'exécute toutes les six heures ou manuellement. Il consulte les releases officielles, ignore annonces et alias, choisit chaque tag exact, initialise les sous-modules, applique les patchs, lance les tests et construit les APK. Les secrets de signature n'apparaissent ni dans les commandes interpolées ni dans les fichiers publiés.
+The `release-shorts-slider.yml` workflow runs every six hours or manually. It checks official releases, ignores announcements and aliases, selects each exact tag, initializes submodules, applies patches, runs tests and builds APKs. Signing secrets do not appear in interpolated commands or published files.
 
-La publication passe par un brouillon dont les fichiers sont téléchargés et comparés avant exposition. Le tag référence le commit de source compilé. Les métadonnées OTA ne changent qu'après publication vérifiée. Le manifeste stable est aussi disponible sous l'alias `smarttube_stable2.json`.
+Publication uses a draft whose files are downloaded and compared before it becomes public. The tag points to the compiled source commit. OTA metadata changes only after verified publication. The stable manifest is also available under the `smarttube_stable2.json` alias.
 
-Le fichier `.github/release-state.json`, conservé sur `main`, mémorise les résultats par canal, commit officiel et empreinte des modifications. Aucune branche d’automatisation séparée n’est nécessaire. Un échec identique est ignoré lors des passages suivants. Pour réessayer : lancement manuel avec `retry=true`. Une réponse d'upload perdue est réconciliée en vérifiant les fichiers présents par leurs noms et leurs octets, puis les fichiers manquants sont envoyés. L'ensemble complet reste obligatoire avant publication.
+The `.github/release-state.json` file on `main` records results by channel, official commit and patch digest. No separate automation branch is needed. An identical failure is skipped on later runs. To retry, run manually with `retry=true`. If an upload response is lost, existing files are reconciled by name and bytes, then missing files are uploaded. The complete set is required before publication.
 
-Après interruption, conserver le brouillon et son tag. Les fichiers déjà présents sont lus avec `gh release view`, qui donne accès aux brouillons. La relance peut reprendre le dossier `release-build/<canal>` après contrôle des sources, signatures et architectures. Si le runner a disparu, elle reconstruit depuis le commit exact du tag existant après vérification de sa provenance et de ses sous-modules ; le tag et le code de l'application restent identiques. Une construction locale incomplète est conservée pour inspection. Les fichiers déjà envoyés doivent correspondre aux octets reconstruits ; tout écart bloque la reprise. Aucun brouillon ni tag n'est supprimé automatiquement. Un APK publié n'est pas remplacé. Les fichiers de publication validés sont aussi conservés pendant 30 jours comme artefacts GitHub Actions, y compris après un échec, sans les éléments de signature privés. Un défaut de publication des métadonnées peut être réparé par une relance qui vérifie les sources de la release existante. Une écriture d'état à réponse incertaine est vérifiée par relecture, avec trois tentatives au maximum ; un état concurrent différent est préservé. Chaque publication récupère les derniers commits de `main` par avance rapide avant d’écrire les métadonnées OTA, afin de conserver les états déjà enregistrés entre les deux canaux. Un changement portant uniquement sur ce fichier d’état ne relance pas la validation Android.
+After an interruption, keep the draft and its tag. Read uploaded files with `gh release view`, which supports drafts. A rerun can reuse `release-build/<channel>` after checking sources, signatures and architectures. If the runner is gone, it rebuilds from the existing tag’s exact commit after verifying provenance and submodules; the tag and application code remain unchanged. An incomplete local build is kept for inspection. Already-uploaded files must match the rebuilt bytes; any mismatch blocks resumption. No draft or tag is automatically deleted. Published APKs are not replaced. Verified release files are also kept for 30 days as GitHub Actions artifacts, including after failure, without private signing material. A metadata-publication failure can be repaired by a rerun that verifies the existing release’s sources. An uncertain state-write response is checked by rereading, with at most three attempts; a different concurrent state is preserved. Before writing OTA metadata, each publication fast-forwards to the latest `main` commits to retain state recorded between the two channels. A change limited to the state file does not rerun Android validation.
 
-Les rapports de tests sont conservés 30 jours dans les artefacts Actions. Aucun workflow ne supprime immédiatement tous les journaux. VirusTotal est indépendant de la preuve de construction : l'action soumet les APK si une clé est configurée, puis ajoute uniquement des liens vers les rapports réels.
+Test reports are kept for 30 days in Actions artifacts. No workflow immediately deletes all logs. VirusTotal is separate from build provenance: if a key is configured, the action submits APKs, then adds only links to actual reports.
 
-## Script officiel expérimental
+## Experimental official-settings script
 
-Le script n’est pas une alternative validée à l’APK Shorts Slider. Les essais rapportés avec l’officiel n’ont pas reproduit le comportement attendu. Les tests synthétiques valident uniquement les préférences et les sauvegardes ; voir [le statut de cette piste](official-settings.fr.md).
+The script is not a validated alternative to the Shorts Slider APK. Reported official-app trials did not reproduce the expected behavior. Synthetic tests validate only preferences and backups; see [this approach’s status](official-settings.md).
 
-Avant d'accepter une nouvelle version officielle, comparer ses préférences `PlayerTweaksData`, `PlayerData`, `GeneralData`, `AppPrefs` et `SharedPreferencesBase` à celles déjà prises en charge. Valider l'encodage, les indices, les valeurs par défaut et la restauration, puis ajouter la version au tableau de compatibilité du script et à sa documentation. L'automatisation des APK ne doit pas élargir silencieusement la compatibilité du script.
+Before accepting a new official version, compare its `PlayerTweaksData`, `PlayerData`, `GeneralData`, `AppPrefs` and `SharedPreferencesBase` preferences with the supported versions. Validate encoding, indices, defaults and restoration, then add the version to the script’s compatibility table and documentation. APK automation must not silently expand the script’s compatibility.
 
-## Validation sur appareil
+## Device validation
 
-Les tests logiciels et l'inspection des APK ne remplacent pas un essai Fire TV, qui reste à réaliser. Vérifier sur l'appareil une mise à jour sans désinstallation, les préférences conservées, le bouton masqué/affiché, les vidéos longues verticales, les fins de listes, ainsi que le parcours sauvegarde/modification/restauration du script.
+Software tests and APK inspection do not replace Fire TV testing. Check updates without uninstalling, preserved preferences, the hidden/visible button, long portrait videos, end-of-list behavior and the script’s backup/edit/restore workflow. Full device validation remains incomplete.
 
-Comparer les transitions avec et sans préparation sur le même appareil et le même réseau ; rapporter le protocole et les mesures avant toute affirmation chiffrée. Ne pas publier de logs contenant des adresses de flux signées, des comptes ou des jetons.
+Compare transitions with preparation enabled and disabled on the same device and network; report the procedure and measurements before making numerical claims. Do not publish logs containing signed stream URLs, accounts or tokens.
 
-Le [diagnostic des transitions Shorts](shorts-performance-diagnostic.fr.md) documente les limites des journaux existants et les corrections locales du cycle de préparation.
+The [Shorts transition diagnostic](shorts-performance-diagnostic.md) documents the limits of existing logs and preparation-lifecycle fixes.

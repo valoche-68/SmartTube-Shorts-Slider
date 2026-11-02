@@ -34,11 +34,32 @@ Native preferences exist in the reviewed sources, but the reported Fire TV trial
 
 **Guided PC installation:** [paste one ADB command](install.md) · [read the full script](../tools/install_slider.py). It installs our stable APK, detects the architecture and does not launch the app.
 
-Available APKs: `armeabi-v7a`, `arm64-v8a`, `x86`, and a universal package containing those three native architectures. Check Android's supported ABIs with `adb shell getprop ro.product.cpu.abilist`; the hardware's marketing name is not sufficient.
+| APK | Choose according to the architectures supported by Android |
+| --- | --- |
+| `armeabi-v7a` | 32-bit ARM, common on Fire TV |
+| `arm64-v8a` | 64-bit ARM |
+| `x86` | Android x86 / compatible emulators |
+| `universal` | Contains all three architectures above; larger download |
+
+The hardware’s marketing name is not sufficient: a 64-bit device can run a 32-bit system. Check Android’s supported ABIs with `adb shell getprop ro.product.cpu.abilist`.
+
+### Install and update
 
 The Android package IDs are `org.smarttube.stable` and `org.smarttube.beta`. Shorts Slider updates use the release certificate listed below. An update with the same package ID and signature preserves data: **do not uninstall the app to update it**. Keep a recent backup.
 
-Official APKs use a different signing key, so the same channel cannot coexist or be directly replaced. Official settings and the script are not a validated way to obtain Shorts Slider behavior; see [their limitations](official-settings.md). If migrating, make a complete backup, copy it to your PC and verify it before any uninstall; download and verify the replacement APK first. Debug-signed installations also require a separate migration. See the [migration guide](migration.md).
+### If you use the official app
+
+Official APKs have the same package ID but a different signing key, so the same channel cannot coexist or be directly replaced. Official settings and the script are not a validated way to obtain Shorts Slider behavior; see [their limitations](official-settings.md).
+
+If migrating, make a complete backup, copy it to your PC, check that the ZIP is readable and keep account files private. Download and verify the replacement APK before any uninstall. Debug-signed installations also require a separate migration; the project does not promise a direct update in that case. See the [migration guide](migration.md).
+
+## Releases with traceable sources
+
+- Two channels: stable and beta are built from their **exact official tags**, pinned submodules and versioned patches.
+- The workflow checks every six hours and blocks publication on incompatible source changes; it never forces a merge from `master`.
+- Identical failures are not repeatedly retried: a new source, patch revision or manual retry is required.
+- Checks cover versions, package IDs, native architectures, signatures and update URLs before publication.
+- Releases include `build-info.json`, `SHA256SUMS` and links to actual VirusTotal reports when available. **The workflow does not invent a clean score.**
 
 ### Signing certificate
 
@@ -48,12 +69,10 @@ SHA-256 fingerprint:
 80a1a2db29be237b85486957804c21ddfa1a6c0371b93f2bd293e134aa138838
 ```
 
-## Releases with traceable sources
+Automatic publication does not guarantee compatibility with all future upstream changes. Device testing remains useful, especially for beta builds.
 
-Stable and beta are built from their exact official tags and pinned submodules, with reviewed patches. The workflow checks every six hours and stops on incompatible source changes or failed checks. Identical failures are not repeatedly retried. Automatic checks validate versions, package IDs, native architectures, signatures and update URLs.
+## Development and contributions
 
-Releases include `build-info.json` and `SHA256SUMS`. VirusTotal links lead to actual reports; the workflow does not invent a clean score. These checks do not replace device testing or guarantee future upstream compatibility.
-
-See [development documentation](development.md). Credentials, private keys, personal backups and conversation exports must remain outside Git and public reports.
+See [development documentation](development.md). Private keys, passwords, personal backups and conversation exports are excluded from Git and checked before commits and in CI. Backups may contain account credentials: do not attach them to issues or public reports.
 
 [MIT license](../LICENSE). Based on [SmartTube by Yurii Liskov and contributors](https://github.com/yuliskov/SmartTube). Dependencies retain their own licenses.

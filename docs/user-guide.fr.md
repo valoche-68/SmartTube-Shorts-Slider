@@ -51,7 +51,7 @@ Les identifiants Android sont `org.smarttube.stable` et `org.smarttube.beta`. Le
 
 L’identifiant Android est le même, mais la signature est différente : les deux versions du même canal ne peuvent pas cohabiter ou se remplacer directement. Les réglages et le script officiels ne sont pas une alternative validée pour obtenir le comportement de Shorts Slider : voir [leurs limites](official-settings.fr.md).
 
-Si vous choisissez le fork, créez une sauvegarde complète, copiez-la sur votre PC, vérifiez que le ZIP est lisible et conservez les fichiers de comptes avec précaution. Téléchargez et vérifiez le nouvel APK avant toute désinstallation. Une signature de debug différente nécessite également une migration ; le projet ne promet pas une mise à jour directe dans ce cas. Voir le [guide de migration](migration.md).
+Si vous choisissez le fork, créez une sauvegarde complète, copiez-la sur votre PC, vérifiez que le ZIP est lisible et conservez les fichiers de comptes avec précaution. Téléchargez et vérifiez le nouvel APK avant toute désinstallation. Une signature de debug différente nécessite également une migration ; le projet ne promet pas une mise à jour directe dans ce cas. Voir le [guide de migration](migration.fr.md).
 
 ## Des publications vérifiables
 
@@ -73,6 +73,6 @@ La publication automatique ne garantit pas la compatibilité de toutes les futur
 
 ## Développer et contribuer
 
-Voir [la construction, les tests et l’automatisation](development.md). Les clés privées, mots de passe, exports de conversations et sauvegardes personnelles sont exclus de Git et contrôlés avant commit et en CI. Les sauvegardes peuvent contenir des accès aux comptes : ne les joindre ni aux tickets ni aux rapports publics.
+Voir [la construction, les tests et l’automatisation](development.fr.md). Les clés privées, mots de passe, exports de conversations et sauvegardes personnelles sont exclus de Git et contrôlés avant commit et en CI. Les sauvegardes peuvent contenir des accès aux comptes : ne les joindre ni aux tickets ni aux rapports publics.
 
 [Licence MIT](../LICENSE). Crédits à [Yurii Liskov et aux contributeurs de SmartTube](https://github.com/yuliskov/SmartTube). Les dépendances conservent leurs licences respectives.

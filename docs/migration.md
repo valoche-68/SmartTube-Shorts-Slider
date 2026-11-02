@@ -1,26 +1,28 @@
-# Mettre à jour ou changer de signature
+# Update or change signing keys
 
-## Mettre à jour SmartTube Shorts Slider
+[Home](../README.md) · **English** · [Français](migration.fr.md)
 
-Télécharger la nouvelle stable ou bêta correspondant au canal installé. Vérifier `SHA256SUMS` et l'empreinte du certificat publiée dans le [guide complet](user-guide.fr.md#certificat-de-signature). Conserver une sauvegarde récente hors de la TV.
+## Update SmartTube Shorts Slider
 
-Une mise à jour de même identifiant et même signature s'installe sans désinstallation :
+Download the new stable or beta matching the installed channel. Check `SHA256SUMS` and the certificate fingerprint in the [user guide](user-guide.md#signing-certificate). Keep a recent backup outside the TV.
+
+An update with the same package ID and signing key installs without uninstalling:
 
 ```sh
-adb install -r /chemin/vers/APK.apk
+adb install -r /path/to/APK.apk
 ```
 
-Si Android signale une signature incompatible ou un numéro de version trop bas, arrêter et identifier la version installée. Ne pas ajouter automatiquement une désinstallation ou un contournement de rétrogradation.
+If Android reports an incompatible signature or a lower version code, stop and identify the installed version. Do not automatically add an uninstall or a downgrade bypass.
 
-## Application officielle ou version de debug
+## Official app or debug build
 
-Une signature différente empêche l'installation directe. Le fork garde les identifiants officiels : il ne peut pas cohabiter avec l'officiel du même canal.
+A different signing key prevents a direct update. Shorts Slider keeps the official package IDs: it cannot coexist with the official app on the same channel.
 
-1. Identifier le canal et la signature actuellement installés. L’installateur de Shorts Slider refuse les variantes incompatibles ; les réglages officiels ne constituent pas une migration vers notre APK.
-2. Si vous choisissez le fork, créer une sauvegarde complète récente dans l'application actuellement installée.
-3. Copier le ZIP sur le PC, hors du stockage lié à l'application, vérifier sa lisibilité et conserver une copie. Ne pas supposer qu'une sauvegarde sur la TV survivra à la désinstallation.
-4. Télécharger l'APK cible, vérifier son architecture, son SHA-256 et sa signature **avant** de retirer l'ancienne application.
-5. Une fois seulement ces vérifications terminées, désinstaller l'application de signature différente, installer le nouvel APK et restaurer la sauvegarde via l'interface officielle.
-6. Vérifier les réglages et les comptes. Certaines sessions peuvent demander une nouvelle connexion ; aucune restauration de compte n'est garantie.
+1. Identify the currently installed channel and signing key. The Shorts Slider installer rejects incompatible variants; official settings do not migrate an installation to our APK.
+2. If you choose Shorts Slider, create a recent complete backup in the currently installed app.
+3. Copy the ZIP to the PC, outside the app’s storage, check that it is readable and keep a copy. Do not assume a backup on the TV will survive uninstallation.
+4. Download the target APK and check its architecture, SHA-256 and signature **before** removing the previous app.
+5. Only after these checks, uninstall the app with the different signature, install the new APK and restore the backup through the official interface.
+6. Check settings and accounts. Some sessions may require signing in again; account restoration is not guaranteed.
 
-Le projet ne fournit pas de commande qui désinstalle automatiquement votre application. Les sauvegardes contiennent potentiellement des identifiants de session : les garder privées.
+The project does not provide a command that automatically uninstalls your app. Backups may contain session credentials: keep them private.
