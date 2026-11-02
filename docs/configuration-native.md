@@ -1,10 +1,12 @@
-# Configurer SmartTube officiel depuis un PC
+# Assistant officiel — outil expérimental de sauvegarde
 
-[Accueil en français](../README.fr.md) · [English overview](../README.md)
+[Accueil en français](../README.fr.md) · [English status](official-settings.md)
 
-Le script configure les fonctions natives. Il n'ajoute ni bouton ni préparation anticipée, n'installe aucun APK, ne désinstalle rien et ne nécessite pas le root sur la TV. Sa logique de modification et d'annulation est testée sur des sauvegardes synthétiques. Le parcours complet sur Fire TV reste à valider.
+**Ce script n’est plus proposé comme alternative validée à Shorts Slider.** Il modifie des préférences dans une sauvegarde officielle ; il ne corrige ni la reconnaissance des Shorts ni le parcours du lecteur. Les essais rapportés avec l’officiel n’ont pas reproduit le résultat attendu. Ses tests synthétiques prouvent les changements de valeurs et leur annulation, pas la navigation ou l’automatique sur TV. Le parcours complet de restauration reste non validé.
 
-[Faire ces réglages manuellement, à la télécommande →](manual-setup.fr.md)
+**Pour notre APK, ne lancez pas cet assistant :** les options sont déjà activées sur un nouveau profil et se modifient dans les paramètres. Suivez le [guide Shorts Slider](manual-setup.fr.md). Pour comprendre la différence, voir [les limites de l’officiel](official-settings.fr.md).
+
+Les commandes suivantes sont conservées pour des essais volontaires de l’outil expérimental, avec une sauvegarde. Elles n’ajoutent ni bouton ni gestion de préparation du fork, n’installent aucun APK et ne nécessitent pas le root sur la TV.
 
 ## Installation automatique des prérequis
 
@@ -58,7 +60,7 @@ Si ADB vient d’être installé, ouvrir un nouveau terminal avant d’utiliser 
 
 ## Parcours guidé
 
-1. Le script contrôle la version installée. Les versions vérifiées sont **32.68 stable et bêta (code Android 2458)** et **32.56 stable et bêta (2446)**. Les réglages ciblés et les conflits de touches ont été revérifiés dans les sources des deux canaux 32.68. Il refuse une version inconnue ; suivre le [tutoriel manuel](manual-setup.fr.md) dans ce cas, en tenant compte des éventuelles différences de menus.
+1. Le script contrôle la version installée. Les formats de préférences étudiés dans les sources sont ceux de **32.68 stable et bêta (code Android 2458)** et **32.56 stable et bêta (2446)**. Cela ne valide pas le fonctionnement dans le lecteur ni le parcours complet sur TV. Il refuse une version inconnue ; suivre le [tutoriel manuel](manual-setup.fr.md) dans ce cas, en tenant compte des éventuelles différences de menus.
 2. Créer une **nouvelle sauvegarde complète** avec Paramètres → Sauvegarde/restauration → Sauvegarde locale. Indiquer au script le chemin complet du ZIP affiché sur la TV. Les emplacements varient selon Android ; aucune ancienne sauvegarde n'est choisie silencieusement.
 3. Choisir navigation, lecture automatique et playlist de section, ou consulter les réglages. Le profil actif est utilisé ; `--profile NOM` permet de choisir un profil déjà présent.
 4. Lire le récapitulatif. Activer l'automatique désactive la boucle Shorts et peut sélectionner le mode global « vidéo suivante », qui s'applique également aux vidéos longues.

@@ -1,62 +1,58 @@
-# Configure Shorts with your remote
+# Shorts Slider — usage and settings
 
 [Home](../README.md) · **English** · [Français](manual-setup.fr.md)
 
-This tutorial enables the same navigation and playback options as our script, directly in **official SmartTube**. Everything is done on your TV, with no computer or ADB needed.
+**This guide is for our SmartTube Shorts Slider APK.** It does not promise the same behavior in official SmartTube. The reported official-app trials did not reproduce the expected result; see [official settings and their limitations](official-settings.md).
 
-The menus below were checked against official **32.68 stable and beta**, as well as 32.56 source code. Labels may differ in other versions; Fire TV testing remains pending. Note your current settings so you can restore them later.
+## Enabled by default
 
-If you use multiple accounts, first select the one to configure under **Settings → Accounts**. With **Use separate settings per each account** enabled, repeat the settings for each account you want to configure; otherwise, settings are shared.
+On a **new profile**, Shorts Slider enables **up/down navigation**, **autoplay**, its **player button** and **next-Short preparation**. No configuration script is needed for our APK.
 
-## 1. Move between Shorts with up/down
+Existing installations and profiles retain saved choices, so their settings can differ from these defaults.
 
-1. From the home screen, open **Settings → General → Key remapping**.
-2. Enable **Skip Shorts with up/down buttons**.
-3. Open a Short from a Shorts section and wait for the player controls to disappear.
+## Next and previous Short
 
-Selecting up/down automatically disables Shorts left/right navigation. Simply enable the option you want.
+Open a Short recognized by the app and wait for the player controls to disappear: **↓ Down** requests the next Short and **↑ Up** the previous one when available. When controls or a menu are visible, the arrows navigate that interface.
 
-**↓ Down** plays the next video; **↑ Up** returns to the previous one when available. While controls or a menu are visible, the arrows navigate that interface.
+Change shortcuts under **Settings → General → Key remapping**.
 
-Choose the option mentioning **Shorts**: the one for regular videos is a separate setting. Changing the Shorts up/down option also resets its associated key remapping, so a custom action on those keys may be replaced.
-
-## 2. Automatically play the next video when a Short ends
-
-1. Open **Settings → Player → Misc** and **disable “Loop Shorts”**.
-2. Return to **Player → Playback mode** and select **Play videos continuously**.
-
-The second setting is a separate category under **Player**, outside **Misc**. It also applies to regular videos, allowing them to play continuously too.
-
-Arrow navigation and automatic playback are independent. You can keep up/down navigation while setting Shorts to loop again.
-
-## 3. Use the current section as the playlist
-
-In **Settings → Player → Misc**, enable **Use current section contents as a playlist**. Return to the Shorts section and open a video from that list.
-
-This optional setting uses the section’s videos as the playback list. It also affects other sections. A list containing regular videos does not become a Shorts-only playlist.
-
-## Choose other options or restore your settings
-
-| You want to… | Setting to change |
+| Choice | Setting |
 | --- | --- |
-| Use left/right | In **Key remapping**, enable **Skip Shorts with left/right buttons**. Up/down is disabled automatically. Right = next; left = previous. |
-| Disable Shorts shortcuts | Uncheck the currently enabled Shorts navigation option in that menu. |
-| Repeat the current Short | Enable **Player → Misc → Loop Shorts** again. |
-| Stop using the section as a playlist | Disable **Use current section contents as a playlist**. |
-| Restore regular videos’ previous behavior | Restore your original choice under **Player → Playback mode**. |
+| Up/down | **Skip Shorts with up/down buttons** — enabled on a new profile |
+| Left/right | **Skip shorts with left/right buttons** — right = next, left = previous |
+| Neither Shorts shortcut | Uncheck the currently enabled Shorts navigation option |
 
-Changing left/right navigation also resets its volume remapping. To fully undo your changes, restore the values you noted beforehand, including custom key actions. Enabling Loop Shorts again does not by itself restore the previous global playback mode.
+Up/down and left/right are mutually exclusive. Changing them can also reset custom assignments for those keys, including left/right volume control. Note existing choices before changing them.
 
-To **inspect** your configuration, return to these menus: the checked options and selected playback mode show your current settings.
+Disabling these shortcuts does not disable autoplay.
 
-## Check the result
+## Autoplay or repeat
 
-Open a Short from a Shorts section containing several videos. Test down and up with the controls hidden, then let a Short finish to check automatic playback. Close and reopen SmartTube and verify your choices in the same profile.
+The **Auto-scroll Shorts** button before **Quality** is shown only for Shorts when its visibility option is enabled:
 
-If it does not work, check your profile, both autoplay settings and where you opened the video: native navigation depends in particular on its membership in a Shorts group. A portrait video opened elsewhere may not be recognized in the same way. What plays next depends on the available videos; these settings do not guarantee an endless or exclusively Shorts sequence in every context.
+- **ON:** advance to an available next Short at the end.
+- **OFF:** repeat the current Short.
 
-This keeps the official app. It **does not add Shorts Slider’s autoplay button or our next-Short preparation**.
+It shares **Settings → Video player → Misc → Loop Shorts**: checking Loop Shorts means autoplay OFF. Our version does not require changing the global playback mode to control Shorts autoplay.
 
----
+Autoplay stops when no next Short is available. The button does not create an infinite feed.
 
-References: official [key remapping](https://github.com/yuliskov/SmartTube/blob/32.68s/common/src/main/java/com/liskovsoft/smartyoutubetv2/common/app/presenters/settings/GeneralSettingsPresenter.java), [player settings](https://github.com/yuliskov/SmartTube/blob/32.68s/common/src/main/java/com/liskovsoft/smartyoutubetv2/common/app/presenters/settings/PlayerSettingsPresenter.java) and [English labels](https://github.com/yuliskov/SmartTube/blob/32.68s/common/src/main/res/values/strings.xml).
+## Hide the button
+
+Under **Settings → Video player → Setup player buttons**, uncheck **Show Shorts auto-scroll button**.
+
+**Hiding the button does not disable autoplay.** Switch it OFF first, or enable **Loop Shorts** under **Misc**.
+
+## Disable next-Short preparation
+
+Under **Settings → Video player → Misc**, uncheck **Prepare the next Short**. It is enabled by default; navigation and the button still work when it is disabled.
+
+Preparation fetches playback formats and stream addresses for **one next Short**. It does not download ten videos or prepare the first Short before you open it. Initial loading can still take time; speed improvements have not been measured.
+
+## Profiles and playlists
+
+If separate settings per account are enabled, check the relevant profile. Otherwise settings are shared.
+
+**Use the content of the current section as a playlist**, under **Video player → Misc**, remains an optional native setting that also affects other videos. Our Shorts navigation does not require it to select available Shorts from Home.
+
+Long portrait videos are not classified as Shorts solely because of their shape. See the [user guide](user-guide.md) for installation, account preservation and updates.

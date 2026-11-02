@@ -1,62 +1,32 @@
-# SmartTube Shorts Slider — Guide complet
+# SmartTube Shorts Slider — guide complet
 
 [Accueil](../README.fr.md) · [English](user-guide.md) · **Français**
 
+## Notre version de SmartTube
+
+Ce projet fournit un **APK personnalisé**, distinct de SmartTube officiel. Il reprend ses réglages natifs, mais modifie aussi la reconnaissance des Shorts, la conservation de leur identité et la sélection du suivant. Le projet est indépendant, sans affiliation avec le développeur officiel.
+
+**Sur un nouveau profil :** haut/bas, lecture automatique, bouton visible et préparation du suivant sont activés. Une mise à jour conserve les valeurs enregistrées. **Aucun script officiel n’est nécessaire pour notre APK.**
+
+[Utiliser les Shorts et modifier les quatre réglages →](manual-setup.fr.md)
+
+Le bouton avant **Qualité** commande l’automatique : ON enchaîne les Shorts disponibles, OFF répète le Short. Il partage le réglage **Short en boucle**. Son masquage est indépendant de la lecture automatique. L’enchaînement s’arrête si aucun Short suivant n’est disponible ; il ne crée pas de flux infini.
+
+Une longue vidéo verticale n’est pas reconnue comme Short du seul fait de son format. Les commandes du lecteur doivent être masquées pour que les raccourcis de navigation agissent sur les vidéos.
+
+## Préparation du suivant et vitesse
+
+Pendant la lecture, une demande récupère les formats et adresses d’**un seul Short suivant**. Le résultat reste dans un contexte séparé du cache et de l’identifiant d’historique de la vidéo courante. S’il est prêt et encore valide, il peut être utilisé au passage au suivant ; sinon la lecture normale démarre sans attendre sa préparation.
+
+L’officiel prépare lui aussi des informations de formats dans certains cas. Notre modification porte sur le déclenchement pour les Shorts, l’isolation du résultat et l’option pour le désactiver ; nous ne présentons pas toute préparation comme une exclusivité du projet.
+
+**Le gain de vitesse n’a pas été mesuré.** Le premier Short peut encore être long à charger : il n’est pas préparé avant son ouverture. Il n’y a ni second décodeur, ni vidéo entièrement téléchargée à l’avance, ni réserve garantie de dix à vingt Shorts. Les tampons et la pagination officiels sont conservés.
+
 ## SmartTube officiel
 
-La navigation entre Shorts et leur enchaînement existent déjà dans l’application officielle. Le [tutoriel manuel](manual-setup.fr.md) explique comment les activer à la télécommande, choisir la playlist de section et rétablir vos réglages ensuite. Cette méthode ne nécessite aucun ordinateur.
+Les préférences natives existent dans les bases étudiées, mais les essais rapportés sur Fire TV n’ont pas reproduit la navigation et l’automatique attendus. Le tutoriel et le script ne sont donc plus proposés comme solution équivalente à notre APK.
 
-### Copier, coller, suivre l’assistant
-
-Ouvrez une console et collez la commande correspondant à votre ordinateur. Elle télécharge et lance directement le petit assistant : **aucun dépôt à cloner, aucun fichier à récupérer à la main**.
-
-**Linux et macOS — Terminal**
-
-```sh
-sh -c 's=$(curl -fsSL https://raw.githubusercontent.com/valoche-68/SmartTube-Shorts-Slider/main/tools/start.sh) && sh -c "$s" sh "$@"' sh
-```
-
-**Windows — PowerShell** (pas l’invite de commandes `cmd`)
-
-```powershell
-& ([scriptblock]::Create((Invoke-WebRequest -UseBasicParsing -Uri 'https://raw.githubusercontent.com/valoche-68/SmartTube-Shorts-Slider/main/tools/start.ps1').Content))
-```
-
-Le lanceur réutilise Python 3.10+ et ADB s’ils sont utilisables, puis installe les prérequis manquants avec le gestionnaire de paquets Linux, Homebrew sur macOS ou WinGet sur Windows. Homebrew est installé si nécessaire ; Windows nécessite WinGet. Le système peut demander un mot de passe administrateur ou une confirmation. Le [guide de préparation](configuration-native.md#installation-automatique-des-prérequis) détaille les systèmes pris en charge et la connexion ADB à la TV. Le script temporaire est retiré à la fermeture ; les outils installés et vos sauvegardes privées sont conservés.
-
-Le menu en français propose haut/bas, gauche/droite ou aucun raccourci ; lecture automatique ou boucle ; playlist de la section ; consultation et annulation des changements. Il utilise une **sauvegarde officielle récente** et l’import doit être validé sur la TV. Aucun root sur la TV ni installation d’APK.
-
-**Compatibilité vérifiée dans le code : SmartTube officiel 32.68 et 32.56, stable et bêta.** Les versions inconnues sont refusées plutôt que modifiées à l’aveugle. Le test de bout en bout sur Fire TV reste à effectuer ; les [réglages manuels](manual-setup.fr.md) restent disponibles.
-
-> Le script n’ajoute **ni bouton dans le lecteur, ni préparation anticipée**. Il conserve votre APK officiel et ses mises à jour.
-
-## Shorts Slider
-
-Cette version reprend le code de SmartTube avec un ensemble limité de modifications. C’est un projet indépendant, maintenu à partir de l’officiel, sans affiliation avec son développeur.
-
-| Fonction | SmartTube officiel | Shorts Slider |
-| --- | --- | --- |
-| Navigation haut/bas ou gauche/droite | Réglage natif | Même réglage ; haut/bas activé sur un nouveau profil |
-| Lecture automatique des Shorts | Réglages natifs | Activée sur un nouveau profil, avec bouton ON/OFF |
-| Bouton avant « Qualité » | Absent | Présent uniquement sur les Shorts, masquable |
-| Préparation des informations du Short suivant | Pas notre préparation anticipée | Activée par défaut, désactivable |
-| Tampons vidéo et pagination | Comportement officiel | Comportement officiel conservé |
-
-### Le bouton, simplement
-
-- **ON :** enchaîner les Shorts disponibles.
-- **OFF :** répéter le Short en cours.
-- Le bouton et « Short en boucle » partagent le même réglage.
-- Pour masquer le bouton : **Lecteur vidéo → Boutons du lecteur → Afficher le bouton de lecture automatique des Shorts**. Le masquer ne change pas la lecture automatique.
-- Pour désactiver la préparation : **Lecteur vidéo → Divers → Préparer le Short suivant**.
-
-Les choix existants sont conservés lors d’une mise à jour. Les réglages du fork s’appliquent aux Shorts identifiés ; une vidéo longue verticale n’est pas automatiquement un Short. L’enchaînement des Shorts s’arrête lorsqu’aucun Short suivant n’est disponible.
-
-### Ce que prépare l’application
-
-Pendant la lecture, une demande récupère les formats et adresses de lecture d’**un seul Short suivant**. Son résultat reste séparé du cache et de l’identifiant d’historique de la vidéo courante, puis peut être utilisé au passage au suivant. En cas d’échec ou d’expiration, le chargement normal reste disponible.
-
-Cela peut éviter une partie du travail au changement de vidéo. **Le gain de vitesse n’a pas encore été mesuré sur la Fire TV du mainteneur.** Il dépend du réseau, de la TV et de YouTube. Il n’y a ni second décodeur, ni vidéo entièrement téléchargée à l’avance, ni réserve garantie de 10 à 20 Shorts.
+[Comprendre les limites des réglages officiels et le statut expérimental du script →](official-settings.fr.md)
 
 ## Télécharger et mettre à jour
 
@@ -77,7 +47,7 @@ Les identifiants Android sont `org.smarttube.stable` et `org.smarttube.beta`. Le
 
 ### Vous utilisez l’application officielle
 
-L’identifiant Android est le même, mais la signature est différente : les deux versions du même canal ne peuvent pas cohabiter ou se remplacer directement. **Essayez d’abord les réglages natifs ou le script.**
+L’identifiant Android est le même, mais la signature est différente : les deux versions du même canal ne peuvent pas cohabiter ou se remplacer directement. Les réglages et le script officiels ne sont pas une alternative validée pour obtenir le comportement de Shorts Slider : voir [leurs limites](official-settings.fr.md).
 
 Si vous choisissez le fork, créez une sauvegarde complète, copiez-la sur votre PC, vérifiez que le ZIP est lisible et conservez les fichiers de comptes avec précaution. Téléchargez et vérifiez le nouvel APK avant toute désinstallation. Une signature de debug différente nécessite également une migration ; le projet ne promet pas une mise à jour directe dans ce cas. Voir le [guide de migration](migration.md).
 

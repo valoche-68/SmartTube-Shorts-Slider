@@ -63,7 +63,9 @@ Après interruption, conserver le brouillon et son tag. Les fichiers déjà pré
 
 Les rapports de tests sont conservés 30 jours dans les artefacts Actions. Aucun workflow ne supprime immédiatement tous les journaux. VirusTotal est indépendant de la preuve de construction : l'action soumet les APK si une clé est configurée, puis ajoute uniquement des liens vers les rapports réels.
 
-## Mise à jour du script natif
+## Script officiel expérimental
+
+Le script n’est pas une alternative validée à l’APK Shorts Slider. Les essais rapportés avec l’officiel n’ont pas reproduit le comportement attendu. Les tests synthétiques valident uniquement les préférences et les sauvegardes ; voir [le statut de cette piste](official-settings.fr.md).
 
 Avant d'accepter une nouvelle version officielle, comparer ses préférences `PlayerTweaksData`, `PlayerData`, `GeneralData`, `AppPrefs` et `SharedPreferencesBase` à celles déjà prises en charge. Valider l'encodage, les indices, les valeurs par défaut et la restauration, puis ajouter la version au tableau de compatibilité du script et à sa documentation. L'automatisation des APK ne doit pas élargir silencieusement la compatibilité du script.
 

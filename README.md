@@ -1,47 +1,28 @@
 # SmartTube Shorts Slider
 
-Shorts on TV: native settings or a dedicated autoplay button.
+Our version of SmartTube for navigating Shorts and controlling automatic playback on TV.
 
 **English** · [Français](README.fr.md)
 
-## 🎛️ Keep official SmartTube
+## ▶️ What our APK changes
 
-Shorts navigation and autoplay are already built in. Our assistant helps configure them through a backup you restore on your TV.
+- **Autoplay button before Quality:** ON advances through available Shorts; OFF repeats the current Short. The button can be hidden.
+- **Shorts navigation:** changes to recognition and next-video selection, including Shorts opened from Home. Native shortcuts remain adjustable.
+- **Next-Short preparation:** fetches playback information for one next Short into a separate cache. Optional; no measured speed improvement is guaranteed.
 
-[Set up with your remote: up/down navigation & autoplay →](docs/manual-setup.md)
+**Already enabled for new profiles:** up/down navigation, autoplay, the player button and next-Short preparation. Updates preserve existing choices.
 
-Paste the command below: it checks Python and ADB, installs missing prerequisites on supported systems, then starts the assistant. Your system may ask for permission.
+**[Download our stable APK](https://github.com/valoche-68/SmartTube-Shorts-Slider/releases/latest)** · [Beta](https://github.com/valoche-68/SmartTube-Shorts-Slider/releases)
 
-**Linux / macOS — Terminal**
+[Using and configuring Shorts Slider →](docs/manual-setup.md) · [Installation and updates →](docs/user-guide.md#downloads-and-upgrades)
 
-```sh
-sh -c 's=$(curl -fsSL https://raw.githubusercontent.com/valoche-68/SmartTube-Shorts-Slider/main/tools/start.sh) && sh -c "$s" sh "$@"' sh
-```
+*Fire TV testing is in progress. The first Short can still take time to load; preparing the next Short does not prepare that initial startup.*
 
-**Windows — PowerShell**
+## 🎛️ What about official SmartTube?
 
-```powershell
-& ([scriptblock]::Create((Invoke-WebRequest -UseBasicParsing -Uri 'https://raw.githubusercontent.com/valoche-68/SmartTube-Shorts-Slider/main/tools/start.ps1').Content))
-```
+Native settings exist, but enabling them did not reproduce the expected behavior in the reported Fire TV trials. **The official-app tutorial and script are no longer presented as a validated alternative to our APK.** Our version also changes the playback path; it does more than enable existing preferences.
 
-French menus · Official **32.68 / 32.56 stable/beta** · No player button added.
-
-[Script setup & undo →](docs/user-guide.md#official-smarttube)
-
-## ▶️ Shorts Slider — our version of SmartTube
-
-A custom SmartTube APK with two additions for Shorts:
-
-- **Autoplay button in the player:** ON advances, OFF loops. Show or hide it in settings.
-- **Next-Short preparation:** fetches the next Short’s playback details ahead of time. Can be disabled.
-
-**On a new profile:** up/down navigation and autoplay are enabled, the button is visible and next-Short preparation is on. All options remain adjustable; updates preserve your choices.
-
-**[Download stable](https://github.com/valoche-68/SmartTube-Shorts-Slider/releases/latest)** · **[Beta & all releases](https://github.com/valoche-68/SmartTube-Shorts-Slider/releases)**
-
-[Installation, settings & APK choices →](docs/user-guide.md#shorts-slider)
-
-*Fire TV testing is in progress; speed improvements have not been measured.*
+[Official settings: limitations and script status →](docs/official-settings.md)
 
 ---
 

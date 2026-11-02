@@ -1,62 +1,58 @@
-# Configurer les Shorts à la télécommande
+# Shorts Slider — utilisation et réglages
 
 [Accueil](../README.fr.md) · [English](manual-setup.md) · **Français**
 
-Ce tutoriel active les mêmes options de navigation et de lecture que notre script, directement dans **SmartTube officiel**. Tout se fait sur la TV, sans ordinateur ni ADB.
+**Ce guide concerne notre APK SmartTube Shorts Slider.** Il ne promet pas le même résultat dans SmartTube officiel. Les essais rapportés avec l’officiel n’ont pas reproduit le comportement attendu ; voir [les limites des réglages officiels](official-settings.fr.md).
 
-Les menus ci-dessous ont été vérifiés dans le code officiel **32.68 stable et bêta**, ainsi que 32.56. Les libellés peuvent varier dans d’autres versions ; les essais sur Fire TV restent à faire. Notez vos réglages actuels pour pouvoir les remettre ensuite.
+## Déjà activé par défaut
 
-Si vous utilisez plusieurs comptes, sélectionnez d’abord celui à configurer dans **Paramètres → Comptes**. Avec **Utiliser des paramètres distincts pour chaque compte**, répétez les réglages pour chaque compte souhaité ; sinon ils sont partagés.
+Sur un **nouveau profil**, Shorts Slider active la navigation **haut/bas**, la **lecture automatique**, son **bouton dans le lecteur** et la **préparation du Short suivant**. Il n’y a aucun script à exécuter pour les activer dans notre APK.
 
-## 1. Passer d’un Short à l’autre avec haut/bas
+Sur une installation ou un profil existant, vos choix enregistrés sont conservés. Les valeurs peuvent donc différer de ces valeurs par défaut.
 
-1. Depuis l’accueil, ouvrez **Paramètres → Général → Réaffectation des touches**.
-2. Activez **Naviguer entre les Shorts avec les boutons haut/bas**.
-3. Ouvrez un Short depuis une section Shorts et attendez que les commandes du lecteur disparaissent.
+## Passer au suivant ou revenir en arrière
 
-Le choix haut/bas désactive automatiquement la navigation Shorts gauche/droite. Il suffit d’activer l’option souhaitée.
+Ouvrez un Short reconnu par l’application et attendez que les commandes du lecteur disparaissent : **↓ Bas** demande le suivant, **↑ Haut** le précédent lorsqu’il est disponible. Avec un menu ou les commandes à l’écran, les flèches servent à naviguer dans cette interface.
 
-**↓ Bas** passe au suivant ; **↑ Haut** revient au précédent lorsqu’il est disponible. Quand les commandes ou un menu sont affichés, les flèches servent à naviguer dans cette interface.
+Pour changer les raccourcis : **Paramètres → Général → Réaffectation des touches**.
 
-Choisissez bien l’option qui mentionne **Shorts** : celle des « vidéos standards » est un autre réglage. SmartTube remet aussi à zéro la réaffectation haut/bas associée quand vous changez cette option ; une action personnalisée sur ces touches peut donc être remplacée.
-
-## 2. Enchaîner automatiquement à la fin du Short
-
-1. Ouvrez **Paramètres → Lecteur vidéo → Divers** et **désactivez « Short en boucle »**.
-2. Revenez dans **Lecteur vidéo → Mode de lecture** et choisissez **Lecture automatique de la vidéo suivante**.
-
-Le deuxième réglage est une rubrique de **Lecteur vidéo**, distincte de **Divers**. Il s’applique aussi aux vidéos longues : elles pourront également s’enchaîner.
-
-La navigation avec les flèches et l’enchaînement automatique sont indépendants. Vous pouvez garder haut/bas tout en remettant les Shorts en boucle.
-
-## 3. Utiliser la liste de la section ouverte
-
-Dans **Paramètres → Lecteur vidéo → Divers**, activez **Utiliser le contenu de la section actuelle comme playlist**. Retournez ensuite dans la section Shorts et ouvrez une vidéo depuis cette liste.
-
-Cette option permet d’utiliser les vidéos de la section comme liste de lecture. Elle est facultative et concerne aussi les autres sections. Si une liste contient des vidéos classiques, elle ne devient pas une liste exclusivement composée de Shorts.
-
-## Choisir une autre configuration ou revenir en arrière
-
-| Vous souhaitez… | Réglage à modifier |
+| Votre choix | Option |
 | --- | --- |
-| Utiliser gauche/droite | Dans **Réaffectation des touches**, activez **Sauter les Shorts avec les boutons gauche/droite**. Haut/bas se désactive automatiquement. Droite = suivant ; gauche = précédent. |
-| Désactiver les raccourcis Shorts | Décochez l’option de navigation Shorts actuellement activée dans ce même menu. |
-| Répéter le Short en cours | Réactivez **Lecteur vidéo → Divers → Short en boucle**. |
-| Ne plus utiliser la section comme playlist | Désactivez **Utiliser le contenu de la section actuelle comme playlist**. |
-| Rétablir le comportement précédent des vidéos longues | Remettez votre choix initial dans **Lecteur vidéo → Mode de lecture**. |
+| Haut/bas | **Naviguer entre les Shorts avec les boutons haut/bas** — activée sur un nouveau profil |
+| Gauche/droite | **Sauter les Shorts avec les boutons gauche/droite** — droite = suivant, gauche = précédent |
+| Aucun de ces raccourcis Shorts | Décochez l’option de navigation Shorts actuellement activée |
 
-Changer la navigation gauche/droite réinitialise aussi son affectation au volume. Pour annuler complètement vos changements, remettez les valeurs notées au départ, y compris les réaffectations personnalisées. Désactiver la lecture automatique des Shorts en réactivant leur boucle ne remet pas à lui seul le mode global de lecture à sa valeur précédente.
+Haut/bas et gauche/droite sont exclusifs : activer l’un désactive l’autre. Changer ces options peut aussi réinitialiser des affectations personnalisées des mêmes touches, notamment le volume pour gauche/droite. Notez vos choix avant de les modifier.
 
-Pour **consulter** la configuration, revenez simplement dans ces menus : les cases cochées et le mode sélectionné indiquent les réglages actifs.
+Désactiver les raccourcis ne désactive pas la lecture automatique.
 
-## Vérifier le résultat
+## Lecture automatique ou boucle
 
-Ouvrez un Short depuis une section Shorts contenant plusieurs vidéos. Testez bas puis haut avec les commandes masquées, et laissez un Short se terminer pour vérifier l’enchaînement. Fermez puis rouvrez SmartTube et vérifiez vos choix dans le même profil.
+Le bouton **Défilement auto des Shorts**, avant **Qualité**, apparaît uniquement pour les Shorts si son affichage est activé :
 
-Si cela ne fonctionne pas, vérifiez le profil, les deux réglages de lecture automatique et l’origine de la vidéo : la navigation native dépend notamment de son appartenance à un groupe Shorts. Une vidéo verticale ouverte ailleurs n’est pas nécessairement reconnue de la même façon. La suite dépend des vidéos disponibles ; ces réglages ne garantissent pas un flux infini ni une suite composée uniquement de Shorts dans tous les contextes.
+- **ON :** passer au Short suivant disponible à la fin.
+- **OFF :** répéter le Short en cours.
 
-Ce parcours conserve l’application officielle. Il **n’ajoute ni le bouton de lecture automatique de Shorts Slider, ni notre préparation anticipée du Short suivant**.
+Le bouton partage la préférence **Paramètres → Lecteur vidéo → Divers → Short en boucle** : une boucle cochée correspond à l’automatique OFF. Il n’est pas nécessaire de changer le mode global de lecture pour piloter les Shorts dans notre version.
 
----
+L’enchaînement s’arrête si aucun Short suivant n’est disponible. Le bouton ne crée pas un flux infini.
 
-Références : code officiel des [réaffectations](https://github.com/yuliskov/SmartTube/blob/32.68s/common/src/main/java/com/liskovsoft/smartyoutubetv2/common/app/presenters/settings/GeneralSettingsPresenter.java), des [réglages du lecteur](https://github.com/yuliskov/SmartTube/blob/32.68s/common/src/main/java/com/liskovsoft/smartyoutubetv2/common/app/presenters/settings/PlayerSettingsPresenter.java) et des [libellés français](https://github.com/yuliskov/SmartTube/blob/32.68s/common/src/main/res/values-fr/strings.xml).
+## Masquer le bouton
+
+Ouvrez **Paramètres → Lecteur vidéo → Gestion des boutons du lecteur** et décochez **Afficher le bouton de lecture automatique des Shorts**.
+
+**Masquer le bouton ne désactive pas l’automatique.** Pour le désactiver, utilisez OFF avant de masquer le bouton, ou cochez **Short en boucle** dans **Divers**.
+
+## Désactiver la préparation du suivant
+
+Dans **Paramètres → Lecteur vidéo → Divers**, décochez **Préparer le Short suivant**. Cette option est activée par défaut ; la navigation et le bouton restent utilisables lorsqu’elle est désactivée.
+
+La préparation récupère les formats et adresses de lecture d’**un seul Short suivant**. Elle ne télécharge pas dix vidéos et ne prépare pas le premier Short avant son ouverture. Le premier chargement peut donc rester long ; aucun gain de vitesse n’est encore mesuré.
+
+## Profils et liste de lecture
+
+Avec des paramètres distincts par compte, vérifiez les options dans le profil concerné. Sinon, les réglages sont partagés.
+
+**Utiliser le contenu de la section actuelle comme playlist**, dans **Lecteur vidéo → Divers**, reste un réglage natif facultatif qui concerne aussi les autres vidéos. Notre navigation Shorts n’exige pas de l’activer pour accéder aux Shorts disponibles depuis l’accueil.
+
+Une longue vidéo verticale n’est pas considérée comme un Short du seul fait de son format. Pour l’installation, la conservation du compte et les mises à jour, voir le [guide complet](user-guide.fr.md).

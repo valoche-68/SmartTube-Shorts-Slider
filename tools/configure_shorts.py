@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Configure les Shorts dans SmartTube officiel via une sauvegarde et ADB, sans root."""
+"""Outil expérimental pour les sauvegardes de SmartTube officiel ; résultat dans le lecteur non validé."""
 import argparse
 import copy
 import hashlib
@@ -242,12 +242,14 @@ def main(argv=None):
     parser.add_argument("--dry-run", action="store_true", help="Lecture et simulation uniquement, aucun transfert ni fichier créé")
     parser.add_argument("--output", type=Path, help="Nouveau dossier privé de résultat")
     args = parser.parse_args(argv)
+    print("Outil expérimental pour SmartTube officiel : le résultat dans le lecteur n’est pas validé. "
+          "Cet outil ne configure pas notre APK Shorts Slider ; ses options sont dans les paramètres.")
     package = "org.smarttube." + args.channel
     adb = None
     source = args.backup
     if source:
         if args.version not in SUPPORTED:
-            raise ConfigError("Indiquer --version avec une version vérifiée : " + ", ".join(SUPPORTED))
+            raise ConfigError("Indiquer --version avec un format de préférences étudié : " + ", ".join(SUPPORTED))
         original = source.read_bytes()
     else:
         adb = Adb(args.device)
@@ -284,7 +286,7 @@ def main(argv=None):
         changes = configure(backup, args.navigation, None if args.autoplay is None else args.autoplay == "on",
                             None if args.section is None else args.section == "on")
     if not changes:
-        print("Les réglages demandés sont déjà appliqués.")
+        print("Les valeurs demandées sont déjà enregistrées dans cette sauvegarde ; le résultat dans le lecteur reste à vérifier.")
         return 0
     for key, value in changes.items(): print(f"  {key}: {value['before']} -> {value['after']}")
     if "playback" in changes:
