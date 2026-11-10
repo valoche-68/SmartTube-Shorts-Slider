@@ -110,6 +110,7 @@ public class PlayerTweaksData implements ProfileChangeListener {
     private boolean mIsDontResizeVideoToFitDialogEnabled;
     private boolean mIsSuggestionsHorizontallyScrolled;
     private boolean mIsQueueRespectsPlaybackMode;
+    private boolean mIsLiveEdgeEnabled;
     private final Runnable mPersistDataInt = this::persistDataInt;
 
     private PlayerTweaksData(Context context) {
@@ -717,6 +718,15 @@ public class PlayerTweaksData implements ProfileChangeListener {
         persistData();
     }
 
+    public boolean isLiveEdgeEnabled() {
+        return mIsLiveEdgeEnabled;
+    }
+
+    public void setLiveEdgeEnabled(boolean enable) {
+        mIsLiveEdgeEnabled = enable;
+        persistData();
+    }
+
     private void restoreData() {
         String data = mPrefs.getProfileData(VIDEO_PLAYER_TWEAKS_DATA);
 
@@ -789,13 +799,16 @@ public class PlayerTweaksData implements ProfileChangeListener {
         mIsQuickSkipVideosAltEnabled = Helpers.parseBoolean(split, 58, false);
         mIsAudioTimeStretchingEnabled = Helpers.parseBoolean(split, 59, true);
         mIsQueueRespectsPlaybackMode = Helpers.parseBoolean(split, 60, false);
+        //mIsSabrLiveEnabled = Helpers.parseBoolean(split, 61, false);
+        mIsLiveEdgeEnabled = Helpers.parseBoolean(split, 62, false);
         // Migrate the first fork's separate toggle once; slot 61 is cleared on save.
-        if (!"true".equals(mPrefs.getProfileData("shorts_slider_migrated")) && split != null && split.length > 61 &&
+        if (!"true".equals(mPrefs.getProfileData("shorts_slider_migrated")) && split != null && split.length == 62 &&
                 ("true".equals(split[61]) || "false".equals(split[61]))) {
             mIsLoopShortsEnabled = !Helpers.parseBoolean(split, 61, false);
             mPrefs.setProfileData("shorts_slider_migrated", "true");
             persistNow();
         }
+
 
         updateDefaultValues();
     }
@@ -823,8 +836,9 @@ public class PlayerTweaksData implements ProfileChangeListener {
                 mIsUnsafeAudioFormatsEnabled, null, mIsLoopShortsEnabled, mIsQuickSkipShortsEnabled, mIsRememberPositionOfLiveVideosEnabled,
                 mIsOculusQuestFixEnabled, null, mIsExtraLongSpeedListEnabled, mIsQuickSkipVideosEnabled, mIsNetworkErrorFixingDisabled, mIsCommentsPlacedLeft,
                 null, mIsAudioFocusEnabled, mIsDontResizeVideoToFitDialogEnabled, mIsSuggestionsHorizontallyScrolled,
-                mIsQuickSkipShortsAltEnabled, mIsQuickSkipVideosAltEnabled, mIsAudioTimeStretchingEnabled, mIsQueueRespectsPlaybackMode,
-                null // retired fork toggle; use the native loop setting
+                mIsQuickSkipShortsAltEnabled, mIsQuickSkipVideosAltEnabled, mIsAudioTimeStretchingEnabled, mIsQueueRespectsPlaybackMode, null,
+                mIsLiveEdgeEnabled
+
                 ));
     }
 

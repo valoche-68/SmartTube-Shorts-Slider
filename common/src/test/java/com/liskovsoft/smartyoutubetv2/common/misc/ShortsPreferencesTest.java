@@ -70,6 +70,23 @@ public class ShortsPreferencesTest {
         tweaks.setLoopShortsEnabled(true);
         assertFalse(tweaks.isShortsAutoScrollEnabled());
     }
+    @Test public void officialLivePreferenceSurvivesSavingShortsSettings() {
+        String[] data = new String[63];
+        Arrays.fill(data, "null");
+        data[44] = "false";
+        data[61] = "false";
+        data[62] = "true";
+        prefs.setProfileData("video_player_tweaks_data", Helpers.mergeData((Object[]) data));
+        tweaks.onProfileChanged();
+        assertTrue(tweaks.isLiveEdgeEnabled());
+        assertTrue(tweaks.isShortsAutoScrollEnabled());
+        tweaks.setShortsAutoScrollEnabled(false);
+        shadowOf(Looper.getMainLooper()).idle();
+        tweaks.onProfileChanged();
+        assertTrue(tweaks.isLiveEdgeEnabled());
+        assertFalse(tweaks.isShortsAutoScrollEnabled());
+    }
+
     @Test public void optionsAreScopedToTheSelectedProfile() {
         prefs.enableMultiProfiles(true);
         context.getSharedPreferences(context.getPackageName() + "_preferences", 0).edit()

@@ -18,7 +18,7 @@ git submodule update --init --recursive
 python3 fork/apply_media_patch.py
 ```
 
-Les deux patchs sont inclus dans chaque tag publié ; il n'y a pas de dépendance à un commit privé de sous-module. Le script local choisit le patch d'après le commit média officiel et refuse un commit inconnu. Pour 32.68, le patch bêta inclut aussi la protection contre un identifiant vidéo absent, publiée ensuite dans la stable officielle.
+Les deux patchs sont inclus dans chaque tag publié ; il n'y a pas de dépendance à un commit privé de sous-module. Le script local choisit le patch d'après le commit média officiel et refuse un commit inconnu. La stable et la bêta 32.71 épinglent le même commit média ; les deux patchs conservent la préparation isolée du suivant et l’API officielle de sélection des clients.
 
 ## Développer
 
@@ -45,13 +45,13 @@ Les comportements couverts incluent : migration des préférences, préférences
 ## Reproduire une release depuis le dépôt principal
 
 ```sh
-python3 .github/scripts/release.py prepare --channel stable --tag 32.68s --folder /chemin/neuf/build-stable
+python3 .github/scripts/release.py prepare --channel stable --tag 32.71s --folder /chemin/neuf/build-stable
 python3 .github/scripts/release.py build --channel stable --folder /chemin/neuf/build-stable
 ```
 
 La préparation exige la configuration locale de signature ignorée par Git, ou les variables `SIGNING_KEY` (base64), `KEY_STORE_PASSWORD`, `ALIAS`, `KEY_PASSWORD`. La clé doit correspondre à l'empreinte publique configurée. Les APK sont contrôlés après construction : package, version interne, signature, bibliothèques natives et adresses de mise à jour compilées.
 
-Une version officielle de code `N`, révision `R` du fork, produit `N * 100 + R`, avec `1 ≤ R < 100`. Exemple : 2458 et révision 4 donnent 245804. Les tags correspondants sont `v32.68-stable-slider` et `v32.68-beta-slider`. La révision reste dans les métadonnées internes de l’APK pour les mises à jour ; elle n’apparaît pas dans le tag, les noms de téléchargement ni la présentation de la release. Les titres visibles restent « SmartTube Shorts Slider 32.68 — stable » et « SmartTube Shorts Slider 32.68 — beta ». Ne jamais remplacer les binaires d'un tag déjà publié ; incrémenter la révision.
+Une version officielle de code `N`, révision `R` du fork, produit `N * 100 + R`, avec `1 ≤ R < 100`. Exemple : 2461 et révision 5 donnent 246105. Les tags correspondants sont `v32.71-stable-slider` et `v32.71-beta-slider`. La révision reste dans les métadonnées internes de l’APK pour les mises à jour ; elle n’apparaît pas dans le tag, les noms de téléchargement ni la présentation de la release. Les titres visibles restent « SmartTube Shorts Slider 32.71 — stable » et « SmartTube Shorts Slider 32.71 — beta ». Ne jamais remplacer les binaires d'un tag déjà publié ; incrémenter la révision.
 
 ## Automatisation GitHub
 

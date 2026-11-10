@@ -1,8 +1,8 @@
 diff --git a/youtubeapi/src/main/java/com/liskovsoft/youtubeapi/app/AppService.java b/youtubeapi/src/main/java/com/liskovsoft/youtubeapi/app/AppService.java
-index 6a44094f..85c52dc6 100644
+index 522cb28f..676b329f 100644
 --- a/youtubeapi/src/main/java/com/liskovsoft/youtubeapi/app/AppService.java
 +++ b/youtubeapi/src/main/java/com/liskovsoft/youtubeapi/app/AppService.java
-@@ -22,7 +22,7 @@ import kotlin.Pair;
+@@ -23,7 +23,7 @@ import kotlin.Pair;
  public class AppService {
      private static AppService sInstance;
      private final AppServiceCore mAppServiceCore;
@@ -11,7 +11,7 @@ index 6a44094f..85c52dc6 100644
  
      private AppService() {
          mAppServiceCore = new AppServiceCoreCached();
-@@ -131,7 +131,7 @@ public class AppService {
+@@ -132,7 +132,7 @@ public class AppService {
       * NOTE: Unique per video info instance<br/>
       * A nonce is a unique value chosen by an entity in a protocol, and it is used to protect that entity against attacks which fall under the very large umbrella of "replay".
       */
@@ -20,7 +20,7 @@ index 6a44094f..85c52dc6 100644
          return getClientPlaybackNonce(null);
      }
  
-@@ -139,26 +139,21 @@ public class AppService {
+@@ -140,26 +140,21 @@ public class AppService {
       * NOTE: Unique per video info instance<br/>
       * A nonce is a unique value chosen by an entity in a protocol, and it is used to protect that entity against attacks which fall under the very large umbrella of "replay".
       */
@@ -209,10 +209,10 @@ index 00000000..c6cf5c1a
 +    }
 +}
 diff --git a/youtubeapi/src/main/java/com/liskovsoft/youtubeapi/service/internal/FormatInfoWrapper.kt b/youtubeapi/src/main/java/com/liskovsoft/youtubeapi/service/internal/FormatInfoWrapper.kt
-index fcb0fb8c..f057d8bd 100644
+index e3be9530..3681c704 100644
 --- a/youtubeapi/src/main/java/com/liskovsoft/youtubeapi/service/internal/FormatInfoWrapper.kt
 +++ b/youtubeapi/src/main/java/com/liskovsoft/youtubeapi/service/internal/FormatInfoWrapper.kt
-@@ -12,175 +12,222 @@ import com.liskovsoft.youtubeapi.service.data.YouTubeMediaItemFormatInfo
+@@ -12,175 +12,224 @@ import com.liskovsoft.youtubeapi.service.data.YouTubeMediaItemFormatInfo
  import com.liskovsoft.youtubeapi.videoinfo.V2.VideoInfoService
  
  internal object FormatInfoWrapper {
@@ -230,6 +230,8 @@ index fcb0fb8c..f057d8bd 100644
 +    @JvmStatic fun getFormatInfo(videoId: String?, clickTrackingParams: String?): MediaItemFormatInfo? =
 +        active.getFormatInfo(videoId, clickTrackingParams)
 +    @JvmStatic fun switchNextFormat(force: Boolean) = active.switchNextFormat(force)
++    @JvmStatic fun switchNextClient(force: Boolean) = active.switchNextFormat(force)
++    @JvmStatic fun resetClient() = active.resetFormat()
 +    @JvmStatic fun resetFormat() = active.resetFormat()
 +    @JvmStatic fun invalidateCache() = active.invalidateCache()
 +    @JvmStatic fun syncWithAuthInfoIfNeeded(formatInfo: MediaItemFormatInfo?) = active.syncWithAuthInfoIfNeeded(formatInfo)
@@ -267,14 +269,14 @@ index fcb0fb8c..f057d8bd 100644
 -    }
 -
 -    @JvmStatic
--    fun switchNextFormat(force: Boolean) {
+-    fun switchNextClient(force: Boolean) {
 -        if (mTryInnertubeFirst && !mInnertubeResult.isUnplayable) {
 -            if (!force && mInnertubeResult.client?.let { PoTokenGate.resetCache(it) } ?: false)
 -                return
 -
 -            mTryInnertubeFirst = false
 -        } else {
--            val endReached: Boolean = getVideoInfoService().switchNextFormat(force)
+-            val endReached: Boolean = getVideoInfoService().switchNextClient(force)
 -            if (endReached)
 -                mTryInnertubeFirst = true
 +        if (prepared?.mUsedInnertube == true) active.persistFormatInfoType(formatInfo)
@@ -320,8 +322,8 @@ index fcb0fb8c..f057d8bd 100644
 -    }
 -
 -    @JvmStatic
--    fun resetFormat() {
--        getVideoInfoService().resetInfoType()
+-    fun resetClient() {
+-        getVideoInfoService().resetClient()
 -    }
  
 -    @JvmStatic
@@ -345,7 +347,7 @@ index fcb0fb8c..f057d8bd 100644
 +                }
 +                false
 +            } else {
-+                getVideoInfoService().switchNextFormat(force) || previous.second
++                getVideoInfoService().switchNextClient(force) || previous.second
 +            }
 +            synchronized(strategyLock) {
 +                if (mStrategyGeneration == previous.first) mTryInnertubeFirst = tryInnertubeFirst
@@ -357,7 +359,7 @@ index fcb0fb8c..f057d8bd 100644
 -            val videoInfo = getVideoInfoService().getAuthVideoInfo(formatInfo.getVideoId(), formatInfo.getClickTrackingParams())
 -            formatInfo.sync(YouTubeMediaItemFormatInfo.from(videoInfo))
 +        fun resetFormat() {
-+            getVideoInfoService().resetInfoType()
++            getVideoInfoService().resetClient()
 +            synchronized(strategyLock) { mStrategyGeneration++ }
          }
  
@@ -510,19 +512,19 @@ index fcb0fb8c..f057d8bd 100644
 +                return
 +            }
  
--        val videoInfoType = appClient?.ordinal ?: -1
+-        val ordinal = appClient?.ordinal ?: -1
 +            val appClient = formatInfo?.clientInfo as? AppClient
  
--        if (getData().videoInfoType != videoInfoType)
--            getData().videoInfoType = videoInfoType
+-        if (getData().clientType != ordinal)
+-            getData().clientType = ordinal
 -    }
 +            val videoInfoType = appClient?.ordinal ?: -1
  
 -    private fun checkSigned() {
 -        getSignInService().checkAuth()
 -    }
-+            if (getData().videoInfoType != videoInfoType)
-+                getData().videoInfoType = videoInfoType
++            if (getData().clientType != videoInfoType)
++                getData().clientType = videoInfoType
 +        }
  
 -    private fun getSignInService(): YouTubeSignInService {
@@ -559,15 +561,15 @@ index fcb0fb8c..f057d8bd 100644
 \ No newline at end of file
 +}
 diff --git a/youtubeapi/src/main/java/com/liskovsoft/youtubeapi/videoinfo/V2/VideoInfoService.java b/youtubeapi/src/main/java/com/liskovsoft/youtubeapi/videoinfo/V2/VideoInfoService.java
-index 3832c712..b30e15d0 100644
+index 29e7de1e..c4dbb535 100644
 --- a/youtubeapi/src/main/java/com/liskovsoft/youtubeapi/videoinfo/V2/VideoInfoService.java
 +++ b/youtubeapi/src/main/java/com/liskovsoft/youtubeapi/videoinfo/V2/VideoInfoService.java
 @@ -50,15 +50,36 @@ public class VideoInfoService extends VideoInfoServiceBase {
      @Nullable
-     private AppClient mActualInfoType = null;
+     private AppClient mActualClient = null;
      @Nullable
--    private AppClient mNextInfoType = null;
-+    private volatile AppClient mNextInfoType = null;
+-    private AppClient mNextClient = null;
++    private volatile AppClient mNextClient = null;
      private boolean mUseAuth;
      private List<TranslationLanguage> mCachedTranslationLanguages;
      private boolean mIsUnplayable;
@@ -582,42 +584,36 @@ index 3832c712..b30e15d0 100644
 +        VideoInfoService service = new VideoInfoService();
 +        service.mIsIsolated = true;
 +        // Reuse the active recovery strategy without sharing playback state or caches.
-+        service.mPreparationStartType = instance().mNextInfoType;
-+        service.mNextInfoType = service.mPreparationStartType;
++        service.mPreparationStartType = instance().mNextClient;
++        service.mNextClient = service.mPreparationStartType;
 +        return service;
 +    }
 +
 +    public void activatePreparedState(VideoInfoService prepared) {
-+        mActualInfoType = prepared.mActualInfoType;
++        mActualClient = prepared.mActualClient;
 +        // A newer user/error-recovery choice takes precedence over this older lookup.
-+        if (mNextInfoType == prepared.mPreparationStartType) {
-+            mNextInfoType = prepared.mNextInfoType;
++        if (mNextClient == prepared.mPreparationStartType) {
++            mNextClient = prepared.mNextClient;
 +        }
 +        mIsUnplayable = prepared.mIsUnplayable;
-+        persistVideoInfoType();
++        persistClient();
 +    }
 +
      public static VideoInfoService instance() {
          if (sInstance == null) {
              sInstance = new VideoInfoService();
-@@ -117,10 +138,12 @@ public class VideoInfoService extends VideoInfoServiceBase {
- 
-     private VideoInfo firstInfoWith(String videoId, String clickTrackingParams, InfoTester infoTester) {
-         //final AppClient beginType = getDefaultClient();
--        final AppClient beginType = mNextInfoType != null ? mNextInfoType : VIDEO_INFO_TYPE_LIST[0];
-+        final AppClient requestedType = mNextInfoType;
-+        final AppClient beginType = requestedType != null ? requestedType : VIDEO_INFO_TYPE_LIST[0];
-         AppClient nextType = beginType;
+@@ -120,6 +141,7 @@ public class VideoInfoService extends VideoInfoServiceBase {
+         AppClient nextClient = beginClient;
  
          do {
 +            if (mIsIsolated && Thread.currentThread().isInterrupted()) return null;
-             VideoInfo result = getVideoInfoWithRentFix(nextType, videoId, clickTrackingParams);
+             VideoInfo result = getVideoInfoWithRentFix(nextClient, videoId, clickTrackingParams);
  
              if (result != null && infoTester.test(result)) {
-@@ -286,7 +309,7 @@ public class VideoInfoService extends VideoInfoServiceBase {
+@@ -289,7 +311,7 @@ public class VideoInfoService extends VideoInfoServiceBase {
      }
  
-     private void persistVideoInfoType() {
+     private void persistClient() {
 -        if (!GlobalPreferences.isInitialized()) {
 +        if (mIsIsolated || !GlobalPreferences.isInitialized()) {
              return;

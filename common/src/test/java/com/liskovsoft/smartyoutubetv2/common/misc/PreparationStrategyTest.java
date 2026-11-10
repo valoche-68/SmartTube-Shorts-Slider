@@ -33,57 +33,57 @@ public class PreparationStrategyTest {
     }
 
     @Test public void preparationStartsWithTheChosenRecoveryClient() throws Exception {
-        set(active, "mNextInfoType", AppClient.IOS);
-        set(active, "mActualInfoType", AppClient.WEB);
+        set(active, "mNextClient", AppClient.IOS);
+        set(active, "mActualClient", AppClient.WEB);
         VideoInfoService prepared = VideoInfoService.createForPreparation();
         assertNotSame(active, prepared);
-        assertEquals(AppClient.IOS, get(prepared, "mNextInfoType"));
+        assertEquals(AppClient.IOS, get(prepared, "mNextClient"));
         assertEquals(AppClient.IOS, get(prepared, "mPreparationStartType"));
         assertEquals(true, get(prepared, "mIsIsolated"));
-        assertNull(get(prepared, "mActualInfoType"));
+        assertNull(get(prepared, "mActualClient"));
     }
 
     @Test public void preparationDoesNotMutateTheActiveClientOrPlaybackState() throws Exception {
-        set(active, "mNextInfoType", AppClient.IOS);
-        set(active, "mActualInfoType", AppClient.WEB);
+        set(active, "mNextClient", AppClient.IOS);
+        set(active, "mActualClient", AppClient.WEB);
         set(active, "mIsUnplayable", false);
         VideoInfoService prepared = VideoInfoService.createForPreparation();
-        set(prepared, "mNextInfoType", AppClient.VISIONOS);
-        set(prepared, "mActualInfoType", AppClient.VISIONOS);
+        set(prepared, "mNextClient", AppClient.VISIONOS);
+        set(prepared, "mActualClient", AppClient.VISIONOS);
         set(prepared, "mIsUnplayable", true);
-        assertEquals(AppClient.IOS, get(active, "mNextInfoType"));
-        assertEquals(AppClient.WEB, get(active, "mActualInfoType"));
+        assertEquals(AppClient.IOS, get(active, "mNextClient"));
+        assertEquals(AppClient.WEB, get(active, "mActualClient"));
         assertEquals(false, get(active, "mIsUnplayable"));
     }
 
     @Test public void activationKeepsAnOverrideChangedDuringPreparation() throws Exception {
-        set(active, "mNextInfoType", AppClient.IOS);
+        set(active, "mNextClient", AppClient.IOS);
         VideoInfoService prepared = VideoInfoService.createForPreparation();
-        set(prepared, "mActualInfoType", AppClient.IOS);
-        set(active, "mNextInfoType", AppClient.MWEB);
+        set(prepared, "mActualClient", AppClient.IOS);
+        set(active, "mNextClient", AppClient.MWEB);
         active.activatePreparedState(prepared);
-        assertEquals(AppClient.MWEB, get(active, "mNextInfoType"));
-        assertEquals(AppClient.IOS, get(active, "mActualInfoType"));
+        assertEquals(AppClient.MWEB, get(active, "mNextClient"));
+        assertEquals(AppClient.IOS, get(active, "mActualClient"));
     }
 
     @Test public void defaultPreparationCannotEraseALaterRecoveryOverride() throws Exception {
         VideoInfoService prepared = VideoInfoService.createForPreparation();
-        assertNull(get(prepared, "mNextInfoType"));
-        set(prepared, "mActualInfoType", AppClient.WEB_EMBED);
-        set(active, "mNextInfoType", AppClient.VISIONOS);
+        assertNull(get(prepared, "mNextClient"));
+        set(prepared, "mActualClient", AppClient.WEB_EMBED);
+        set(active, "mNextClient", AppClient.VISIONOS);
         active.activatePreparedState(prepared);
-        assertEquals(AppClient.VISIONOS, get(active, "mNextInfoType"));
+        assertEquals(AppClient.VISIONOS, get(active, "mNextClient"));
     }
 
     @Test public void activationTransfersTheResolvedClientAndStatus() throws Exception {
-        set(active, "mNextInfoType", AppClient.IOS);
-        set(active, "mActualInfoType", AppClient.WEB);
+        set(active, "mNextClient", AppClient.IOS);
+        set(active, "mActualClient", AppClient.WEB);
         VideoInfoService prepared = VideoInfoService.createForPreparation();
-        set(prepared, "mActualInfoType", AppClient.VISIONOS);
+        set(prepared, "mActualClient", AppClient.VISIONOS);
         set(prepared, "mIsUnplayable", false);
         active.activatePreparedState(prepared);
-        assertEquals(AppClient.VISIONOS, get(active, "mActualInfoType"));
-        assertEquals(AppClient.IOS, get(active, "mNextInfoType"));
+        assertEquals(AppClient.VISIONOS, get(active, "mActualClient"));
+        assertEquals(AppClient.IOS, get(active, "mNextClient"));
         assertEquals(false, get(active, "mIsUnplayable"));
     }
 

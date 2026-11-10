@@ -18,7 +18,7 @@ git submodule update --init --recursive
 python3 fork/apply_media_patch.py
 ```
 
-Both media patches are included in every published tag; there is no dependency on a private submodule commit. The local script selects the patch based on the official media commit and rejects unknown commits. For 32.68, the beta patch also includes protection against a missing video ID, subsequently released in official stable.
+Both media patches are included in every published tag; there is no dependency on a private submodule commit. The local script selects the patch based on the official media commit and rejects unknown commits. Stable and beta 32.71 pin the same media commit; both patches retain isolated next-Short preparation and the upstream client-selection API.
 
 ## Development
 
@@ -45,13 +45,13 @@ Covered behavior includes preference migration, consistent native preferences, i
 ## Reproduce a release from the main repository
 
 ```sh
-python3 .github/scripts/release.py prepare --channel stable --tag 32.68s --folder /new/path/build-stable
+python3 .github/scripts/release.py prepare --channel stable --tag 32.71s --folder /new/path/build-stable
 python3 .github/scripts/release.py build --channel stable --folder /new/path/build-stable
 ```
 
 Preparation requires either the local signing configuration ignored by Git, or the `SIGNING_KEY` (base64), `KEY_STORE_PASSWORD`, `ALIAS` and `KEY_PASSWORD` environment variables. The key must match the configured public fingerprint. After building, APK checks cover the package, internal version, signature, native libraries and compiled update URLs.
 
-An official version code `N` and fork revision `R` produce `N * 100 + R`, with `1 ≤ R < 100`. For example, 2458 and revision 4 produce 245804. The corresponding tags are `v32.68-stable-slider` and `v32.68-beta-slider`. The revision remains in internal APK metadata for updates; it does not appear in the tag, download filenames or release presentation. Visible titles remain “SmartTube Shorts Slider 32.68 — stable” and “SmartTube Shorts Slider 32.68 — beta”. Never replace binaries for an already published tag; increment the revision.
+An official version code `N` and fork revision `R` produce `N * 100 + R`, with `1 ≤ R < 100`. For example, 2461 and revision 5 produce 246105. The corresponding tags are `v32.71-stable-slider` and `v32.71-beta-slider`. The revision remains in internal APK metadata for updates; it does not appear in the tag, download filenames or release presentation. Visible titles remain “SmartTube Shorts Slider 32.71 — stable” and “SmartTube Shorts Slider 32.71 — beta”. Never replace binaries for an already published tag; increment the revision.
 
 ## GitHub automation
 

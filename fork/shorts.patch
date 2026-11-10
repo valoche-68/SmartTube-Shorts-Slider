@@ -41,7 +41,7 @@ index 69793aa8d..1566eee22 100644
  
      @Override
 diff --git a/common/src/main/java/com/liskovsoft/smartyoutubetv2/common/app/models/data/Video.java b/common/src/main/java/com/liskovsoft/smartyoutubetv2/common/app/models/data/Video.java
-index 628a73ca9..227aa6417 100644
+index d4271e21a..04f1719c7 100644
 --- a/common/src/main/java/com/liskovsoft/smartyoutubetv2/common/app/models/data/Video.java
 +++ b/common/src/main/java/com/liskovsoft/smartyoutubetv2/common/app/models/data/Video.java
 @@ -188,6 +188,7 @@ public final class Video {
@@ -562,7 +562,7 @@ index 8627fae7c..af1c16ce5 100644
          Video result = null;
  
 diff --git a/common/src/main/java/com/liskovsoft/smartyoutubetv2/common/app/models/playback/controllers/VideoLoaderController.java b/common/src/main/java/com/liskovsoft/smartyoutubetv2/common/app/models/playback/controllers/VideoLoaderController.java
-index 1c3f13f22..374ff6e28 100644
+index c251824ca..ef4619745 100644
 --- a/common/src/main/java/com/liskovsoft/smartyoutubetv2/common/app/models/playback/controllers/VideoLoaderController.java
 +++ b/common/src/main/java/com/liskovsoft/smartyoutubetv2/common/app/models/playback/controllers/VideoLoaderController.java
 @@ -1,6 +1,8 @@
@@ -745,7 +745,7 @@ index 1c3f13f22..374ff6e28 100644
          String bgImageUrl = null;
  
          getVideo().sync(formatInfo);
-@@ -387,6 +471,7 @@ public class VideoLoaderController extends BasePlayerController {
+@@ -381,6 +465,7 @@ public class VideoLoaderController extends BasePlayerController {
      }
  
      private void disposeActions() {
@@ -753,7 +753,7 @@ index 1c3f13f22..374ff6e28 100644
          MediaServiceManager.instance().disposeActions();
          RxHelper.disposeActions(mFormatInfoAction);
          Utils.removeCallbacks(mReloadVideo, mLoadNext, mRestartEngine, mMetadataSync);
-@@ -426,7 +511,7 @@ public class VideoLoaderController extends BasePlayerController {
+@@ -420,7 +505,7 @@ public class VideoLoaderController extends BasePlayerController {
                  }
              case PlayerConstants.PLAYBACK_MODE_ALL:
              case PlayerConstants.PLAYBACK_MODE_SHUFFLE:
@@ -762,7 +762,7 @@ index 1c3f13f22..374ff6e28 100644
                  break;
              case PlayerConstants.PLAYBACK_MODE_ONE:
                  if (VERSION.SDK_INT <= 19) {
-@@ -536,6 +621,7 @@ public class VideoLoaderController extends BasePlayerController {
+@@ -534,6 +619,7 @@ public class VideoLoaderController extends BasePlayerController {
      @Override
      public void onMetadata(MediaItemMetadata metadata) {
          initRandomNext();
@@ -770,7 +770,7 @@ index 1c3f13f22..374ff6e28 100644
      }
  
      private void initRandomNext() {
-@@ -592,8 +678,12 @@ public class VideoLoaderController extends BasePlayerController {
+@@ -590,8 +676,12 @@ public class VideoLoaderController extends BasePlayerController {
          Video video = getVideo();
          if (video != null && video.finishOnEnded) {
              playbackMode = PlayerConstants.PLAYBACK_MODE_CLOSE;
@@ -785,7 +785,7 @@ index 1c3f13f22..374ff6e28 100644
          }
          return playbackMode;
      }
-@@ -620,13 +710,27 @@ public class VideoLoaderController extends BasePlayerController {
+@@ -618,13 +708,27 @@ public class VideoLoaderController extends BasePlayerController {
          }
      }
  
@@ -818,10 +818,10 @@ index 1c3f13f22..374ff6e28 100644
      }
  }
 diff --git a/common/src/main/java/com/liskovsoft/smartyoutubetv2/common/app/presenters/settings/PlayerSettingsPresenter.java b/common/src/main/java/com/liskovsoft/smartyoutubetv2/common/app/presenters/settings/PlayerSettingsPresenter.java
-index 99b42b42d..042dae135 100644
+index 8b0774fd5..a0434c6b0 100644
 --- a/common/src/main/java/com/liskovsoft/smartyoutubetv2/common/app/presenters/settings/PlayerSettingsPresenter.java
 +++ b/common/src/main/java/com/liskovsoft/smartyoutubetv2/common/app/presenters/settings/PlayerSettingsPresenter.java
-@@ -239,6 +239,9 @@ public class PlayerSettingsPresenter extends BasePresenter<Void> {
+@@ -238,6 +238,9 @@ public class PlayerSettingsPresenter extends BasePresenter<Void> {
              }, mPlayerTweaksData.isPlayerButtonEnabled(pair[1])));
          }
  
@@ -831,7 +831,7 @@ index 99b42b42d..042dae135 100644
          settingsPresenter.appendCheckedCategory(getContext().getString(R.string.player_buttons), options);
      }
  
-@@ -349,6 +352,10 @@ public class PlayerSettingsPresenter extends BasePresenter<Void> {
+@@ -348,6 +351,10 @@ public class PlayerSettingsPresenter extends BasePresenter<Void> {
  
      private void appendMiscCategory(AppDialogPresenter settingsPresenter) {
          List<OptionItem> options = new ArrayList<>();
@@ -840,8 +840,8 @@ index 99b42b42d..042dae135 100644
 +                option -> mPlayerTweaksData.setShortsPreparationEnabled(option.isSelected()),
 +                mPlayerTweaksData.isShortsPreparationEnabled()));
  
-         options.add(UiOptionItem.from(getContext().getString(R.string.suggestions_horizontally_scrolled),
-                 option -> mPlayerTweaksData.setSuggestionsHorizontallyScrolled(option.isSelected()),
+         options.add(UiOptionItem.from(getContext().getString(R.string.live_edge),
+                 option -> mPlayerTweaksData.setLiveEdgeEnabled(option.isSelected()),
 diff --git a/common/src/main/java/com/liskovsoft/smartyoutubetv2/common/misc/NextVideoPreloader.java b/common/src/main/java/com/liskovsoft/smartyoutubetv2/common/misc/NextVideoPreloader.java
 new file mode 100644
 index 000000000..770ab16c4
@@ -966,10 +966,10 @@ index 000000000..770ab16c4
 +    }
 +}
 diff --git a/common/src/main/java/com/liskovsoft/smartyoutubetv2/common/prefs/PlayerTweaksData.java b/common/src/main/java/com/liskovsoft/smartyoutubetv2/common/prefs/PlayerTweaksData.java
-index a9333134f..4aea12a9a 100644
+index 5d1842c94..1132883f2 100644
 --- a/common/src/main/java/com/liskovsoft/smartyoutubetv2/common/prefs/PlayerTweaksData.java
 +++ b/common/src/main/java/com/liskovsoft/smartyoutubetv2/common/prefs/PlayerTweaksData.java
-@@ -598,6 +598,31 @@ public class PlayerTweaksData implements ProfileChangeListener {
+@@ -599,6 +599,31 @@ public class PlayerTweaksData implements ProfileChangeListener {
          persistData();
      }
  
@@ -1001,7 +1001,7 @@ index a9333134f..4aea12a9a 100644
      private void resetSkipShortsSettings() {
          mIsQuickSkipShortsEnabled = false;
          mIsQuickSkipShortsAltEnabled = false;
-@@ -745,8 +770,8 @@ public class PlayerTweaksData implements ProfileChangeListener {
+@@ -755,8 +780,8 @@ public class PlayerTweaksData implements ProfileChangeListener {
          mIsSyncRowButtonIndexEnabled = Helpers.parseBoolean(split, 41, true);
          mIsUnsafeAudioFormatsEnabled = Helpers.parseBoolean(split, 42, true);
          //mIsHighBitrateFormatsEnabled = Helpers.parseBoolean(split, 43, false);
@@ -1012,7 +1012,7 @@ index a9333134f..4aea12a9a 100644
          mIsRememberPositionOfLiveVideosEnabled = Helpers.parseBoolean(split, 46, true);
          mIsOculusQuestFixEnabled = Helpers.parseBoolean(split, 47, Utils.isOculusQuest());
          // mPlayerDataSource was here
-@@ -760,10 +785,17 @@ public class PlayerTweaksData implements ProfileChangeListener {
+@@ -770,12 +795,20 @@ public class PlayerTweaksData implements ProfileChangeListener {
          mIsAudioFocusEnabled = Helpers.parseBoolean(split, 54, true);
          mIsDontResizeVideoToFitDialogEnabled = Helpers.parseBoolean(split, 55, false);
          mIsSuggestionsHorizontallyScrolled = Helpers.parseBoolean(split, 56, false);
@@ -1021,23 +1021,24 @@ index a9333134f..4aea12a9a 100644
          mIsQuickSkipVideosAltEnabled = Helpers.parseBoolean(split, 58, false);
          mIsAudioTimeStretchingEnabled = Helpers.parseBoolean(split, 59, true);
          mIsQueueRespectsPlaybackMode = Helpers.parseBoolean(split, 60, false);
+         //mIsSabrLiveEnabled = Helpers.parseBoolean(split, 61, false);
+         mIsLiveEdgeEnabled = Helpers.parseBoolean(split, 62, false);
 +        // Migrate the first fork's separate toggle once; slot 61 is cleared on save.
-+        if (!"true".equals(mPrefs.getProfileData("shorts_slider_migrated")) && split != null && split.length > 61 &&
++        if (!"true".equals(mPrefs.getProfileData("shorts_slider_migrated")) && split != null && split.length == 62 &&
 +                ("true".equals(split[61]) || "false".equals(split[61]))) {
 +            mIsLoopShortsEnabled = !Helpers.parseBoolean(split, 61, false);
 +            mPrefs.setProfileData("shorts_slider_migrated", "true");
 +            persistNow();
 +        }
++
  
          updateDefaultValues();
      }
-@@ -791,7 +823,8 @@ public class PlayerTweaksData implements ProfileChangeListener {
-                 mIsUnsafeAudioFormatsEnabled, null, mIsLoopShortsEnabled, mIsQuickSkipShortsEnabled, mIsRememberPositionOfLiveVideosEnabled,
-                 mIsOculusQuestFixEnabled, null, mIsExtraLongSpeedListEnabled, mIsQuickSkipVideosEnabled, mIsNetworkErrorFixingDisabled, mIsCommentsPlacedLeft,
+@@ -805,6 +838,7 @@ public class PlayerTweaksData implements ProfileChangeListener {
                  null, mIsAudioFocusEnabled, mIsDontResizeVideoToFitDialogEnabled, mIsSuggestionsHorizontallyScrolled,
--                mIsQuickSkipShortsAltEnabled, mIsQuickSkipVideosAltEnabled, mIsAudioTimeStretchingEnabled, mIsQueueRespectsPlaybackMode
-+                mIsQuickSkipShortsAltEnabled, mIsQuickSkipVideosAltEnabled, mIsAudioTimeStretchingEnabled, mIsQueueRespectsPlaybackMode,
-+                null // retired fork toggle; use the native loop setting
+                 mIsQuickSkipShortsAltEnabled, mIsQuickSkipVideosAltEnabled, mIsAudioTimeStretchingEnabled, mIsQueueRespectsPlaybackMode, null,
+                 mIsLiveEdgeEnabled
++
                  ));
      }
  
@@ -1105,13 +1106,13 @@ literal 0
 HcmV?d00001
 
 diff --git a/common/src/main/res/values-fr/strings.xml b/common/src/main/res/values-fr/strings.xml
-index 9ebf98ea4..0f7c1fe9f 100644
+index c411a44fc..960ff0c2a 100644
 --- a/common/src/main/res/values-fr/strings.xml
 +++ b/common/src/main/res/values-fr/strings.xml
-@@ -748,4 +748,10 @@
-   <string name="network_settings">Paramètres réseau</string>
-   <string name="comments_disabled">Les commentaires sont désactivés pour cette vidéo</string>
-   <string name="remove_video_to_watch_later">Supprimer de \"À regarder plus tard\"</string>
+@@ -762,4 +762,10 @@
+         <item quantity="one">%s seconde</item>
+         <item quantity="other">%s secondes</item>
+     </plurals>
 +  <string name="action_shorts_auto_scroll">Défilement auto des Shorts</string>
 +  <string name="shorts_auto_scroll_on">Défilement auto : Activé</string>
 +  <string name="shorts_auto_scroll_off">Défilement auto : Désactivé</string>
@@ -1133,10 +1134,10 @@ index 1ed9c45d6..5e40e9385 100644
  </resources>
 \ No newline at end of file
 diff --git a/common/src/main/res/values/strings.xml b/common/src/main/res/values/strings.xml
-index 20d1fdef4..e205bb9ec 100644
+index 6d7dc75aa..5ba71d8f9 100644
 --- a/common/src/main/res/values/strings.xml
 +++ b/common/src/main/res/values/strings.xml
-@@ -756,4 +756,10 @@
+@@ -762,4 +762,10 @@
          <item quantity="one">%s second</item>
          <item quantity="other">%s seconds</item>
      </plurals>
@@ -1414,7 +1415,7 @@ index 000000000..9e9a1955d
 +}
 diff --git a/common/src/test/java/com/liskovsoft/smartyoutubetv2/common/misc/PreparationStrategyTest.java b/common/src/test/java/com/liskovsoft/smartyoutubetv2/common/misc/PreparationStrategyTest.java
 new file mode 100644
-index 000000000..1f6f64b4f
+index 000000000..415c3b2bc
 --- /dev/null
 +++ b/common/src/test/java/com/liskovsoft/smartyoutubetv2/common/misc/PreparationStrategyTest.java
 @@ -0,0 +1,276 @@
@@ -1453,57 +1454,57 @@ index 000000000..1f6f64b4f
 +    }
 +
 +    @Test public void preparationStartsWithTheChosenRecoveryClient() throws Exception {
-+        set(active, "mNextInfoType", AppClient.IOS);
-+        set(active, "mActualInfoType", AppClient.WEB);
++        set(active, "mNextClient", AppClient.IOS);
++        set(active, "mActualClient", AppClient.WEB);
 +        VideoInfoService prepared = VideoInfoService.createForPreparation();
 +        assertNotSame(active, prepared);
-+        assertEquals(AppClient.IOS, get(prepared, "mNextInfoType"));
++        assertEquals(AppClient.IOS, get(prepared, "mNextClient"));
 +        assertEquals(AppClient.IOS, get(prepared, "mPreparationStartType"));
 +        assertEquals(true, get(prepared, "mIsIsolated"));
-+        assertNull(get(prepared, "mActualInfoType"));
++        assertNull(get(prepared, "mActualClient"));
 +    }
 +
 +    @Test public void preparationDoesNotMutateTheActiveClientOrPlaybackState() throws Exception {
-+        set(active, "mNextInfoType", AppClient.IOS);
-+        set(active, "mActualInfoType", AppClient.WEB);
++        set(active, "mNextClient", AppClient.IOS);
++        set(active, "mActualClient", AppClient.WEB);
 +        set(active, "mIsUnplayable", false);
 +        VideoInfoService prepared = VideoInfoService.createForPreparation();
-+        set(prepared, "mNextInfoType", AppClient.VISIONOS);
-+        set(prepared, "mActualInfoType", AppClient.VISIONOS);
++        set(prepared, "mNextClient", AppClient.VISIONOS);
++        set(prepared, "mActualClient", AppClient.VISIONOS);
 +        set(prepared, "mIsUnplayable", true);
-+        assertEquals(AppClient.IOS, get(active, "mNextInfoType"));
-+        assertEquals(AppClient.WEB, get(active, "mActualInfoType"));
++        assertEquals(AppClient.IOS, get(active, "mNextClient"));
++        assertEquals(AppClient.WEB, get(active, "mActualClient"));
 +        assertEquals(false, get(active, "mIsUnplayable"));
 +    }
 +
 +    @Test public void activationKeepsAnOverrideChangedDuringPreparation() throws Exception {
-+        set(active, "mNextInfoType", AppClient.IOS);
++        set(active, "mNextClient", AppClient.IOS);
 +        VideoInfoService prepared = VideoInfoService.createForPreparation();
-+        set(prepared, "mActualInfoType", AppClient.IOS);
-+        set(active, "mNextInfoType", AppClient.MWEB);
++        set(prepared, "mActualClient", AppClient.IOS);
++        set(active, "mNextClient", AppClient.MWEB);
 +        active.activatePreparedState(prepared);
-+        assertEquals(AppClient.MWEB, get(active, "mNextInfoType"));
-+        assertEquals(AppClient.IOS, get(active, "mActualInfoType"));
++        assertEquals(AppClient.MWEB, get(active, "mNextClient"));
++        assertEquals(AppClient.IOS, get(active, "mActualClient"));
 +    }
 +
 +    @Test public void defaultPreparationCannotEraseALaterRecoveryOverride() throws Exception {
 +        VideoInfoService prepared = VideoInfoService.createForPreparation();
-+        assertNull(get(prepared, "mNextInfoType"));
-+        set(prepared, "mActualInfoType", AppClient.WEB_EMBED);
-+        set(active, "mNextInfoType", AppClient.VISIONOS);
++        assertNull(get(prepared, "mNextClient"));
++        set(prepared, "mActualClient", AppClient.WEB_EMBED);
++        set(active, "mNextClient", AppClient.VISIONOS);
 +        active.activatePreparedState(prepared);
-+        assertEquals(AppClient.VISIONOS, get(active, "mNextInfoType"));
++        assertEquals(AppClient.VISIONOS, get(active, "mNextClient"));
 +    }
 +
 +    @Test public void activationTransfersTheResolvedClientAndStatus() throws Exception {
-+        set(active, "mNextInfoType", AppClient.IOS);
-+        set(active, "mActualInfoType", AppClient.WEB);
++        set(active, "mNextClient", AppClient.IOS);
++        set(active, "mActualClient", AppClient.WEB);
 +        VideoInfoService prepared = VideoInfoService.createForPreparation();
-+        set(prepared, "mActualInfoType", AppClient.VISIONOS);
++        set(prepared, "mActualClient", AppClient.VISIONOS);
 +        set(prepared, "mIsUnplayable", false);
 +        active.activatePreparedState(prepared);
-+        assertEquals(AppClient.VISIONOS, get(active, "mActualInfoType"));
-+        assertEquals(AppClient.IOS, get(active, "mNextInfoType"));
++        assertEquals(AppClient.VISIONOS, get(active, "mActualClient"));
++        assertEquals(AppClient.IOS, get(active, "mNextClient"));
 +        assertEquals(false, get(active, "mIsUnplayable"));
 +    }
 +
@@ -2112,10 +2113,10 @@ index 000000000..ac3bd4950
 +}
 diff --git a/common/src/test/java/com/liskovsoft/smartyoutubetv2/common/misc/ShortsPreferencesTest.java b/common/src/test/java/com/liskovsoft/smartyoutubetv2/common/misc/ShortsPreferencesTest.java
 new file mode 100644
-index 000000000..7185b5387
+index 000000000..07f9d97bd
 --- /dev/null
 +++ b/common/src/test/java/com/liskovsoft/smartyoutubetv2/common/misc/ShortsPreferencesTest.java
-@@ -0,0 +1,91 @@
+@@ -0,0 +1,108 @@
 +package com.liskovsoft.smartyoutubetv2.common.misc;
 +
 +import android.content.Context;
@@ -2188,6 +2189,23 @@ index 000000000..7185b5387
 +        tweaks.setLoopShortsEnabled(true);
 +        assertFalse(tweaks.isShortsAutoScrollEnabled());
 +    }
++    @Test public void officialLivePreferenceSurvivesSavingShortsSettings() {
++        String[] data = new String[63];
++        Arrays.fill(data, "null");
++        data[44] = "false";
++        data[61] = "false";
++        data[62] = "true";
++        prefs.setProfileData("video_player_tweaks_data", Helpers.mergeData((Object[]) data));
++        tweaks.onProfileChanged();
++        assertTrue(tweaks.isLiveEdgeEnabled());
++        assertTrue(tweaks.isShortsAutoScrollEnabled());
++        tweaks.setShortsAutoScrollEnabled(false);
++        shadowOf(Looper.getMainLooper()).idle();
++        tweaks.onProfileChanged();
++        assertTrue(tweaks.isLiveEdgeEnabled());
++        assertFalse(tweaks.isShortsAutoScrollEnabled());
++    }
++
 +    @Test public void optionsAreScopedToTheSelectedProfile() {
 +        prefs.enableMultiProfiles(true);
 +        context.getSharedPreferences(context.getPackageName() + "_preferences", 0).edit()
@@ -2728,10 +2746,10 @@ index 000000000..b420653a1
 +    }
 +}
 diff --git a/smarttubetv/src/main/java/com/liskovsoft/smartyoutubetv2/tv/ui/mod/leanback/playerglue/tweaks/MaxControlsVideoPlayerGlue.java b/smarttubetv/src/main/java/com/liskovsoft/smartyoutubetv2/tv/ui/mod/leanback/playerglue/tweaks/MaxControlsVideoPlayerGlue.java
-index 2c993ded3..bc4e0d9b6 100644
+index 0e6654af5..8d8572584 100644
 --- a/smarttubetv/src/main/java/com/liskovsoft/smartyoutubetv2/tv/ui/mod/leanback/playerglue/tweaks/MaxControlsVideoPlayerGlue.java
 +++ b/smarttubetv/src/main/java/com/liskovsoft/smartyoutubetv2/tv/ui/mod/leanback/playerglue/tweaks/MaxControlsVideoPlayerGlue.java
-@@ -134,6 +134,10 @@ public abstract class MaxControlsVideoPlayerGlue<T extends PlayerAdapter>
+@@ -136,6 +136,10 @@ public abstract class MaxControlsVideoPlayerGlue<T extends PlayerAdapter>
          mVideo = video;
      }
  
@@ -2764,7 +2782,7 @@ index 000000000..700657cdd
 +    }
 +}
 diff --git a/smarttubetv/src/main/java/com/liskovsoft/smartyoutubetv2/tv/ui/playback/other/VideoPlayerGlue.java b/smarttubetv/src/main/java/com/liskovsoft/smartyoutubetv2/tv/ui/playback/other/VideoPlayerGlue.java
-index 995a4f334..66a216ad5 100644
+index e6e96f1dc..6dab99dfd 100644
 --- a/smarttubetv/src/main/java/com/liskovsoft/smartyoutubetv2/tv/ui/playback/other/VideoPlayerGlue.java
 +++ b/smarttubetv/src/main/java/com/liskovsoft/smartyoutubetv2/tv/ui/playback/other/VideoPlayerGlue.java
 @@ -27,6 +27,9 @@ import com.liskovsoft.smartyoutubetv2.tv.R;
@@ -2843,7 +2861,7 @@ index 995a4f334..66a216ad5 100644
      @Override
      protected PlaybackRowPresenter onCreateRowPresenter() {
          PlaybackRowPresenter rowPresenter = super.onCreateRowPresenter();
-@@ -311,6 +359,7 @@ public class VideoPlayerGlue extends MaxControlsVideoPlayerGlue<PlayerAdapter> i
+@@ -315,6 +363,7 @@ public class VideoPlayerGlue extends MaxControlsVideoPlayerGlue<PlayerAdapter> i
  
      public void setButtonState(int buttonId, int buttonState) {
          setActionIndex(mActions.get(buttonId), buttonState);
