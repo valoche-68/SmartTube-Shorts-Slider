@@ -60,5 +60,10 @@
     "status": "failed",
     "tag": "32.71",
     "run_id": "42279838486"
+  },
+  "stable:1d4d9b27a6fd24c2cdb3f03fb6dd2278961111f3:3f7a75c063293fb06e987cdffd3615822818d45e9f20cb9930217f56ea597260": {
+    "status": "published",
+    "tag": "32.71s",
+    "run_id": "42735753697"
   }
 }
