@@ -136,6 +136,10 @@ public abstract class MaxControlsVideoPlayerGlue<T extends PlayerAdapter>
         mVideo = video;
     }
 
+    public Video getVideo() {
+        return mVideo;
+    }
+
     @Override
     public void play() {
         super.play();
