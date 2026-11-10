@@ -91,7 +91,6 @@ jobs:
               info = release.prepare(channel, release.latest(channel), folder)
               info['validation_only'] = True
               assets = release.build(folder, info)
-              release.run('git', 'archive', '--format=tar.gz', '-o', assets / 'source.tar.gz', 'HEAD', cwd=folder)
           PY
       - name: Remove temporary signing material
         if: always()

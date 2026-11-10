@@ -313,7 +313,10 @@ def build(folder, provenance):
         ':youtubeapi:test' + flavor + 'DebugUnitTest', '--tests', '*ShortsIdentityTest',
         ':exoplayer-library-sabr:test' + flavor + 'DebugUnitTest', '--tests', '*SabrCdnSelectorTest',
         ':smarttubetv:assemble' + flavor + 'Release', '--console=plain', cwd=folder)
-    return make_assets(folder, provenance)
+    assets = make_assets(folder, provenance)
+    run('git', 'archive', '--format=tar.gz', '-o', assets / 'source.tar.gz',
+        provenance['source_commit'], cwd=folder)
+    return assets
 
 
 def commit_metadata(assets, channel):

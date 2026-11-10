@@ -2,6 +2,8 @@ import importlib.util
 import json
 from pathlib import Path
 import tempfile
+import subprocess
+import tarfile
 import unittest
 from unittest.mock import patch
 import zipfile
@@ -13,6 +15,33 @@ SPEC.loader.exec_module(release)
 
 
 class ReleaseChecksTest(unittest.TestCase):
+    def test_build_archives_exact_compiled_commit_without_local_secrets(self):
+        with tempfile.TemporaryDirectory() as temp:
+            folder = Path(temp)
+            def git(*args):
+                return subprocess.check_output(['git', '-C', str(folder), *args], text=True).strip()
+            git('init', '--quiet')
+            git('config', 'user.name', 'Archive test')
+            git('config', 'user.email', 'archive@example.invalid')
+            (folder / 'source.txt').write_text('compiled source')
+            git('add', 'source.txt')
+            git('commit', '--quiet', '-m', 'Compiled source')
+            commit = git('rev-parse', 'HEAD')
+            (folder / 'source.txt').write_text('later change')
+            (folder / 'keystore.properties').write_text('private fixture')
+            assets = folder / 'release_assets'
+            assets.mkdir()
+            real_run = release.run
+            def run(*args, **kwargs):
+                if args[0] == 'git':
+                    return real_run(*args, **kwargs)
+            with patch.object(release, 'run', side_effect=run), \
+                 patch.object(release, 'make_assets', return_value=assets):
+                release.build(folder, dict(channel='stable', source_commit=commit))
+            with tarfile.open(assets / 'source.tar.gz') as archive:
+                self.assertEqual(archive.getnames(), ['source.txt'])
+                self.assertEqual(archive.extractfile('source.txt').read(), b'compiled source')
+
     def test_public_names_hide_revision_without_changing_apk_or_update_identity(self):
         with tempfile.TemporaryDirectory() as temp:
             folder = Path(temp)
