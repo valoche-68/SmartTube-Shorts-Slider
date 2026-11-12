@@ -70,5 +70,10 @@
     "status": "published",
     "tag": "32.71",
     "run_id": "42735753697"
+  },
+  "beta:ab04c75fa1ea19604cfb8a3dc6d5dfb719f0ec53:3f7a75c063293fb06e987cdffd3615822818d45e9f20cb9930217f56ea597260": {
+    "status": "failed",
+    "tag": "32.74",
+    "run_id": "43174221275"
   }
 }
