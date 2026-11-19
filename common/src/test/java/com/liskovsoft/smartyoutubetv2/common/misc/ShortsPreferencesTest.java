@@ -70,20 +70,23 @@ public class ShortsPreferencesTest {
         tweaks.setLoopShortsEnabled(true);
         assertFalse(tweaks.isShortsAutoScrollEnabled());
     }
-    @Test public void officialLivePreferenceSurvivesSavingShortsSettings() {
-        String[] data = new String[63];
+    @Test public void officialLiveAndChapterPreferencesSurviveSavingShortsSettings() {
+        String[] data = new String[64];
         Arrays.fill(data, "null");
         data[44] = "false";
         data[61] = "false";
         data[62] = "true";
+        data[63] = "true";
         prefs.setProfileData("video_player_tweaks_data", Helpers.mergeData((Object[]) data));
         tweaks.onProfileChanged();
         assertTrue(tweaks.isLiveEdgeEnabled());
+        assertTrue(tweaks.isQuickSkipChaptersEnabled());
         assertTrue(tweaks.isShortsAutoScrollEnabled());
         tweaks.setShortsAutoScrollEnabled(false);
         shadowOf(Looper.getMainLooper()).idle();
         tweaks.onProfileChanged();
         assertTrue(tweaks.isLiveEdgeEnabled());
+        assertTrue(tweaks.isQuickSkipChaptersEnabled());
         assertFalse(tweaks.isShortsAutoScrollEnabled());
     }
 

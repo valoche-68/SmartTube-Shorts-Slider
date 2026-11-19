@@ -12,10 +12,10 @@ import com.liskovsoft.smartyoutubetv2.common.app.models.playback.listener.Player
 import com.liskovsoft.smartyoutubetv2.common.app.presenters.PlaybackPresenter;
 import com.liskovsoft.smartyoutubetv2.common.app.views.PlaybackView;
 import com.liskovsoft.smartyoutubetv2.common.prefs.PlayerTweaksData;
+import com.liskovsoft.smartyoutubetv2.common.prefs.GeneralData;
 import com.liskovsoft.youtubeapi.service.PreparedShort;
 import com.liskovsoft.youtubeapi.service.YouTubeSignInService;
 import com.liskovsoft.youtubeapi.app.AppService;
-import com.liskovsoft.youtubeapi.videoinfo.V2.VideoInfoService;
 import io.reactivex.Observable;
 import io.reactivex.subjects.PublishSubject;
 import org.junit.Before;
@@ -103,6 +103,23 @@ public class ShortsPreparationLifecycleTest {
         assertEquals(1, preparations.get());
     }
 
+    @Test public void childModeCancelsPreparationAndUsesForegroundLookup() throws Exception {
+        startPreparation();
+        GeneralData general = GeneralData.instance(context);
+        general.setChildModeEnabled(true);
+        try {
+            current = next;
+            loadFormats(controller, current);
+            assertFalse(pending.hasObservers());
+            assertEquals(1, foreground.get());
+            controller.onMetadata(null);
+            assertEquals(1, preparations.get());
+        } finally {
+            general.setChildModeEnabled(false);
+            controller.onFinish();
+        }
+    }
+
     @Test public void metadataArrivingAfterReadyStartsPreparationImmediately() {
         playing = true;
         duration = 10_000;
@@ -133,7 +150,7 @@ public class ShortsPreparationLifecycleTest {
         startPreparation();
         Constructor<?> constructor = PreparedShort.class.getDeclaredConstructors()[0];
         constructor.setAccessible(true);
-        pending.onNext((PreparedShort) constructor.newInstance(null, null, null, null));
+        pending.onNext((PreparedShort) constructor.newInstance(null, null, null));
         current = next;
         loadFormats(controller, current);
         assertEquals(0, foreground.get()); // Cached activation is posted after presenter dispatch.
@@ -148,7 +165,7 @@ public class ShortsPreparationLifecycleTest {
         startPreparation();
         Constructor<?> constructor = PreparedShort.class.getDeclaredConstructors()[0];
         constructor.setAccessible(true);
-        pending.onNext((PreparedShort) constructor.newInstance(null, null, null, null));
+        pending.onNext((PreparedShort) constructor.newInstance(null, null, null));
         current = next;
         loadFormats(controller, current);
         controller.onFinish();
@@ -219,7 +236,7 @@ public class ShortsPreparationLifecycleTest {
         Constructor<?> constructor = PreparedShort.class.getDeclaredConstructors()[0];
         constructor.setAccessible(true);
         PreparedShort prepared = (PreparedShort) constructor.newInstance(format("first"),
-                VideoInfoService.createForPreparation(), "prepared-nonce",
+                "prepared-nonce",
                 YouTubeSignInService.instance().getSelectedAccount());
         NextVideoPreloader<PreparedShort> preloader = new NextVideoPreloader<>(
                 id -> Observable.just(prepared), () -> 0, PreparedShort::isValid);

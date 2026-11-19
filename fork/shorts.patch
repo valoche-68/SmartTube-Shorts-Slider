@@ -41,7 +41,7 @@ index 69793aa8d..1566eee22 100644
  
      @Override
 diff --git a/common/src/main/java/com/liskovsoft/smartyoutubetv2/common/app/models/data/Video.java b/common/src/main/java/com/liskovsoft/smartyoutubetv2/common/app/models/data/Video.java
-index d4271e21a..04f1719c7 100644
+index 58eaf7c91..e97721a90 100644
 --- a/common/src/main/java/com/liskovsoft/smartyoutubetv2/common/app/models/data/Video.java
 +++ b/common/src/main/java/com/liskovsoft/smartyoutubetv2/common/app/models/data/Video.java
 @@ -188,6 +188,7 @@ public final class Video {
@@ -89,7 +89,7 @@ index d4271e21a..04f1719c7 100644
      }
  
      public boolean hasVideo() {
-@@ -669,8 +675,17 @@ public final class Video {
+@@ -676,8 +682,17 @@ public final class Video {
          return belongsToGroup(MediaGroup.TYPE_SHORTS);
      }
  
@@ -108,7 +108,7 @@ index d4271e21a..04f1719c7 100644
      }
  
      public boolean belongsToSearch() {
-@@ -832,6 +847,7 @@ public final class Video {
+@@ -841,6 +856,7 @@ public final class Video {
          video.bgImageUrl = bgImageUrl;
          video.isLive = isLive;
          video.isUpcoming = isUpcoming;
@@ -117,7 +117,7 @@ index d4271e21a..04f1719c7 100644
          video.shuffleMediaItem = shuffleMediaItem;
          video.durationMs = durationMs;
 diff --git a/common/src/main/java/com/liskovsoft/smartyoutubetv2/common/app/models/playback/controllers/PlayerUIController.java b/common/src/main/java/com/liskovsoft/smartyoutubetv2/common/app/models/playback/controllers/PlayerUIController.java
-index c227b5ec9..922618da2 100644
+index 0058f0c7b..4fda14a97 100644
 --- a/common/src/main/java/com/liskovsoft/smartyoutubetv2/common/app/models/playback/controllers/PlayerUIController.java
 +++ b/common/src/main/java/com/liskovsoft/smartyoutubetv2/common/app/models/playback/controllers/PlayerUIController.java
 @@ -121,6 +121,10 @@ public class PlayerUIController extends BasePlayerController {
@@ -131,7 +131,7 @@ index c227b5ec9..922618da2 100644
          }
      }
  
-@@ -299,6 +303,10 @@ public class PlayerUIController extends BasePlayerController {
+@@ -300,6 +304,10 @@ public class PlayerUIController extends BasePlayerController {
  
          getPlayer().updateEndingTime();
          applySoundOffButtonState();
@@ -142,7 +142,7 @@ index c227b5ec9..922618da2 100644
      }
  
      @Override
-@@ -352,6 +360,8 @@ public class PlayerUIController extends BasePlayerController {
+@@ -353,6 +361,8 @@ public class PlayerUIController extends BasePlayerController {
          getPlayer().setButtonState(R.id.action_video_speed, PlayerUI.BUTTON_OFF);
          getPlayer().setButtonState(R.id.action_chat, PlayerUI.BUTTON_OFF);
          getPlayer().setButtonState(R.id.action_subscribe, PlayerUI.BUTTON_OFF);
@@ -151,7 +151,7 @@ index c227b5ec9..922618da2 100644
      }
  
      @Override
-@@ -572,13 +582,24 @@ public class PlayerUIController extends BasePlayerController {
+@@ -573,13 +583,24 @@ public class PlayerUIController extends BasePlayerController {
          getPlayer().finish();
      }
  
@@ -177,7 +177,7 @@ index c227b5ec9..922618da2 100644
              onRotate();
          } else if (buttonId == R.id.action_flip) {
              onFlip();
-@@ -788,12 +809,21 @@ public class PlayerUIController extends BasePlayerController {
+@@ -789,12 +810,21 @@ public class PlayerUIController extends BasePlayerController {
      }
  
      private boolean handleLeftRightSkip(int keyCode) {
@@ -202,13 +202,13 @@ index c227b5ec9..922618da2 100644
          if (keyCode == KeyEvent.KEYCODE_DPAD_RIGHT) {
              getMainController().onNextClicked();
              return true; // hide ui
-@@ -808,12 +838,21 @@ public class PlayerUIController extends BasePlayerController {
+@@ -809,12 +839,21 @@ public class PlayerUIController extends BasePlayerController {
      }
  
      private boolean handleUpDownSkip(int keyCode) {
--        if (getPlayer() == null || getPlayer().isOverlayShown() || getVideo() == null ||
--                (getVideo().belongsToShortsGroup() && !getPlayerTweaksData().isQuickSkipShortsAltEnabled() ||
--                        (!getVideo().belongsToShortsGroup() && !getPlayerTweaksData().isQuickSkipVideosAltEnabled()))) {
+-        if (getPlayer() == null || getPlayer().isOverlayShown() || getVideo() == null
+-                || (getVideo().belongsToShortsGroup() && !getPlayerTweaksData().isQuickSkipShortsAltEnabled()
+-                    || (!getVideo().belongsToShortsGroup() && !getPlayerTweaksData().isQuickSkipVideosAltEnabled()))) {
 +        if (getPlayer() == null || getPlayer().isOverlayShown() || getVideo() == null) {
              return false;
          }
@@ -227,8 +227,18 @@ index c227b5ec9..922618da2 100644
          if (keyCode == KeyEvent.KEYCODE_DPAD_DOWN) {
              getMainController().onNextClicked();
              return true; // hide ui
+@@ -830,7 +869,8 @@ public class PlayerUIController extends BasePlayerController {
+ 
+     private boolean handleUpSkip(int keyCode) {
+         if (getPlayer() == null || getPlayer().isOverlayShown() || getVideo() == null
+-                || getVideo().belongsToShortsGroup() || !getPlayerTweaksData().isQuickSkipChaptersEnabled()) {
++                || getVideo().isShorts() || getVideo().belongsToShortsGroup()
++                || !getPlayerTweaksData().isQuickSkipChaptersEnabled()) {
+             return false;
+         }
+ 
 diff --git a/common/src/main/java/com/liskovsoft/smartyoutubetv2/common/app/models/playback/controllers/SuggestionsController.java b/common/src/main/java/com/liskovsoft/smartyoutubetv2/common/app/models/playback/controllers/SuggestionsController.java
-index 8627fae7c..af1c16ce5 100644
+index b40f477cf..ed28f6a5c 100644
 --- a/common/src/main/java/com/liskovsoft/smartyoutubetv2/common/app/models/playback/controllers/SuggestionsController.java
 +++ b/common/src/main/java/com/liskovsoft/smartyoutubetv2/common/app/models/playback/controllers/SuggestionsController.java
 @@ -33,6 +33,7 @@ import com.liskovsoft.smartyoutubetv2.common.utils.Utils;
@@ -282,7 +292,7 @@ index 8627fae7c..af1c16ce5 100644
          disposeActions();
      }
  
-@@ -266,6 +284,9 @@ public class SuggestionsController extends BasePlayerController {
+@@ -278,6 +296,9 @@ public class SuggestionsController extends BasePlayerController {
                                  MessageHelpers.showLongMessage(getContext(), "loadSuggestions error: %s", message);
                              }
                              error.printStackTrace();
@@ -292,7 +302,7 @@ index 8627fae7c..af1c16ce5 100644
                          }
                  );
  
-@@ -277,6 +298,10 @@ public class SuggestionsController extends BasePlayerController {
+@@ -289,6 +310,10 @@ public class SuggestionsController extends BasePlayerController {
              return null;
          }
  
@@ -303,7 +313,7 @@ index 8627fae7c..af1c16ce5 100644
          Video result = null;
          Video next = Playlist.instance().getNext();
  
-@@ -296,11 +321,218 @@ public class SuggestionsController extends BasePlayerController {
+@@ -308,11 +333,218 @@ public class SuggestionsController extends BasePlayerController {
          return result;
      }
  
@@ -522,7 +532,7 @@ index 8627fae7c..af1c16ce5 100644
          Video result = getPreviousFromGroup(getVideo());
  
          if (result == null) {
-@@ -315,6 +547,38 @@ public class SuggestionsController extends BasePlayerController {
+@@ -327,6 +559,38 @@ public class SuggestionsController extends BasePlayerController {
          return result;
      }
  
@@ -562,7 +572,7 @@ index 8627fae7c..af1c16ce5 100644
          Video result = null;
  
 diff --git a/common/src/main/java/com/liskovsoft/smartyoutubetv2/common/app/models/playback/controllers/VideoLoaderController.java b/common/src/main/java/com/liskovsoft/smartyoutubetv2/common/app/models/playback/controllers/VideoLoaderController.java
-index c251824ca..ef4619745 100644
+index e1830606d..c21e06065 100644
 --- a/common/src/main/java/com/liskovsoft/smartyoutubetv2/common/app/models/playback/controllers/VideoLoaderController.java
 +++ b/common/src/main/java/com/liskovsoft/smartyoutubetv2/common/app/models/playback/controllers/VideoLoaderController.java
 @@ -1,6 +1,8 @@
@@ -681,11 +691,11 @@ index c251824ca..ef4619745 100644
              mPlaylist.setCurrent(item);
              getPlayer().setVideo(item);
              getPlayer().resetPlayerState();
-@@ -253,18 +304,48 @@ public class VideoLoaderController extends BasePlayerController {
+@@ -253,19 +304,50 @@ public class VideoLoaderController extends BasePlayerController {
          // Fix no progress on next video (the engine may still buffering a bit)
          //getPlayer().showProgressBar(true);
          Utils.post(mShowProgressBar);
-+        Observable<PreparedShort> prepared = getPlayerTweaksData().isShortsPreparationEnabled() ?
++        Observable<PreparedShort> prepared = canPrepareShorts() ?
 +                mNextVideoPreloader.consume(video.videoId) : null;
 +        if (prepared == null) {
 +            mNextVideoPreloader.reset();
@@ -693,6 +703,7 @@ index c251824ca..ef4619745 100644
          disposeActions();
 -
 -        ServiceManager service = YouTubeServiceManager.instance();
+-        service.allowRestrictedVideos(!getGeneralData().isChildModeEnabled());
 -        MediaItemService mediaItemManager = service.getMediaItemService();
 -        mFormatInfoAction = mediaItemManager.getFormatInfoObserve(video.videoId)
 -                .subscribe(this::processFormatInfo,
@@ -707,7 +718,7 @@ index c251824ca..ef4619745 100644
 +        if (prepared != null) {
 +            format = prepared.observeOn(AndroidSchedulers.mainThread()).flatMap(value -> {
 +                if (generation != mFormatInfoGeneration || getPlayer() == null) return Observable.<MediaItemFormatInfo>empty();
-+                MediaItemFormatInfo activated = value.activate(); // Revalidates expiry and the selected account.
++                MediaItemFormatInfo activated = canPrepareShorts() ? value.activate() : null; // Revalidates expiry and the selected account.
 +                return activated != null ? Observable.just(activated) : Observable.empty();
 +            }).onErrorResumeNext(Observable.empty()).switchIfEmpty(Observable.defer(() -> {
 +                if (generation != mFormatInfoGeneration || getPlayer() == null) return Observable.empty();
@@ -729,13 +740,15 @@ index c251824ca..ef4619745 100644
      }
  
 +    protected Observable<MediaItemFormatInfo> loadRegularFormatInfo(String videoId) {
-+        return YouTubeServiceManager.instance().getMediaItemService().getFormatInfoObserve(videoId);
++        ServiceManager service = YouTubeServiceManager.instance();
++        service.allowRestrictedVideos(!getGeneralData().isChildModeEnabled());
++        return service.getMediaItemService().getFormatInfoObserve(videoId);
 +    }
 +
      private void processFormatInfo(MediaItemFormatInfo formatInfo) {
          PlaybackView player = getPlayer();
  
-@@ -272,6 +353,9 @@ public class VideoLoaderController extends BasePlayerController {
+@@ -273,6 +355,9 @@ public class VideoLoaderController extends BasePlayerController {
              return;
          }
  
@@ -745,7 +758,7 @@ index c251824ca..ef4619745 100644
          String bgImageUrl = null;
  
          getVideo().sync(formatInfo);
-@@ -381,6 +465,7 @@ public class VideoLoaderController extends BasePlayerController {
+@@ -382,6 +467,7 @@ public class VideoLoaderController extends BasePlayerController {
      }
  
      private void disposeActions() {
@@ -753,7 +766,7 @@ index c251824ca..ef4619745 100644
          MediaServiceManager.instance().disposeActions();
          RxHelper.disposeActions(mFormatInfoAction);
          Utils.removeCallbacks(mReloadVideo, mLoadNext, mRestartEngine, mMetadataSync);
-@@ -420,7 +505,7 @@ public class VideoLoaderController extends BasePlayerController {
+@@ -421,7 +507,7 @@ public class VideoLoaderController extends BasePlayerController {
                  }
              case PlayerConstants.PLAYBACK_MODE_ALL:
              case PlayerConstants.PLAYBACK_MODE_SHUFFLE:
@@ -762,7 +775,7 @@ index c251824ca..ef4619745 100644
                  break;
              case PlayerConstants.PLAYBACK_MODE_ONE:
                  if (VERSION.SDK_INT <= 19) {
-@@ -534,6 +619,7 @@ public class VideoLoaderController extends BasePlayerController {
+@@ -535,6 +621,7 @@ public class VideoLoaderController extends BasePlayerController {
      @Override
      public void onMetadata(MediaItemMetadata metadata) {
          initRandomNext();
@@ -770,7 +783,7 @@ index c251824ca..ef4619745 100644
      }
  
      private void initRandomNext() {
-@@ -590,8 +676,12 @@ public class VideoLoaderController extends BasePlayerController {
+@@ -591,8 +678,12 @@ public class VideoLoaderController extends BasePlayerController {
          Video video = getVideo();
          if (video != null && video.finishOnEnded) {
              playbackMode = PlayerConstants.PLAYBACK_MODE_CLOSE;
@@ -785,7 +798,7 @@ index c251824ca..ef4619745 100644
          }
          return playbackMode;
      }
-@@ -618,13 +708,27 @@ public class VideoLoaderController extends BasePlayerController {
+@@ -619,13 +710,31 @@ public class VideoLoaderController extends BasePlayerController {
          }
      }
  
@@ -795,9 +808,13 @@ index c251824ca..ef4619745 100644
 +        disposeActions();
 +    }
 +
++    private boolean canPrepareShorts() {
++        return getPlayerTweaksData().isShortsPreparationEnabled() && !getGeneralData().isChildModeEnabled();
++    }
++
      private void preloadNextVideoIfNeeded() {
 -        if (isEmbedPlayer() || getPlayer() == null || getVideo() == null || getVideo().isLive) {
-+        if (!getPlayerTweaksData().isShortsPreparationEnabled()) {
++        if (!canPrepareShorts()) {
 +            mNextVideoPreloader.reset();
              return;
          }
@@ -966,10 +983,10 @@ index 000000000..770ab16c4
 +    }
 +}
 diff --git a/common/src/main/java/com/liskovsoft/smartyoutubetv2/common/prefs/PlayerTweaksData.java b/common/src/main/java/com/liskovsoft/smartyoutubetv2/common/prefs/PlayerTweaksData.java
-index 5d1842c94..1132883f2 100644
+index 6bc2228c4..3363e05dd 100644
 --- a/common/src/main/java/com/liskovsoft/smartyoutubetv2/common/prefs/PlayerTweaksData.java
 +++ b/common/src/main/java/com/liskovsoft/smartyoutubetv2/common/prefs/PlayerTweaksData.java
-@@ -599,6 +599,31 @@ public class PlayerTweaksData implements ProfileChangeListener {
+@@ -600,6 +600,31 @@ public class PlayerTweaksData implements ProfileChangeListener {
          persistData();
      }
  
@@ -1001,7 +1018,7 @@ index 5d1842c94..1132883f2 100644
      private void resetSkipShortsSettings() {
          mIsQuickSkipShortsEnabled = false;
          mIsQuickSkipShortsAltEnabled = false;
-@@ -755,8 +780,8 @@ public class PlayerTweaksData implements ProfileChangeListener {
+@@ -768,8 +793,8 @@ public class PlayerTweaksData implements ProfileChangeListener {
          mIsSyncRowButtonIndexEnabled = Helpers.parseBoolean(split, 41, true);
          mIsUnsafeAudioFormatsEnabled = Helpers.parseBoolean(split, 42, true);
          //mIsHighBitrateFormatsEnabled = Helpers.parseBoolean(split, 43, false);
@@ -1012,7 +1029,7 @@ index 5d1842c94..1132883f2 100644
          mIsRememberPositionOfLiveVideosEnabled = Helpers.parseBoolean(split, 46, true);
          mIsOculusQuestFixEnabled = Helpers.parseBoolean(split, 47, Utils.isOculusQuest());
          // mPlayerDataSource was here
-@@ -770,12 +795,20 @@ public class PlayerTweaksData implements ProfileChangeListener {
+@@ -783,13 +808,20 @@ public class PlayerTweaksData implements ProfileChangeListener {
          mIsAudioFocusEnabled = Helpers.parseBoolean(split, 54, true);
          mIsDontResizeVideoToFitDialogEnabled = Helpers.parseBoolean(split, 55, false);
          mIsSuggestionsHorizontallyScrolled = Helpers.parseBoolean(split, 56, false);
@@ -1023,6 +1040,7 @@ index 5d1842c94..1132883f2 100644
          mIsQueueRespectsPlaybackMode = Helpers.parseBoolean(split, 60, false);
          //mIsSabrLiveEnabled = Helpers.parseBoolean(split, 61, false);
          mIsLiveEdgeEnabled = Helpers.parseBoolean(split, 62, false);
+         mIsQuickSkipChaptersEnabled = Helpers.parseBoolean(split, 63, false);
 +        // Migrate the first fork's separate toggle once; slot 61 is cleared on save.
 +        if (!"true".equals(mPrefs.getProfileData("shorts_slider_migrated")) && split != null && split.length == 62 &&
 +                ("true".equals(split[61]) || "false".equals(split[61]))) {
@@ -1030,18 +1048,9 @@ index 5d1842c94..1132883f2 100644
 +            mPrefs.setProfileData("shorts_slider_migrated", "true");
 +            persistNow();
 +        }
-+
  
          updateDefaultValues();
      }
-@@ -805,6 +838,7 @@ public class PlayerTweaksData implements ProfileChangeListener {
-                 null, mIsAudioFocusEnabled, mIsDontResizeVideoToFitDialogEnabled, mIsSuggestionsHorizontallyScrolled,
-                 mIsQuickSkipShortsAltEnabled, mIsQuickSkipVideosAltEnabled, mIsAudioTimeStretchingEnabled, mIsQueueRespectsPlaybackMode, null,
-                 mIsLiveEdgeEnabled
-+
-                 ));
-     }
- 
 diff --git a/common/src/main/res/drawable-nodpi/action_shorts_auto_scroll.png b/common/src/main/res/drawable-nodpi/action_shorts_auto_scroll.png
 new file mode 100644
 index 0000000000000000000000000000000000000000..1d3028a2cd09c1fe67ebbf8a0712a0451d4018e6
@@ -1106,10 +1115,10 @@ literal 0
 HcmV?d00001
 
 diff --git a/common/src/main/res/values-fr/strings.xml b/common/src/main/res/values-fr/strings.xml
-index c411a44fc..960ff0c2a 100644
+index b8155d6bb..b43080919 100644
 --- a/common/src/main/res/values-fr/strings.xml
 +++ b/common/src/main/res/values-fr/strings.xml
-@@ -762,4 +762,10 @@
+@@ -763,4 +763,10 @@
          <item quantity="one">%s seconde</item>
          <item quantity="other">%s secondes</item>
      </plurals>
@@ -1134,10 +1143,10 @@ index 1ed9c45d6..5e40e9385 100644
  </resources>
 \ No newline at end of file
 diff --git a/common/src/main/res/values/strings.xml b/common/src/main/res/values/strings.xml
-index 6d7dc75aa..5ba71d8f9 100644
+index 3498ffd19..93eb479b0 100644
 --- a/common/src/main/res/values/strings.xml
 +++ b/common/src/main/res/values/strings.xml
-@@ -762,4 +762,10 @@
+@@ -763,4 +763,10 @@
          <item quantity="one">%s second</item>
          <item quantity="other">%s seconds</item>
      </plurals>
@@ -1415,10 +1424,10 @@ index 000000000..9e9a1955d
 +}
 diff --git a/common/src/test/java/com/liskovsoft/smartyoutubetv2/common/misc/PreparationStrategyTest.java b/common/src/test/java/com/liskovsoft/smartyoutubetv2/common/misc/PreparationStrategyTest.java
 new file mode 100644
-index 000000000..415c3b2bc
+index 000000000..79e01f3db
 --- /dev/null
 +++ b/common/src/test/java/com/liskovsoft/smartyoutubetv2/common/misc/PreparationStrategyTest.java
-@@ -0,0 +1,276 @@
+@@ -0,0 +1,219 @@
 +package com.liskovsoft.smartyoutubetv2.common.misc;
 +
 +import com.liskovsoft.youtubeapi.videoinfo.V2.VideoInfoService;
@@ -1427,7 +1436,6 @@ index 000000000..415c3b2bc
 +
 +import com.liskovsoft.youtubeapi.common.helpers.AppClient;
 +import com.liskovsoft.youtubeapi.app.ReloadPlaybackGate;
-+import org.junit.Before;
 +import org.junit.Test;
 +import org.junit.runner.RunWith;
 +import org.robolectric.RobolectricTestRunner;
@@ -1446,68 +1454,6 @@ index 000000000..415c3b2bc
 +@RunWith(RobolectricTestRunner.class)
 +@Config(sdk = 28)
 +public class PreparationStrategyTest {
-+    private VideoInfoService active;
-+
-+    @Before public void setup() throws Exception {
-+        set(null, "sInstance", null);
-+        active = VideoInfoService.instance();
-+    }
-+
-+    @Test public void preparationStartsWithTheChosenRecoveryClient() throws Exception {
-+        set(active, "mNextClient", AppClient.IOS);
-+        set(active, "mActualClient", AppClient.WEB);
-+        VideoInfoService prepared = VideoInfoService.createForPreparation();
-+        assertNotSame(active, prepared);
-+        assertEquals(AppClient.IOS, get(prepared, "mNextClient"));
-+        assertEquals(AppClient.IOS, get(prepared, "mPreparationStartType"));
-+        assertEquals(true, get(prepared, "mIsIsolated"));
-+        assertNull(get(prepared, "mActualClient"));
-+    }
-+
-+    @Test public void preparationDoesNotMutateTheActiveClientOrPlaybackState() throws Exception {
-+        set(active, "mNextClient", AppClient.IOS);
-+        set(active, "mActualClient", AppClient.WEB);
-+        set(active, "mIsUnplayable", false);
-+        VideoInfoService prepared = VideoInfoService.createForPreparation();
-+        set(prepared, "mNextClient", AppClient.VISIONOS);
-+        set(prepared, "mActualClient", AppClient.VISIONOS);
-+        set(prepared, "mIsUnplayable", true);
-+        assertEquals(AppClient.IOS, get(active, "mNextClient"));
-+        assertEquals(AppClient.WEB, get(active, "mActualClient"));
-+        assertEquals(false, get(active, "mIsUnplayable"));
-+    }
-+
-+    @Test public void activationKeepsAnOverrideChangedDuringPreparation() throws Exception {
-+        set(active, "mNextClient", AppClient.IOS);
-+        VideoInfoService prepared = VideoInfoService.createForPreparation();
-+        set(prepared, "mActualClient", AppClient.IOS);
-+        set(active, "mNextClient", AppClient.MWEB);
-+        active.activatePreparedState(prepared);
-+        assertEquals(AppClient.MWEB, get(active, "mNextClient"));
-+        assertEquals(AppClient.IOS, get(active, "mActualClient"));
-+    }
-+
-+    @Test public void defaultPreparationCannotEraseALaterRecoveryOverride() throws Exception {
-+        VideoInfoService prepared = VideoInfoService.createForPreparation();
-+        assertNull(get(prepared, "mNextClient"));
-+        set(prepared, "mActualClient", AppClient.WEB_EMBED);
-+        set(active, "mNextClient", AppClient.VISIONOS);
-+        active.activatePreparedState(prepared);
-+        assertEquals(AppClient.VISIONOS, get(active, "mNextClient"));
-+    }
-+
-+    @Test public void activationTransfersTheResolvedClientAndStatus() throws Exception {
-+        set(active, "mNextClient", AppClient.IOS);
-+        set(active, "mActualClient", AppClient.WEB);
-+        VideoInfoService prepared = VideoInfoService.createForPreparation();
-+        set(prepared, "mActualClient", AppClient.VISIONOS);
-+        set(prepared, "mIsUnplayable", false);
-+        active.activatePreparedState(prepared);
-+        assertEquals(AppClient.VISIONOS, get(active, "mActualClient"));
-+        assertEquals(AppClient.IOS, get(active, "mNextClient"));
-+        assertEquals(false, get(active, "mIsUnplayable"));
-+    }
-+
 +    @Test public void privateWrapperCacheNeverChangesTheActiveCache() throws Exception {
 +        Object activeContext = activeContext();
 +        MediaItemFormatInfo playing = format("playing", false);
@@ -1539,7 +1485,7 @@ index 000000000..415c3b2bc
 +        MediaItemFormatInfo fallback = format("next", false);
 +        FakeContext preparation = new FakeContext(format("next", true), fallback);
 +        assertSame(fallback, preparation.getFormatInfo("next", null));
-+        assertEquals(Arrays.asList("auth", "legacy", "auth", "innertube"), preparation.calls);
++        assertEquals(Arrays.asList("auth", "legacy", "legacy", "innertube"), preparation.calls);
 +        assertSame(fallback, preparation.getFormatInfo("next", null));
 +        assertEquals(4, preparation.calls.size());
 +    }
@@ -1553,42 +1499,60 @@ index 000000000..415c3b2bc
 +        } finally { ReloadPlaybackGate.reset("next"); }
 +    }
 +
-+    @Test public void preparationCopiesTheCurrentInnertubeFirstStrategyWithoutSharingIt() throws Exception {
-+        Object activeContext = activeContext();
-+        Object old = contextField(activeContext, "mTryInnertubeFirst");
-+        contextField(activeContext, "mTryInnertubeFirst", true);
++    @Test public void preparationUsesTheCurrentClientOverrideWithoutChangingIt() throws Exception {
++        Object active = activeContext();
++        Object old = contextField(active, "mNextClient");
 +        try {
++            Object web = clientEntry(AppClient.WEB);
++            contextField(active, "mNextClient", web);
 +            FormatInfoWrapper.LookupContext preparation = FormatInfoWrapper.createForPreparation(
 +                    VideoInfoService.createForPreparation());
-+            assertEquals(true, contextField(preparation, "mTryInnertubeFirst"));
-+            contextField(preparation, "mTryInnertubeFirst", false);
-+            assertEquals(true, contextField(activeContext, "mTryInnertubeFirst"));
++            assertEquals(AppClient.WEB, preparation.getActualClient());
++            preparation.switchNextClient(true);
++            assertNotEquals(AppClient.WEB, preparation.getActualClient());
++            assertSame(web, contextField(active, "mNextClient"));
 +        } finally {
-+            contextField(activeContext, "mTryInnertubeFirst", old);
++            contextField(active, "mNextClient", old);
 +        }
 +    }
 +
-+    @Test public void activationPreservesANewerWrapperRecoveryChoice() throws Exception {
-+        Object activeContext = activeContext();
-+        Object oldStrategy = contextField(activeContext, "mTryInnertubeFirst");
-+        Object oldGeneration = contextField(activeContext, "mStrategyGeneration");
-+        Object oldCache = contextField(activeContext, "mCachedFormatInfo");
-+        contextField(activeContext, "mStrategyGeneration", 40L);
-+        contextField(activeContext, "mTryInnertubeFirst", false);
++    @Test public void activationKeepsARecoveryChoiceMadeDuringPreparation() throws Exception {
++        Object active = activeContext();
++        Object oldClient = contextField(active, "mNextClient");
++        Object oldActual = contextField(active, "mActualClient");
++        Object oldGeneration = contextField(active, "strategyGeneration");
++        Object oldCache = contextField(active, "mCachedFormatInfo");
 +        try {
++            Object web = clientEntry(AppClient.WEB);
++            Object ios = clientEntry(AppClient.IOS);
++            contextField(active, "mNextClient", ios);
 +            FormatInfoWrapper.LookupContext preparation = FormatInfoWrapper.createForPreparation(
 +                    VideoInfoService.createForPreparation());
-+            contextField(activeContext, "mStrategyGeneration", 41L);
-+            contextField(activeContext, "mTryInnertubeFirst", true);
++            contextField(preparation, "mActualClient", ios);
++            contextField(active, "mActualClient", web);
++            FormatInfoWrapper.switchNextClient(true);
++            AppClient recovery = FormatInfoWrapper.getActualClient();
 +            MediaItemFormatInfo next = format("next", false);
 +            FormatInfoWrapper.activatePreparedFormat(next, preparation);
-+            assertSame(next, contextField(activeContext, "mCachedFormatInfo"));
-+            assertEquals(true, contextField(activeContext, "mTryInnertubeFirst"));
++            assertSame(next, contextField(active, "mCachedFormatInfo"));
++            assertSame(web, contextField(active, "mActualClient"));
++            assertEquals(recovery, FormatInfoWrapper.getActualClient());
++            assertNotEquals(AppClient.IOS, recovery);
 +        } finally {
-+            contextField(activeContext, "mCachedFormatInfo", oldCache);
-+            contextField(activeContext, "mTryInnertubeFirst", oldStrategy);
-+            contextField(activeContext, "mStrategyGeneration", oldGeneration);
++            contextField(active, "mNextClient", oldClient);
++            contextField(active, "mActualClient", oldActual);
++            contextField(active, "strategyGeneration", oldGeneration);
++            contextField(active, "mCachedFormatInfo", oldCache);
 +        }
++    }
++
++    private static Object clientEntry(AppClient client) throws Exception {
++        Field field = FormatInfoWrapper.class.getDeclaredField("CLIENT_LIST");
++        field.setAccessible(true);
++        for (Object entry : (Object[]) field.get(null)) {
++            if (((kotlin.Pair<?, ?>) entry).getFirst() == client) return entry;
++        }
++        throw new AssertionError("Client not configured: " + client);
 +    }
 +
 +    @Test public void aBlockedPreparationDoesNotHoldTheActiveLookupLock() throws Exception {
@@ -1601,12 +1565,12 @@ index 000000000..415c3b2bc
 +        CountDownLatch finished = new CountDownLatch(1);
 +        AtomicReference<Throwable> failure = new AtomicReference<>();
 +        FakeContext isolated = new FakeContext(format("next", false), null) {
-+            @Override protected MediaItemFormatInfo requestLegacyFormatInfo(String id, String tracking) {
++            @Override protected MediaItemFormatInfo requestLegacyFormatInfo(AppClient client, String id, String tracking) {
 +                entered.countDown();
 +                try {
 +                    if (!release.await(5, TimeUnit.SECONDS)) throw new AssertionError("Release was not signalled");
 +                } catch (InterruptedException error) { throw new AssertionError(error); }
-+                return super.requestLegacyFormatInfo(id, tracking);
++                return super.requestLegacyFormatInfo(client, id, tracking);
 +            }
 +        };
 +        Thread prepare = new Thread(() -> isolated.getFormatInfo("next", null));
@@ -1640,11 +1604,11 @@ index 000000000..415c3b2bc
 +            this.fallback = fallback;
 +        }
 +        @Override protected void checkSigned() { calls.add("auth"); }
-+        @Override protected MediaItemFormatInfo requestLegacyFormatInfo(String id, String tracking) {
++        @Override protected MediaItemFormatInfo requestLegacyFormatInfo(AppClient client, String id, String tracking) {
 +            calls.add("legacy");
 +            return legacy;
 +        }
-+        @Override protected MediaItemFormatInfo requestInnertubeFormatInfo(String id) {
++        @Override protected MediaItemFormatInfo requestInnertubeFormatInfo(AppClient client, String id) {
 +            calls.add("innertube");
 +            return fallback;
 +        }
@@ -1681,18 +1645,6 @@ index 000000000..415c3b2bc
 +                    if (type == float.class) return 0f;
 +                    return null;
 +                });
-+    }
-+
-+    private static Object get(VideoInfoService service, String name) throws Exception {
-+        Field field = VideoInfoService.class.getDeclaredField(name);
-+        field.setAccessible(true);
-+        return field.get(service);
-+    }
-+
-+    private static void set(VideoInfoService service, String name, Object value) throws Exception {
-+        Field field = VideoInfoService.class.getDeclaredField(name);
-+        field.setAccessible(true);
-+        field.set(service, value);
 +    }
 +}
 diff --git a/common/src/test/java/com/liskovsoft/smartyoutubetv2/common/misc/ShortsNavigationTest.java b/common/src/test/java/com/liskovsoft/smartyoutubetv2/common/misc/ShortsNavigationTest.java
@@ -2113,10 +2065,10 @@ index 000000000..ac3bd4950
 +}
 diff --git a/common/src/test/java/com/liskovsoft/smartyoutubetv2/common/misc/ShortsPreferencesTest.java b/common/src/test/java/com/liskovsoft/smartyoutubetv2/common/misc/ShortsPreferencesTest.java
 new file mode 100644
-index 000000000..07f9d97bd
+index 000000000..dbc3ca899
 --- /dev/null
 +++ b/common/src/test/java/com/liskovsoft/smartyoutubetv2/common/misc/ShortsPreferencesTest.java
-@@ -0,0 +1,108 @@
+@@ -0,0 +1,111 @@
 +package com.liskovsoft.smartyoutubetv2.common.misc;
 +
 +import android.content.Context;
@@ -2189,20 +2141,23 @@ index 000000000..07f9d97bd
 +        tweaks.setLoopShortsEnabled(true);
 +        assertFalse(tweaks.isShortsAutoScrollEnabled());
 +    }
-+    @Test public void officialLivePreferenceSurvivesSavingShortsSettings() {
-+        String[] data = new String[63];
++    @Test public void officialLiveAndChapterPreferencesSurviveSavingShortsSettings() {
++        String[] data = new String[64];
 +        Arrays.fill(data, "null");
 +        data[44] = "false";
 +        data[61] = "false";
 +        data[62] = "true";
++        data[63] = "true";
 +        prefs.setProfileData("video_player_tweaks_data", Helpers.mergeData((Object[]) data));
 +        tweaks.onProfileChanged();
 +        assertTrue(tweaks.isLiveEdgeEnabled());
++        assertTrue(tweaks.isQuickSkipChaptersEnabled());
 +        assertTrue(tweaks.isShortsAutoScrollEnabled());
 +        tweaks.setShortsAutoScrollEnabled(false);
 +        shadowOf(Looper.getMainLooper()).idle();
 +        tweaks.onProfileChanged();
 +        assertTrue(tweaks.isLiveEdgeEnabled());
++        assertTrue(tweaks.isQuickSkipChaptersEnabled());
 +        assertFalse(tweaks.isShortsAutoScrollEnabled());
 +    }
 +
@@ -2227,10 +2182,10 @@ index 000000000..07f9d97bd
 +}
 diff --git a/common/src/test/java/com/liskovsoft/smartyoutubetv2/common/misc/ShortsPreparationLifecycleTest.java b/common/src/test/java/com/liskovsoft/smartyoutubetv2/common/misc/ShortsPreparationLifecycleTest.java
 new file mode 100644
-index 000000000..8bca0034f
+index 000000000..cad4df88e
 --- /dev/null
 +++ b/common/src/test/java/com/liskovsoft/smartyoutubetv2/common/misc/ShortsPreparationLifecycleTest.java
-@@ -0,0 +1,356 @@
+@@ -0,0 +1,373 @@
 +package com.liskovsoft.smartyoutubetv2.common.misc;
 +
 +import android.content.Context;
@@ -2245,10 +2200,10 @@ index 000000000..8bca0034f
 +import com.liskovsoft.smartyoutubetv2.common.app.presenters.PlaybackPresenter;
 +import com.liskovsoft.smartyoutubetv2.common.app.views.PlaybackView;
 +import com.liskovsoft.smartyoutubetv2.common.prefs.PlayerTweaksData;
++import com.liskovsoft.smartyoutubetv2.common.prefs.GeneralData;
 +import com.liskovsoft.youtubeapi.service.PreparedShort;
 +import com.liskovsoft.youtubeapi.service.YouTubeSignInService;
 +import com.liskovsoft.youtubeapi.app.AppService;
-+import com.liskovsoft.youtubeapi.videoinfo.V2.VideoInfoService;
 +import io.reactivex.Observable;
 +import io.reactivex.subjects.PublishSubject;
 +import org.junit.Before;
@@ -2336,6 +2291,23 @@ index 000000000..8bca0034f
 +        assertEquals(1, preparations.get());
 +    }
 +
++    @Test public void childModeCancelsPreparationAndUsesForegroundLookup() throws Exception {
++        startPreparation();
++        GeneralData general = GeneralData.instance(context);
++        general.setChildModeEnabled(true);
++        try {
++            current = next;
++            loadFormats(controller, current);
++            assertFalse(pending.hasObservers());
++            assertEquals(1, foreground.get());
++            controller.onMetadata(null);
++            assertEquals(1, preparations.get());
++        } finally {
++            general.setChildModeEnabled(false);
++            controller.onFinish();
++        }
++    }
++
 +    @Test public void metadataArrivingAfterReadyStartsPreparationImmediately() {
 +        playing = true;
 +        duration = 10_000;
@@ -2366,7 +2338,7 @@ index 000000000..8bca0034f
 +        startPreparation();
 +        Constructor<?> constructor = PreparedShort.class.getDeclaredConstructors()[0];
 +        constructor.setAccessible(true);
-+        pending.onNext((PreparedShort) constructor.newInstance(null, null, null, null));
++        pending.onNext((PreparedShort) constructor.newInstance(null, null, null));
 +        current = next;
 +        loadFormats(controller, current);
 +        assertEquals(0, foreground.get()); // Cached activation is posted after presenter dispatch.
@@ -2381,7 +2353,7 @@ index 000000000..8bca0034f
 +        startPreparation();
 +        Constructor<?> constructor = PreparedShort.class.getDeclaredConstructors()[0];
 +        constructor.setAccessible(true);
-+        pending.onNext((PreparedShort) constructor.newInstance(null, null, null, null));
++        pending.onNext((PreparedShort) constructor.newInstance(null, null, null));
 +        current = next;
 +        loadFormats(controller, current);
 +        controller.onFinish();
@@ -2452,7 +2424,7 @@ index 000000000..8bca0034f
 +        Constructor<?> constructor = PreparedShort.class.getDeclaredConstructors()[0];
 +        constructor.setAccessible(true);
 +        PreparedShort prepared = (PreparedShort) constructor.newInstance(format("first"),
-+                VideoInfoService.createForPreparation(), "prepared-nonce",
++                "prepared-nonce",
 +                YouTubeSignInService.instance().getSelectedAccount());
 +        NextVideoPreloader<PreparedShort> preloader = new NextVideoPreloader<>(
 +                id -> Observable.just(prepared), () -> 0, PreparedShort::isValid);

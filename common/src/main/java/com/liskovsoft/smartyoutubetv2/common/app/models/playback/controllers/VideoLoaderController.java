@@ -304,7 +304,7 @@ public class VideoLoaderController extends BasePlayerController {
         // Fix no progress on next video (the engine may still buffering a bit)
         //getPlayer().showProgressBar(true);
         Utils.post(mShowProgressBar);
-        Observable<PreparedShort> prepared = getPlayerTweaksData().isShortsPreparationEnabled() ?
+        Observable<PreparedShort> prepared = canPrepareShorts() ?
                 mNextVideoPreloader.consume(video.videoId) : null;
         if (prepared == null) {
             mNextVideoPreloader.reset();
@@ -321,7 +321,7 @@ public class VideoLoaderController extends BasePlayerController {
         if (prepared != null) {
             format = prepared.observeOn(AndroidSchedulers.mainThread()).flatMap(value -> {
                 if (generation != mFormatInfoGeneration || getPlayer() == null) return Observable.<MediaItemFormatInfo>empty();
-                MediaItemFormatInfo activated = value.activate(); // Revalidates expiry and the selected account.
+                MediaItemFormatInfo activated = canPrepareShorts() ? value.activate() : null; // Revalidates expiry and the selected account.
                 return activated != null ? Observable.just(activated) : Observable.empty();
             }).onErrorResumeNext(Observable.empty()).switchIfEmpty(Observable.defer(() -> {
                 if (generation != mFormatInfoGeneration || getPlayer() == null) return Observable.empty();
@@ -343,7 +343,9 @@ public class VideoLoaderController extends BasePlayerController {
     }
 
     protected Observable<MediaItemFormatInfo> loadRegularFormatInfo(String videoId) {
-        return YouTubeServiceManager.instance().getMediaItemService().getFormatInfoObserve(videoId);
+        ServiceManager service = YouTubeServiceManager.instance();
+        service.allowRestrictedVideos(!getGeneralData().isChildModeEnabled());
+        return service.getMediaItemService().getFormatInfoObserve(videoId);
     }
 
     private void processFormatInfo(MediaItemFormatInfo formatInfo) {
@@ -714,8 +716,12 @@ public class VideoLoaderController extends BasePlayerController {
         disposeActions();
     }
 
+    private boolean canPrepareShorts() {
+        return getPlayerTweaksData().isShortsPreparationEnabled() && !getGeneralData().isChildModeEnabled();
+    }
+
     private void preloadNextVideoIfNeeded() {
-        if (!getPlayerTweaksData().isShortsPreparationEnabled()) {
+        if (!canPrepareShorts()) {
             mNextVideoPreloader.reset();
             return;
         }

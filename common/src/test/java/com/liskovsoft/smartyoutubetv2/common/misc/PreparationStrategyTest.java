@@ -6,7 +6,6 @@ import com.liskovsoft.mediaserviceinterfaces.data.MediaItemFormatInfo;
 
 import com.liskovsoft.youtubeapi.common.helpers.AppClient;
 import com.liskovsoft.youtubeapi.app.ReloadPlaybackGate;
-import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.robolectric.RobolectricTestRunner;
@@ -25,68 +24,6 @@ import static org.junit.Assert.*;
 @RunWith(RobolectricTestRunner.class)
 @Config(sdk = 28)
 public class PreparationStrategyTest {
-    private VideoInfoService active;
-
-    @Before public void setup() throws Exception {
-        set(null, "sInstance", null);
-        active = VideoInfoService.instance();
-    }
-
-    @Test public void preparationStartsWithTheChosenRecoveryClient() throws Exception {
-        set(active, "mNextClient", AppClient.IOS);
-        set(active, "mActualClient", AppClient.WEB);
-        VideoInfoService prepared = VideoInfoService.createForPreparation();
-        assertNotSame(active, prepared);
-        assertEquals(AppClient.IOS, get(prepared, "mNextClient"));
-        assertEquals(AppClient.IOS, get(prepared, "mPreparationStartType"));
-        assertEquals(true, get(prepared, "mIsIsolated"));
-        assertNull(get(prepared, "mActualClient"));
-    }
-
-    @Test public void preparationDoesNotMutateTheActiveClientOrPlaybackState() throws Exception {
-        set(active, "mNextClient", AppClient.IOS);
-        set(active, "mActualClient", AppClient.WEB);
-        set(active, "mIsUnplayable", false);
-        VideoInfoService prepared = VideoInfoService.createForPreparation();
-        set(prepared, "mNextClient", AppClient.VISIONOS);
-        set(prepared, "mActualClient", AppClient.VISIONOS);
-        set(prepared, "mIsUnplayable", true);
-        assertEquals(AppClient.IOS, get(active, "mNextClient"));
-        assertEquals(AppClient.WEB, get(active, "mActualClient"));
-        assertEquals(false, get(active, "mIsUnplayable"));
-    }
-
-    @Test public void activationKeepsAnOverrideChangedDuringPreparation() throws Exception {
-        set(active, "mNextClient", AppClient.IOS);
-        VideoInfoService prepared = VideoInfoService.createForPreparation();
-        set(prepared, "mActualClient", AppClient.IOS);
-        set(active, "mNextClient", AppClient.MWEB);
-        active.activatePreparedState(prepared);
-        assertEquals(AppClient.MWEB, get(active, "mNextClient"));
-        assertEquals(AppClient.IOS, get(active, "mActualClient"));
-    }
-
-    @Test public void defaultPreparationCannotEraseALaterRecoveryOverride() throws Exception {
-        VideoInfoService prepared = VideoInfoService.createForPreparation();
-        assertNull(get(prepared, "mNextClient"));
-        set(prepared, "mActualClient", AppClient.WEB_EMBED);
-        set(active, "mNextClient", AppClient.VISIONOS);
-        active.activatePreparedState(prepared);
-        assertEquals(AppClient.VISIONOS, get(active, "mNextClient"));
-    }
-
-    @Test public void activationTransfersTheResolvedClientAndStatus() throws Exception {
-        set(active, "mNextClient", AppClient.IOS);
-        set(active, "mActualClient", AppClient.WEB);
-        VideoInfoService prepared = VideoInfoService.createForPreparation();
-        set(prepared, "mActualClient", AppClient.VISIONOS);
-        set(prepared, "mIsUnplayable", false);
-        active.activatePreparedState(prepared);
-        assertEquals(AppClient.VISIONOS, get(active, "mActualClient"));
-        assertEquals(AppClient.IOS, get(active, "mNextClient"));
-        assertEquals(false, get(active, "mIsUnplayable"));
-    }
-
     @Test public void privateWrapperCacheNeverChangesTheActiveCache() throws Exception {
         Object activeContext = activeContext();
         MediaItemFormatInfo playing = format("playing", false);
@@ -118,7 +55,7 @@ public class PreparationStrategyTest {
         MediaItemFormatInfo fallback = format("next", false);
         FakeContext preparation = new FakeContext(format("next", true), fallback);
         assertSame(fallback, preparation.getFormatInfo("next", null));
-        assertEquals(Arrays.asList("auth", "legacy", "auth", "innertube"), preparation.calls);
+        assertEquals(Arrays.asList("auth", "legacy", "legacy", "innertube"), preparation.calls);
         assertSame(fallback, preparation.getFormatInfo("next", null));
         assertEquals(4, preparation.calls.size());
     }
@@ -132,42 +69,60 @@ public class PreparationStrategyTest {
         } finally { ReloadPlaybackGate.reset("next"); }
     }
 
-    @Test public void preparationCopiesTheCurrentInnertubeFirstStrategyWithoutSharingIt() throws Exception {
-        Object activeContext = activeContext();
-        Object old = contextField(activeContext, "mTryInnertubeFirst");
-        contextField(activeContext, "mTryInnertubeFirst", true);
+    @Test public void preparationUsesTheCurrentClientOverrideWithoutChangingIt() throws Exception {
+        Object active = activeContext();
+        Object old = contextField(active, "mNextClient");
         try {
+            Object web = clientEntry(AppClient.WEB);
+            contextField(active, "mNextClient", web);
             FormatInfoWrapper.LookupContext preparation = FormatInfoWrapper.createForPreparation(
                     VideoInfoService.createForPreparation());
-            assertEquals(true, contextField(preparation, "mTryInnertubeFirst"));
-            contextField(preparation, "mTryInnertubeFirst", false);
-            assertEquals(true, contextField(activeContext, "mTryInnertubeFirst"));
+            assertEquals(AppClient.WEB, preparation.getActualClient());
+            preparation.switchNextClient(true);
+            assertNotEquals(AppClient.WEB, preparation.getActualClient());
+            assertSame(web, contextField(active, "mNextClient"));
         } finally {
-            contextField(activeContext, "mTryInnertubeFirst", old);
+            contextField(active, "mNextClient", old);
         }
     }
 
-    @Test public void activationPreservesANewerWrapperRecoveryChoice() throws Exception {
-        Object activeContext = activeContext();
-        Object oldStrategy = contextField(activeContext, "mTryInnertubeFirst");
-        Object oldGeneration = contextField(activeContext, "mStrategyGeneration");
-        Object oldCache = contextField(activeContext, "mCachedFormatInfo");
-        contextField(activeContext, "mStrategyGeneration", 40L);
-        contextField(activeContext, "mTryInnertubeFirst", false);
+    @Test public void activationKeepsARecoveryChoiceMadeDuringPreparation() throws Exception {
+        Object active = activeContext();
+        Object oldClient = contextField(active, "mNextClient");
+        Object oldActual = contextField(active, "mActualClient");
+        Object oldGeneration = contextField(active, "strategyGeneration");
+        Object oldCache = contextField(active, "mCachedFormatInfo");
         try {
+            Object web = clientEntry(AppClient.WEB);
+            Object ios = clientEntry(AppClient.IOS);
+            contextField(active, "mNextClient", ios);
             FormatInfoWrapper.LookupContext preparation = FormatInfoWrapper.createForPreparation(
                     VideoInfoService.createForPreparation());
-            contextField(activeContext, "mStrategyGeneration", 41L);
-            contextField(activeContext, "mTryInnertubeFirst", true);
+            contextField(preparation, "mActualClient", ios);
+            contextField(active, "mActualClient", web);
+            FormatInfoWrapper.switchNextClient(true);
+            AppClient recovery = FormatInfoWrapper.getActualClient();
             MediaItemFormatInfo next = format("next", false);
             FormatInfoWrapper.activatePreparedFormat(next, preparation);
-            assertSame(next, contextField(activeContext, "mCachedFormatInfo"));
-            assertEquals(true, contextField(activeContext, "mTryInnertubeFirst"));
+            assertSame(next, contextField(active, "mCachedFormatInfo"));
+            assertSame(web, contextField(active, "mActualClient"));
+            assertEquals(recovery, FormatInfoWrapper.getActualClient());
+            assertNotEquals(AppClient.IOS, recovery);
         } finally {
-            contextField(activeContext, "mCachedFormatInfo", oldCache);
-            contextField(activeContext, "mTryInnertubeFirst", oldStrategy);
-            contextField(activeContext, "mStrategyGeneration", oldGeneration);
+            contextField(active, "mNextClient", oldClient);
+            contextField(active, "mActualClient", oldActual);
+            contextField(active, "strategyGeneration", oldGeneration);
+            contextField(active, "mCachedFormatInfo", oldCache);
         }
+    }
+
+    private static Object clientEntry(AppClient client) throws Exception {
+        Field field = FormatInfoWrapper.class.getDeclaredField("CLIENT_LIST");
+        field.setAccessible(true);
+        for (Object entry : (Object[]) field.get(null)) {
+            if (((kotlin.Pair<?, ?>) entry).getFirst() == client) return entry;
+        }
+        throw new AssertionError("Client not configured: " + client);
     }
 
     @Test public void aBlockedPreparationDoesNotHoldTheActiveLookupLock() throws Exception {
@@ -180,12 +135,12 @@ public class PreparationStrategyTest {
         CountDownLatch finished = new CountDownLatch(1);
         AtomicReference<Throwable> failure = new AtomicReference<>();
         FakeContext isolated = new FakeContext(format("next", false), null) {
-            @Override protected MediaItemFormatInfo requestLegacyFormatInfo(String id, String tracking) {
+            @Override protected MediaItemFormatInfo requestLegacyFormatInfo(AppClient client, String id, String tracking) {
                 entered.countDown();
                 try {
                     if (!release.await(5, TimeUnit.SECONDS)) throw new AssertionError("Release was not signalled");
                 } catch (InterruptedException error) { throw new AssertionError(error); }
-                return super.requestLegacyFormatInfo(id, tracking);
+                return super.requestLegacyFormatInfo(client, id, tracking);
             }
         };
         Thread prepare = new Thread(() -> isolated.getFormatInfo("next", null));
@@ -219,11 +174,11 @@ public class PreparationStrategyTest {
             this.fallback = fallback;
         }
         @Override protected void checkSigned() { calls.add("auth"); }
-        @Override protected MediaItemFormatInfo requestLegacyFormatInfo(String id, String tracking) {
+        @Override protected MediaItemFormatInfo requestLegacyFormatInfo(AppClient client, String id, String tracking) {
             calls.add("legacy");
             return legacy;
         }
-        @Override protected MediaItemFormatInfo requestInnertubeFormatInfo(String id) {
+        @Override protected MediaItemFormatInfo requestInnertubeFormatInfo(AppClient client, String id) {
             calls.add("innertube");
             return fallback;
         }
@@ -260,17 +215,5 @@ public class PreparationStrategyTest {
                     if (type == float.class) return 0f;
                     return null;
                 });
-    }
-
-    private static Object get(VideoInfoService service, String name) throws Exception {
-        Field field = VideoInfoService.class.getDeclaredField(name);
-        field.setAccessible(true);
-        return field.get(service);
-    }
-
-    private static void set(VideoInfoService service, String name, Object value) throws Exception {
-        Field field = VideoInfoService.class.getDeclaredField(name);
-        field.setAccessible(true);
-        field.set(service, value);
     }
 }
