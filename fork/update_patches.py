@@ -6,6 +6,7 @@ import subprocess
 root = Path(__file__).resolve().parents[1]
 config = json.loads((root / 'fork/config.json').read_text())
 paths = [
+ 'build.gradle',
  'common/build.gradle',
  'common/src/main/java/com/liskovsoft/smartyoutubetv2/common/app/models/data/Video.java',
  'common/src/main/java/com/liskovsoft/smartyoutubetv2/common/app/models/data/SimpleMediaItem.java',

@@ -1,3 +1,25 @@
+diff --git a/build.gradle b/build.gradle
+index 56f1400aa..deea5a303 100644
+--- a/build.gradle
++++ b/build.gradle
+@@ -14,6 +14,8 @@ buildscript {
+     repositories {
+         google()
+         mavenCentral()
++        // Alternate official Maven Central endpoint when the default is unavailable.
++        maven { url 'https://repo1.maven.org/maven2' }
+         // IntelliJ 'Read timed out' (error 403)
+         // https://stackoverflow.com/questions/74258160/is-jcenter-down-permanently-31-oct
+         //jcenter()
+@@ -31,6 +33,8 @@ allprojects {
+     repositories {
+         google()
+         mavenCentral()
++        // Alternate official Maven Central endpoint when the default is unavailable.
++        maven { url 'https://repo1.maven.org/maven2' }
+         maven { url 'https://jitpack.io' }
+         //flatDir { dirs 'libs' } // include duktape-my to all subprojects
+         // IntelliJ 'Read timed out' (error 403)
 diff --git a/common/build.gradle b/common/build.gradle
 index 35466e810..86fc6b3a3 100644
 --- a/common/build.gradle

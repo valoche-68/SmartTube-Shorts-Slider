@@ -149,7 +149,7 @@ def prepare(channel, upstream_tag, folder):
     (folder / 'fork/build.json').write_text(json.dumps(provenance, indent=2) + '\n')
     run('git', 'config', 'user.name', 'SmartTube Shorts Slider build', cwd=folder)
     run('git', 'config', 'user.email', '69769543+valoche-68@users.noreply.github.com', cwd=folder)
-    run('git', 'add', '-A', '--', 'common', 'smarttubetv', '.github', '.githooks', 'tools', 'docs', 'README.md', 'README.fr.md', 'LICENSE', '.gitignore', '.gitattributes', cwd=folder)
+    run('git', 'add', '-A', '--', 'build.gradle', 'common', 'smarttubetv', '.github', '.githooks', 'tools', 'docs', 'README.md', 'README.fr.md', 'LICENSE', '.gitignore', '.gitattributes', cwd=folder)
     run('git', 'add', '-f', '--', 'fork', cwd=folder)
     run('git', 'commit', '--quiet', '-m', f'Build {target_tag} from {upstream_tag}', cwd=folder)
     provenance['source_commit'] = run('git', 'rev-parse', 'HEAD', cwd=folder, capture=True)
