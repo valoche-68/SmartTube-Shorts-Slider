@@ -1,0 +1,6 @@
+# Preserve the reviewed patches byte for byte, including upstream CRLF context.
+fork/*.patch -text -whitespace
+# Upstream uses CRLF in these source files; it is not trailing whitespace.
+*.java whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol
+*.gradle whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol
+*.xml whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol
