@@ -121,6 +121,10 @@ public class PlayerUIController extends BasePlayerController {
 
         if (shown) {
             enableUiAutoHideTimeout();
+            if (getPlayer() != null) {
+                getPlayer().setButtonState(R.id.action_shorts_auto_scroll,
+                        getPlayerTweaksData().isShortsAutoScrollEnabled() ? PlayerUI.BUTTON_ON : PlayerUI.BUTTON_OFF);
+            }
         }
     }
 
@@ -300,6 +304,10 @@ public class PlayerUIController extends BasePlayerController {
 
         getPlayer().updateEndingTime();
         applySoundOffButtonState();
+        if (item != null && (item.isShorts() || item.belongsToShortsGroup())) {
+            getPlayer().setButtonState(R.id.action_shorts_auto_scroll,
+                    getPlayerTweaksData().isShortsAutoScrollEnabled() ? PlayerUI.BUTTON_ON : PlayerUI.BUTTON_OFF);
+        }
     }
 
     @Override
@@ -353,6 +361,8 @@ public class PlayerUIController extends BasePlayerController {
         getPlayer().setButtonState(R.id.action_video_speed, PlayerUI.BUTTON_OFF);
         getPlayer().setButtonState(R.id.action_chat, PlayerUI.BUTTON_OFF);
         getPlayer().setButtonState(R.id.action_subscribe, PlayerUI.BUTTON_OFF);
+        getPlayer().setButtonState(R.id.action_shorts_auto_scroll,
+                getPlayerTweaksData().isShortsAutoScrollEnabled() ? PlayerUI.BUTTON_ON : PlayerUI.BUTTON_OFF);
     }
 
     @Override
@@ -573,13 +583,24 @@ public class PlayerUIController extends BasePlayerController {
         getPlayer().finish();
     }
 
+    private void onShortsAutoScrollClicked(int buttonState) {
+        boolean enable = !getPlayerTweaksData().isShortsAutoScrollEnabled();
+        getPlayerTweaksData().setShortsAutoScrollEnabled(enable);
+        if (getPlayer() != null) {
+            getPlayer().setButtonState(R.id.action_shorts_auto_scroll, enable ? PlayerUI.BUTTON_ON : PlayerUI.BUTTON_OFF);
+        }
+        MessageHelpers.showMessage(getContext(), enable ? R.string.shorts_auto_scroll_on : R.string.shorts_auto_scroll_off);
+    }
+
     @Override
     public void onButtonClicked(int buttonId, int buttonState) {
         if (getPlayer() == null) {
             return;
         }
 
-        if (buttonId == R.id.action_rotate) {
+        if (buttonId == R.id.action_shorts_auto_scroll) {
+            onShortsAutoScrollClicked(buttonState);
+        } else if (buttonId == R.id.action_rotate) {
             onRotate();
         } else if (buttonId == R.id.action_flip) {
             onFlip();
@@ -789,10 +810,19 @@ public class PlayerUIController extends BasePlayerController {
     }
 
     private boolean handleLeftRightSkip(int keyCode) {
-        if (getPlayer() == null || getPlayer().isOverlayShown() || getVideo() == null ||
-                (getVideo().belongsToShortsGroup() && !getPlayerTweaksData().isQuickSkipShortsEnabled() ||
-                (!getVideo().belongsToShortsGroup() && !getPlayerTweaksData().isQuickSkipVideosEnabled()))) {
+        if (getPlayer() == null || getPlayer().isOverlayShown() || getVideo() == null) {
             return false;
+        }
+
+        boolean isShorts = getVideo().isShorts() || getVideo().belongsToShortsGroup();
+        if (isShorts) {
+            if (!getPlayerTweaksData().isQuickSkipShortsEnabled()) {
+                return false;
+            }
+        } else {
+            if (!getPlayerTweaksData().isQuickSkipVideosEnabled()) {
+                return false;
+            }
         }
 
         if (keyCode == KeyEvent.KEYCODE_DPAD_RIGHT) {
@@ -809,10 +839,19 @@ public class PlayerUIController extends BasePlayerController {
     }
 
     private boolean handleUpDownSkip(int keyCode) {
-        if (getPlayer() == null || getPlayer().isOverlayShown() || getVideo() == null
-                || (getVideo().belongsToShortsGroup() && !getPlayerTweaksData().isQuickSkipShortsAltEnabled()
-                    || (!getVideo().belongsToShortsGroup() && !getPlayerTweaksData().isQuickSkipVideosAltEnabled()))) {
+        if (getPlayer() == null || getPlayer().isOverlayShown() || getVideo() == null) {
             return false;
+        }
+
+        boolean isShorts = getVideo().isShorts() || getVideo().belongsToShortsGroup();
+        if (isShorts) {
+            if (!getPlayerTweaksData().isQuickSkipShortsAltEnabled()) {
+                return false;
+            }
+        } else {
+            if (!getPlayerTweaksData().isQuickSkipVideosAltEnabled()) {
+                return false;
+            }
         }
 
         if (keyCode == KeyEvent.KEYCODE_DPAD_DOWN) {
@@ -830,7 +869,8 @@ public class PlayerUIController extends BasePlayerController {
 
     private boolean handleUpSkip(int keyCode) {
         if (getPlayer() == null || getPlayer().isOverlayShown() || getVideo() == null
-                || getVideo().belongsToShortsGroup() || !getPlayerTweaksData().isQuickSkipChaptersEnabled()) {
+                || getVideo().isShorts() || getVideo().belongsToShortsGroup()
+                || !getPlayerTweaksData().isQuickSkipChaptersEnabled()) {
             return false;
         }
 
